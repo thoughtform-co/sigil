@@ -1,0 +1,183 @@
+@import "tailwindcss";
+
+:root {
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 20px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+
+  --void: #050403;
+  --surface-0: #0a0908;
+  --surface-1: #0f0e0c;
+
+  --dawn: #ece3d6;
+  --dawn-70: rgba(236, 227, 214, 0.7);
+  --dawn-50: rgba(236, 227, 214, 0.5);
+  --dawn-30: rgba(236, 227, 214, 0.3);
+  --dawn-15: rgba(236, 227, 214, 0.15);
+  --dawn-08: rgba(236, 227, 214, 0.08);
+  --dawn-04: rgba(236, 227, 214, 0.04);
+
+  --gold: #caa554;
+  --gold-40: rgba(202, 165, 84, 0.4);
+
+  --font-mono: "PT Mono", ui-monospace, monospace;
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+}
+
+@theme inline {
+  --color-void: var(--void);
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-dawn: var(--dawn);
+  --color-dawn-50: var(--dawn-50);
+  --color-dawn-30: var(--dawn-30);
+  --color-dawn-15: var(--dawn-15);
+  --color-dawn-08: var(--dawn-08);
+  --color-gold: var(--gold);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+*:not(.threat-dot) {
+  border-radius: 0 !important;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background: var(--void);
+  color: var(--dawn);
+  font-family: var(--font-sans);
+}
+
+.hud-corner {
+  position: fixed;
+  width: 24px;
+  height: 24px;
+  pointer-events: none;
+  z-index: 40;
+}
+
+.hud-corner::before,
+.hud-corner::after {
+  content: "";
+  position: absolute;
+  background: var(--gold);
+}
+
+.hud-corner-tl {
+  top: clamp(24px, 4vw, 56px);
+  left: clamp(24px, 4vw, 56px);
+}
+
+.hud-corner-tl::before {
+  top: 0;
+  left: 0;
+  width: 24px;
+  height: 1px;
+}
+
+.hud-corner-tl::after {
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 24px;
+}
+
+.hud-corner-tr {
+  top: clamp(24px, 4vw, 56px);
+  right: clamp(24px, 4vw, 56px);
+}
+
+.hud-corner-tr::before {
+  top: 0;
+  right: 0;
+  width: 24px;
+  height: 1px;
+}
+
+.hud-corner-tr::after {
+  top: 0;
+  right: 0;
+  width: 1px;
+  height: 24px;
+}
+
+.hud-corner-bl {
+  bottom: clamp(24px, 4vw, 56px);
+  left: clamp(24px, 4vw, 56px);
+}
+
+.hud-corner-bl::before {
+  bottom: 0;
+  left: 0;
+  width: 24px;
+  height: 1px;
+}
+
+.hud-corner-bl::after {
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  height: 24px;
+}
+
+.hud-corner-br {
+  bottom: clamp(24px, 4vw, 56px);
+  right: clamp(24px, 4vw, 56px);
+}
+
+.hud-corner-br::before {
+  bottom: 0;
+  right: 0;
+  width: 24px;
+  height: 1px;
+}
+
+.hud-corner-br::after {
+  bottom: 0;
+  right: 0;
+  width: 1px;
+  height: 24px;
+}
+
+.hud-rail {
+  position: fixed;
+  top: calc(clamp(24px, 4vw, 56px) + 32px);
+  bottom: calc(clamp(24px, 4vw, 56px) + 32px);
+  width: 1px;
+  pointer-events: none;
+  z-index: 30;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    var(--dawn-30) 10%,
+    var(--dawn-30) 90%,
+    transparent 100%
+  );
+}
+
+.hud-rail-left {
+  left: clamp(24px, 4vw, 56px);
+}
+
+.hud-rail-right {
+  right: clamp(24px, 4vw, 56px);
+}
+
+.hud-shell {
+  min-height: 100vh;
+  padding: clamp(48px, 8vw, 120px);
+}
