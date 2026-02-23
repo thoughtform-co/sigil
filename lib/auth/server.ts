@@ -6,7 +6,28 @@ export type AuthedUser = {
   email: string | null;
 };
 
+const AUTH_BYPASS = process.env.SIGIL_AUTH_BYPASS === "true" || process.env.NEXT_PUBLIC_SIGIL_AUTH_BYPASS === "true";
+const BYPASS_USER_ID = "00000000-0000-4000-8000-000000000001";
+const BYPASS_USER_EMAIL = "sigil-local@thoughtform.dev";
+
 export async function getAuthedUser(): Promise<AuthedUser | null> {
+  if (AUTH_BYPASS) {
+    await prisma.profile.upsert({
+      where: { id: BYPASS_USER_ID },
+      update: {
+        role: "admin",
+        displayName: "Sigil Local",
+      },
+      create: {
+        id: BYPASS_USER_ID,
+        username: "sigil-local",
+        displayName: "Sigil Local",
+        role: "admin",
+      },
+    });
+    return { id: BYPASS_USER_ID, email: BYPASS_USER_EMAIL };
+  }
+
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },

@@ -42,7 +42,7 @@ export function AnalyticsOverview() {
   }, [data]);
 
   if (loading) return <p className="text-sm text-[var(--dawn-30)]">Loading analytics...</p>;
-  if (error) return <p className="text-sm text-red-300">{error}</p>;
+  if (error) return <p className="text-sm" style={{ color: "var(--status-error)" }} role="alert">{error}</p>;
   if (!data) return null;
 
   return (

@@ -1,24 +1,20 @@
 import { NavigationFrame } from "@/components/hud/NavigationFrame";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { AnalyticsOverview } from "@/components/analytics/AnalyticsOverview";
+import { HudPanel, HudPanelHeader } from "@/components/ui/hud";
 
 export default function AnalyticsPage() {
   return (
     <RequireAuth>
-      <NavigationFrame title="SIGIL" modeLabel="analytics">
-        <section className="mx-auto max-w-5xl pt-12">
-          <h1
-            className="mb-4"
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "14px",
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-            }}
-          >
-            generation analytics
-          </h1>
-          <AnalyticsOverview />
+      <NavigationFrame title="SIGIL" modeLabel="analytics" showNavPanel>
+        <section
+          className="w-full max-w-[960px] animate-fade-in-up"
+          style={{ paddingTop: "var(--space-2xl)" }}
+        >
+          <HudPanel>
+            <HudPanelHeader title="generation analytics" />
+            <AnalyticsOverview />
+          </HudPanel>
         </section>
       </NavigationFrame>
     </RequireAuth>

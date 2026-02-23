@@ -35,7 +35,7 @@ export function AdminHealthPanel() {
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <div className="border border-[var(--dawn-08)] bg-[var(--surface-0)] p-4">
-        <h2 style={{ fontFamily: "var(--font-mono)", fontSize: "10px", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--dawn-50)" }}>
+        <h2 className="sigil-section-label" style={{ fontSize: "10px", letterSpacing: "0.08em", marginBottom: "var(--space-sm)" }}>
           platform stats
         </h2>
         <ul className="mt-3 space-y-2 text-sm text-[var(--dawn)]">
@@ -46,7 +46,7 @@ export function AdminHealthPanel() {
         </ul>
       </div>
       <div className="border border-[var(--dawn-08)] bg-[var(--surface-0)] p-4">
-        <h2 style={{ fontFamily: "var(--font-mono)", fontSize: "10px", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--dawn-50)" }}>
+        <h2 className="sigil-section-label" style={{ fontSize: "10px", letterSpacing: "0.08em", marginBottom: "var(--space-sm)" }}>
           provider readiness
         </h2>
         <ul className="mt-3 space-y-2 text-sm text-[var(--dawn)]">

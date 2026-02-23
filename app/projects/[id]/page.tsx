@@ -11,7 +11,7 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
 
   return (
     <RequireAuth>
-      <NavigationFrame title="SIGIL" modeLabel={`project / ${id}`}>
+      <NavigationFrame title="SIGIL" modeLabel={`project / ${id}`} showNavPanel={false}>
         <ProjectWorkspace projectId={id} />
       </NavigationFrame>
     </RequireAuth>

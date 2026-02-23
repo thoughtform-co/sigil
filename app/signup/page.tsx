@@ -11,11 +11,28 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
 
   return (
     <NavigationFrame title="SIGIL" modeLabel="authentication">
-      <section className="mx-auto mt-12 flex max-w-5xl flex-col items-center gap-6">
+      <section className="flex min-h-[80vh] flex-col items-center justify-center gap-8">
         <AuthForm mode="signup" nextPath={next || "/projects"} />
-        <p className="text-sm text-[var(--dawn-50)]">
+        <p
+          className="animate-fade-in"
+          style={{
+            animationDelay: "0.3s",
+            fontFamily: "var(--font-sans)",
+            fontSize: "12px",
+            color: "var(--dawn-40)",
+          }}
+        >
           Already have an account?{" "}
-          <Link href="/login" className="text-[var(--gold)] underline-offset-2 hover:underline">
+          <Link
+            href="/login"
+            style={{
+              color: "var(--gold)",
+              textDecoration: "none",
+              borderBottom: "1px solid var(--gold-30)",
+              paddingBottom: "1px",
+              transition: "border-color var(--duration-fast) ease",
+            }}
+          >
             Sign in
           </Link>
         </p>

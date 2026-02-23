@@ -3,30 +3,26 @@ import { RequireAdmin } from "@/components/auth/RequireAdmin";
 import { AdminHealthPanel } from "@/components/admin/AdminHealthPanel";
 import { PromptEnhancementAdmin } from "@/components/admin/PromptEnhancementAdmin";
 import { FailedGenerationsPanel } from "@/components/admin/FailedGenerationsPanel";
+import { HudPanel, HudPanelHeader } from "@/components/ui/hud";
 
 export default function AdminPage() {
   return (
     <RequireAdmin>
-      <NavigationFrame title="SIGIL" modeLabel="admin">
-        <section className="mx-auto max-w-5xl pt-12">
-          <h1
-            className="mb-4"
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "14px",
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-            }}
-          >
-            system settings
-          </h1>
-          <AdminHealthPanel />
-          <div className="mt-4">
-            <PromptEnhancementAdmin />
-          </div>
-          <div className="mt-4">
-            <FailedGenerationsPanel />
-          </div>
+      <NavigationFrame title="SIGIL" modeLabel="admin" showNavPanel>
+        <section
+          className="w-full max-w-[960px] animate-fade-in-up"
+          style={{ paddingTop: "var(--space-2xl)" }}
+        >
+          <HudPanel>
+            <HudPanelHeader title="system settings" />
+            <AdminHealthPanel />
+            <div style={{ marginTop: "var(--space-xl)" }}>
+              <PromptEnhancementAdmin />
+            </div>
+            <div style={{ marginTop: "var(--space-xl)" }}>
+              <FailedGenerationsPanel />
+            </div>
+          </HudPanel>
         </section>
       </NavigationFrame>
     </RequireAdmin>

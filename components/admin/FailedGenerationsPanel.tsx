@@ -58,22 +58,19 @@ export function FailedGenerationsPanel() {
 
   return (
     <section className="border border-[var(--dawn-08)] bg-[var(--surface-0)] p-4">
-      <h2
-        className="mb-3"
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: "10px",
-          letterSpacing: "0.08em",
-          textTransform: "uppercase",
-          color: "var(--dawn-50)",
-        }}
-      >
+      <h2 className="sigil-section-label mb-3" style={{ fontSize: "10px", letterSpacing: "0.08em" }}>
         failed generations
       </h2>
 
-      {error ? <p className="mb-2 text-xs text-red-300">{error}</p> : null}
+      {error ? (
+        <p className="mb-2 text-xs" style={{ color: "var(--status-error)" }} role="alert">
+          {error}
+        </p>
+      ) : null}
       {items.length === 0 ? (
-        <p className="text-xs text-[var(--dawn-30)]">No failed generations right now.</p>
+        <div className="hud-panel-empty" style={{ borderTop: "none", paddingTop: 0 }}>
+          <p className="hud-panel-empty-body">No failed generations right now.</p>
+        </div>
       ) : (
         <div className="space-y-2">
           {items.map((item) => (
@@ -84,12 +81,9 @@ export function FailedGenerationsPanel() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    void retry(item.id);
-                  }}
+                  onClick={() => void retry(item.id)}
                   disabled={busyId === item.id}
-                  className="border border-[var(--gold)] px-2 py-1 text-[10px] uppercase tracking-[0.08em] text-[var(--gold)] disabled:opacity-50"
-                  style={{ fontFamily: "var(--font-mono)" }}
+                  className="sigil-btn-secondary"
                 >
                   {busyId === item.id ? "retrying..." : "retry"}
                 </button>

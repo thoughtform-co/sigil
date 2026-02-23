@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ProjectCard } from "@/components/projects/ProjectCard";
+import { HudPanel, HudPanelHeader, HudEmptyState } from "@/components/ui/hud";
+import { Dialog } from "@/components/ui/Dialog";
 
 type Project = {
   id: string;
@@ -19,6 +21,7 @@ export function ProjectsView() {
   const [newProjectName, setNewProjectName] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
   const [creating, setCreating] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     async function loadProjects() {
@@ -63,6 +66,7 @@ export function ProjectsView() {
       setProjects((prev) => [createdProject, ...prev]);
       setNewProjectName("");
       setProjectDescription("");
+      setDialogOpen(false);
       router.push(`/projects/${createdProject.id}`);
       router.refresh();
     } catch (err) {
@@ -75,66 +79,165 @@ export function ProjectsView() {
   const hasProjects = useMemo(() => projects.length > 0, [projects.length]);
 
   return (
-    <section className="mx-auto max-w-6xl pt-12">
-      <div className="mb-6 flex items-end justify-between gap-3">
-        <h1
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: "14px",
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-          }}
-        >
-          projects
-        </h1>
-        <div className="flex gap-2">
-          <input
-            value={newProjectName}
-            onChange={(e) => setNewProjectName(e.target.value)}
-            placeholder="Project name"
-            className="border border-[var(--dawn-15)] bg-[var(--void)] px-3 py-2 text-sm text-[var(--dawn)] outline-none"
-          />
-          <input
-            value={projectDescription}
-            onChange={(e) => setProjectDescription(e.target.value)}
-            placeholder="Description"
-            className="border border-[var(--dawn-15)] bg-[var(--void)] px-3 py-2 text-sm text-[var(--dawn)] outline-none"
-          />
-          <button
-            className="border border-[var(--gold)] bg-transparent px-3 py-2 text-xs uppercase tracking-[0.08em] text-[var(--gold)] transition-colors hover:bg-[rgba(202,165,84,0.1)] disabled:opacity-50"
-            style={{ fontFamily: "var(--font-mono)" }}
-            type="button"
-            disabled={creating || !newProjectName.trim()}
-            onClick={() => {
-              void createProject();
+    <section
+      className="w-full max-w-[960px] animate-fade-in-up"
+      style={{ paddingTop: "var(--space-2xl)" }}
+    >
+      <HudPanel>
+        <HudPanelHeader
+          title="generation projects"
+          actions={
+            <button
+              type="button"
+              className="sigil-btn-secondary"
+              onClick={() => setDialogOpen(true)}
+            >
+              + new project
+            </button>
+          }
+        />
+
+        {error ? (
+          <div
+            className="mb-4"
+            style={{
+              padding: "10px 12px",
+              fontFamily: "var(--font-mono)",
+              fontSize: "11px",
+              color: "var(--status-error)",
+              background: "rgba(193, 127, 89, 0.1)",
+              border: "1px solid rgba(193, 127, 89, 0.2)",
             }}
+            role="alert"
           >
-            {creating ? "creating..." : "new project"}
-          </button>
-        </div>
-      </div>
+            {error}
+          </div>
+        ) : null}
 
-      {error ? <p className="mb-4 text-sm text-red-300">{error}</p> : null}
-
-      {loading ? (
-        <p className="text-sm text-[var(--dawn-50)]">Loading projects...</p>
-      ) : hasProjects ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {projects.map((project) => (
-            <ProjectCard
-              key={project.id}
-              id={project.id}
-              name={project.name}
-              description={project.description ?? "No description"}
-              updatedAt={new Date(project.updatedAt).toLocaleDateString()}
+        {loading ? (
+          <div className="flex items-center gap-3 py-12">
+            <div
+              style={{
+                width: "6px",
+                height: "6px",
+                background: "var(--gold)",
+                animation: "glowPulse 1.5s ease-in-out infinite",
+              }}
             />
-          ))}
+            <span
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "10px",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "var(--dawn-30)",
+              }}
+            >
+              Loading projects...
+            </span>
+          </div>
+        ) : hasProjects ? (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {projects.map((project, index) => (
+              <div
+                key={project.id}
+                className="animate-fade-in-up"
+                style={{ animationDelay: `${index * 0.06}s` }}
+              >
+                <ProjectCard
+                  id={project.id}
+                  name={project.name}
+                  description={project.description ?? "No description"}
+                  updatedAt={new Date(project.updatedAt).toLocaleDateString()}
+                />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <HudEmptyState
+            title="No projects yet"
+            body="Create a project to start generating images and video."
+            action={
+              <button
+                type="button"
+                className="sigil-btn-primary"
+                onClick={() => setDialogOpen(true)}
+              >
+                + create first project
+              </button>
+            }
+          />
+        )}
+      </HudPanel>
+
+      <Dialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        title="create new project"
+        footer={
+          <>
+            <button
+              type="button"
+              className="sigil-btn-ghost"
+              onClick={() => setDialogOpen(false)}
+            >
+              cancel
+            </button>
+            <button
+              type="button"
+              className="sigil-btn-primary"
+              disabled={creating || !newProjectName.trim()}
+              onClick={() => void createProject()}
+            >
+              {creating ? "creating..." : "create"}
+            </button>
+          </>
+        }
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-lg)" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <label
+              htmlFor="dialog-project-name"
+              className="sigil-section-label"
+              style={{ fontSize: "9px", letterSpacing: "0.05em" }}
+            >
+              name
+            </label>
+            <input
+              id="dialog-project-name"
+              type="text"
+              className="sigil-input"
+              value={newProjectName}
+              onChange={(e) => setNewProjectName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void createProject();
+                }
+              }}
+              placeholder="Enter project name..."
+              autoFocus
+            />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <label
+              htmlFor="dialog-project-desc"
+              className="sigil-section-label"
+              style={{ fontSize: "9px", letterSpacing: "0.05em" }}
+            >
+              description
+            </label>
+            <textarea
+              id="dialog-project-desc"
+              className="sigil-textarea"
+              value={projectDescription}
+              onChange={(e) => setProjectDescription(e.target.value)}
+              placeholder="Optional description..."
+              rows={4}
+            />
+          </div>
         </div>
-      ) : (
-        <div className="border border-dashed border-[var(--dawn-15)] bg-[var(--surface-0)] p-5 text-sm text-[var(--dawn-50)]">
-          No projects yet. Create one to start generating.
-        </div>
-      )}
+      </Dialog>
     </section>
   );
 }
