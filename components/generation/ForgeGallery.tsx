@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { GenerationItem } from "@/components/generation/types";
 import { ForgeGenerationCard } from "@/components/generation/ForgeGenerationCard";
 import styles from "./ForgeGallery.module.css";
@@ -29,6 +29,8 @@ export function ForgeGallery({
   busy,
 }: ForgeGalleryProps) {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const feedRef = useRef<HTMLDivElement>(null);
+  const lastSeenLastIdRef = useRef<string | null>(null);
 
   const closeLightbox = useCallback(() => setLightboxUrl(null), []);
 
@@ -40,9 +42,18 @@ export function ForgeGallery({
     return () => window.removeEventListener("keydown", handleEscape);
   }, [closeLightbox]);
 
+  useEffect(() => {
+    const lastId = generations.length > 0 ? generations[generations.length - 1].id : null;
+    if (lastId && lastId !== lastSeenLastIdRef.current) {
+      lastSeenLastIdRef.current = lastId;
+      feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight, behavior: "smooth" });
+    }
+    if (!lastId) lastSeenLastIdRef.current = null;
+  }, [generations]);
+
   return (
     <div className={styles.gallery}>
-      <div className={styles.feed}>
+      <div ref={feedRef} className={styles.feed}>
         {generations.length === 0 ? (
           <div className={styles.empty}>
             <p className={styles.emptyTitle}>No generations yet</p>

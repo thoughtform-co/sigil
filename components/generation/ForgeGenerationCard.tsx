@@ -55,15 +55,23 @@ function formatCreatedAt(value: string): string {
 }
 
 function getAspectRatioStyle(output: OutputItem, generation: GenerationItem): string {
-  if (output.width && output.height && output.width > 0 && output.height > 0) {
-    return `${output.width} / ${output.height}`;
-  }
-
   const rawAspect = generation.parameters?.aspectRatio;
   if (typeof rawAspect === "string" && rawAspect.includes(":")) {
     return rawAspect.replace(":", " / ");
   }
 
+  if (output.width && output.height && output.width > 0 && output.height > 0) {
+    return `${output.width} / ${output.height}`;
+  }
+
+  return "16 / 9";
+}
+
+function getPlaceholderAspectRatio(generation: GenerationItem): string {
+  const rawAspect = generation.parameters?.aspectRatio;
+  if (typeof rawAspect === "string" && rawAspect.includes(":")) {
+    return rawAspect.replace(":", " / ");
+  }
   return "16 / 9";
 }
 
@@ -103,6 +111,7 @@ export function ForgeGenerationCard({
     failed ? styles.cardFailed : "",
   ].filter(Boolean).join(" ");
   const statusLabel = hasApproved ? `${generation.status} / approved` : generation.status;
+  const idShort = generation.id.slice(0, 8);
 
   return (
     <div className={cardClass}>
@@ -118,9 +127,22 @@ export function ForgeGenerationCard({
         </button>
 
         <div className={styles.metaReadouts}>
-          <span className={styles.readout}>MODEL: {generation.modelId || "Unknown"}</span>
-          <span className={styles.readout}>DATE: {createdAt}</span>
-          <span className={styles.readout}>STATUS: {statusLabel}</span>
+          <span className={styles.readout}>
+            <span className={styles.readoutLabel}>ID</span>
+            <span className={styles.readoutValue}>{idShort}</span>
+          </span>
+          <span className={styles.readout}>
+            <span className={styles.readoutLabel}>MODEL</span>
+            <span className={styles.readoutValue}>{generation.modelId || "Unknown"}</span>
+          </span>
+          <span className={styles.readout}>
+            <span className={styles.readoutLabel}>DATE</span>
+            <span className={styles.readoutValue}>{createdAt}</span>
+          </span>
+          <span className={styles.readout}>
+            <span className={styles.readoutLabel}>STATUS</span>
+            <span className={styles.readoutValue}>{statusLabel}</span>
+          </span>
         </div>
 
         <div className={styles.promptActions}>
@@ -167,6 +189,7 @@ export function ForgeGenerationCard({
                   className={styles.mediaFrame}
                   style={{ aspectRatio: getAspectRatioStyle(output, generation) }}
                 >
+                  <div className={styles.cornerMarks} aria-hidden />
                   {output.fileType === "video" ? (
                     <video
                       className={styles.media}
@@ -269,28 +292,49 @@ export function ForgeGenerationCard({
             ))}
           </div>
         ) : processing ? (
-          <div className={styles.mediaState}>
-            <div className={styles.progressDiamond}>
-              <span className={styles.progressPercent}>…</span>
+          <div
+            className={styles.mediaState}
+            style={{ aspectRatio: getPlaceholderAspectRatio(generation) }}
+          >
+            <div className={styles.mediaStateCornerMarks} aria-hidden />
+            <div className={styles.mediaStateCornerMarksSecondary} aria-hidden />
+            <div className={styles.mediaStateContent}>
+              <div className={styles.progressDiamond}>
+                <span className={styles.progressPercent}>…</span>
+              </div>
+              <span className={styles.phaseMessage}>{phaseMessage}</span>
             </div>
-            <span className={styles.phaseMessage}>{phaseMessage}</span>
           </div>
         ) : failed ? (
-          <div className={styles.mediaState}>
-            <span className={styles.failedTitle}>Traversal collapsed</span>
-            <span className={styles.errorMessage}>Generation failed.</span>
-            <button
-              type="button"
-              className={styles.textAction}
-              onClick={() => onRetry(generation.id)}
-              disabled={busy}
-            >
-              Retry
-            </button>
+          <div
+            className={styles.mediaState}
+            style={{ aspectRatio: getPlaceholderAspectRatio(generation) }}
+          >
+            <div className={styles.mediaStateCornerMarks} aria-hidden />
+            <div className={styles.mediaStateCornerMarksSecondary} aria-hidden />
+            <div className={styles.mediaStateContent}>
+              <span className={styles.failedTitle}>Traversal collapsed</span>
+              <span className={styles.errorMessage}>Generation failed.</span>
+              <button
+                type="button"
+                className={styles.textAction}
+                onClick={() => onRetry(generation.id)}
+                disabled={busy}
+              >
+                Retry
+              </button>
+            </div>
           </div>
         ) : (
-          <div className={styles.mediaState}>
-            <span className={styles.phaseMessage}>No outputs available.</span>
+          <div
+            className={styles.mediaState}
+            style={{ aspectRatio: getPlaceholderAspectRatio(generation) }}
+          >
+            <div className={styles.mediaStateCornerMarks} aria-hidden />
+            <div className={styles.mediaStateCornerMarksSecondary} aria-hidden />
+            <div className={styles.mediaStateContent}>
+              <span className={styles.phaseMessage}>No outputs available.</span>
+            </div>
           </div>
         )}
       </section>

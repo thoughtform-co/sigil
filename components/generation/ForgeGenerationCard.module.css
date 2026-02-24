@@ -4,96 +4,65 @@
   position: relative;
   display: grid;
   grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
+  gap: 12px;
   width: 100%;
   max-width: 960px;
-  border: 1px solid var(--dawn-08);
-  background: var(--surface-0);
-  overflow: hidden;
-  transition: border-color 120ms ease, background 120ms ease;
+  background: transparent;
+  overflow: visible;
 }
 
-.card::before,
-.card::after {
-  content: "";
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 120ms ease;
-  z-index: 2;
-}
+.cardProcessing {}
 
-.card::before {
-  top: -1px;
-  left: -1px;
-  border-top: 1px solid var(--dawn-15);
-  border-left: 1px solid var(--dawn-15);
-}
-
-.card::after {
-  right: -1px;
-  bottom: -1px;
-  border-right: 1px solid var(--dawn-15);
-  border-bottom: 1px solid var(--dawn-15);
-}
-
-.card:hover {
-  border-color: var(--dawn-15);
-}
-
-.card:hover::before,
-.card:hover::after {
-  opacity: 1;
-}
-
-.cardProcessing {
-  border-color: var(--gold-15);
-}
-
-.cardFailed {
-  border-color: var(--alert);
-}
+.cardFailed {}
 
 .promptPanel {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 12px;
-  border-right: 1px solid var(--dawn-08);
+  gap: 14px;
+  padding: 12px 12px 12px 18px;
   min-height: 260px;
-  background:
-    linear-gradient(180deg, rgba(202, 165, 84, 0.05) 0%, rgba(202, 165, 84, 0) 100%),
-    var(--surface-0);
+  background: var(--surface-0);
+  border: 1px solid var(--dawn-08);
+}
+
+.promptPanel::before {
+  content: "";
+  position: absolute;
+  top: 12px;
+  left: 0;
+  width: 2px;
+  height: 20px;
+  background: var(--gold-30);
+  pointer-events: none;
 }
 
 .promptBlock {
   position: relative;
   width: 100%;
-  padding: 8px 10px;
-  border: 1px solid var(--dawn-08);
-  background: rgba(10, 9, 8, 0.55);
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: inherit;
   text-align: left;
   cursor: pointer;
-  transition: border-color 120ms ease, background 120ms ease;
+  transition: opacity 120ms ease;
   flex: 1;
 }
 
 .promptBlock:hover {
-  border-color: var(--dawn-15);
-  background: rgba(10, 9, 8, 0.72);
+  opacity: 0.92;
 }
 
 .promptCopied {
-  border-color: var(--gold-15);
+  opacity: 1;
 }
 
 .promptText {
   display: block;
   font-family: var(--font-body);
-  font-size: 12px;
-  line-height: 1.45;
+  font-size: 13px;
+  line-height: 1.5;
   color: var(--dawn-70);
   white-space: pre-wrap;
   word-break: break-word;
@@ -103,8 +72,8 @@
 
 .copiedBadge {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 0;
+  right: 0;
   padding: 2px 5px;
   border: 1px solid var(--gold);
   color: var(--gold);
@@ -115,17 +84,15 @@
 }
 
 .metaReadouts {
-  display: grid;
-  gap: 4px;
-  padding: 8px 10px;
-  border: 1px solid var(--dawn-08);
-  background: var(--void);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .readout {
   font-family: var(--font-mono);
   font-size: 8px;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--dawn-50);
   overflow: hidden;
@@ -133,13 +100,21 @@
   white-space: nowrap;
 }
 
+.readoutLabel {
+  color: var(--dawn-30);
+  margin-right: 0.25em;
+}
+
+.readoutValue {
+  color: var(--dawn-50);
+}
+
 .promptActions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px 12px;
   margin-top: auto;
-  padding-top: 8px;
-  border-top: 1px solid var(--dawn-08);
+  padding-top: 0;
 }
 
 .textAction {
@@ -147,7 +122,7 @@
   border: 0;
   border-bottom: 1px solid transparent;
   background: transparent;
-  color: var(--dawn-70);
+  color: var(--dawn-40);
   font-family: var(--font-mono);
   font-size: 9px;
   letter-spacing: 0.06em;
@@ -173,9 +148,10 @@
 
 .mediaPanel {
   min-height: 240px;
-  padding: 12px;
+  padding: 12px 0 12px 12px;
   background: var(--void);
   display: flex;
+  border-left: 1px solid var(--dawn-08);
 }
 
 .mediaGrid {
@@ -193,11 +169,9 @@
 }
 
 .outputCard {
-  border: 1px solid var(--dawn-08);
-  background: var(--surface-0);
   min-height: 100px;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .mediaFrame {
@@ -206,6 +180,64 @@
   min-height: 120px;
   background: #000;
   overflow: hidden;
+}
+
+/* Corner brackets only — L-shaped marks at each corner, HUD style (clearly visible) */
+.mediaFrame::before,
+.mediaFrame::after,
+.cornerMarks::before,
+.cornerMarks::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  width: 16px;
+  height: 16px;
+  border-color: var(--dawn-30);
+  border-style: solid;
+  border-width: 0;
+  transition: border-color 120ms ease;
+  z-index: 1;
+}
+
+.card:hover .mediaFrame::before,
+.card:hover .mediaFrame::after,
+.card:hover .cornerMarks::before,
+.card:hover .cornerMarks::after {
+  border-color: var(--gold-30);
+}
+
+.mediaFrame::before {
+  top: 0;
+  left: 0;
+  border-top-width: 1px;
+  border-left-width: 1px;
+}
+
+.mediaFrame::after {
+  right: 0;
+  bottom: 0;
+  border-right-width: 1px;
+  border-bottom-width: 1px;
+}
+
+.cornerMarks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.cornerMarks::before {
+  top: 0;
+  right: 0;
+  border-top-width: 1px;
+  border-right-width: 1px;
+}
+
+.cornerMarks::after {
+  bottom: 0;
+  left: 0;
+  border-bottom-width: 1px;
+  border-left-width: 1px;
 }
 
 .mediaButton {
@@ -301,17 +333,113 @@
 }
 
 .mediaState {
+  position: relative;
   width: 100%;
-  min-height: 220px;
-  border: 1px solid var(--dawn-08);
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: radial-gradient(circle at center, rgba(202, 165, 84, 0.07) 0%, rgba(5, 4, 3, 0) 70%);
+}
+
+/* Corner brackets on processing/failed/empty state (same HUD style as media frame) */
+.mediaStateCornerMarks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.mediaStateCornerMarks::before,
+.mediaStateCornerMarks::after {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-color: var(--dawn-30);
+  border-style: solid;
+  border-width: 0;
+  transition: border-color 120ms ease;
+}
+
+.cardProcessing .mediaStateCornerMarks::before,
+.cardProcessing .mediaStateCornerMarks::after {
+  border-color: var(--gold-30);
+}
+
+.cardFailed .mediaStateCornerMarks::before,
+.cardFailed .mediaStateCornerMarks::after {
+  border-color: var(--alert);
+}
+
+.mediaStateCornerMarks::before {
+  top: 0;
+  left: 0;
+  border-top-width: 1px;
+  border-left-width: 1px;
+}
+
+.mediaStateCornerMarks::after {
+  right: 0;
+  bottom: 0;
+  border-right-width: 1px;
+  border-bottom-width: 1px;
+}
+
+.mediaStateCornerMarksSecondary {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.mediaStateCornerMarksSecondary::before,
+.mediaStateCornerMarksSecondary::after {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-color: var(--dawn-30);
+  border-style: solid;
+  border-width: 0;
+  transition: border-color 120ms ease;
+}
+
+.cardProcessing .mediaStateCornerMarksSecondary::before,
+.cardProcessing .mediaStateCornerMarksSecondary::after {
+  border-color: var(--gold-30);
+}
+
+.cardFailed .mediaStateCornerMarksSecondary::before,
+.cardFailed .mediaStateCornerMarksSecondary::after {
+  border-color: var(--alert);
+}
+
+.mediaStateCornerMarksSecondary::before {
+  top: 0;
+  right: 0;
+  border-top-width: 1px;
+  border-right-width: 1px;
+}
+
+.mediaStateCornerMarksSecondary::after {
+  bottom: 0;
+  left: 0;
+  border-bottom-width: 1px;
+  border-left-width: 1px;
+}
+
+.mediaStateContent {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 8px;
   padding: 14px;
-  text-align: center;
-  background: radial-gradient(circle at center, rgba(202, 165, 84, 0.07) 0%, rgba(5, 4, 3, 0) 70%);
+  position: relative;
+  z-index: 0;
 }
 
 .progressDiamond {
@@ -371,8 +499,7 @@
   }
 
   .promptPanel {
-    border-right: 0;
-    border-bottom: 1px solid var(--dawn-08);
+    padding-left: 18px;
   }
 
   .mediaGridMulti {

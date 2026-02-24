@@ -29,7 +29,6 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
-  const [dismissedGenerationIds, setDismissedGenerationIds] = useState<Set<string>>(() => new Set());
   const [brainstormOpen, setBrainstormOpen] = useState(false);
   const [isNarrow, setIsNarrow] = useState(false);
 
@@ -145,13 +144,41 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
     [selectedSessionId, sessions],
   );
 
-  const generationsVisible = useMemo(
-    () => generations.filter((g) => !dismissedGenerationIds.has(g.id)),
-    [generations, dismissedGenerationIds],
-  );
+  const generationsVisible = generations;
 
-  function handleDismissGeneration(generationId: string) {
-    setDismissedGenerationIds((prev) => new Set(prev).add(generationId));
+  const sessionThumbnails = useMemo(() => {
+    const thumbnails: Record<string, string> = {};
+
+    for (const session of sessionsFiltered) {
+      if (session.thumbnailUrl) {
+        thumbnails[session.id] = session.thumbnailUrl;
+      }
+    }
+
+    if (selectedSessionId) {
+      const latestWithOutput = generations
+        .filter((g) => g.outputs.length > 0)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+      const latestOutputUrl = latestWithOutput?.outputs[0]?.fileUrl;
+      if (latestOutputUrl) {
+        thumbnails[selectedSessionId] = latestOutputUrl;
+      }
+    }
+
+    return thumbnails;
+  }, [sessionsFiltered, selectedSessionId, generations]);
+
+  async function handleDismissGeneration(generationId: string) {
+    try {
+      const response = await fetch(`/api/generations/${generationId}`, { method: "DELETE" });
+      if (!response.ok) {
+        const data = (await response.json()) as { error?: string };
+        throw new Error(data.error ?? "Failed to dismiss");
+      }
+      setGenerations((prev) => prev.filter((g) => g.id !== generationId));
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Failed to dismiss generation");
+    }
   }
 
   function handleConvertToVideo(imageUrl: string) {
@@ -163,10 +190,6 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
     const ref = searchParams.get("ref");
     if (ref != null && ref !== "") setReferenceImageUrl(ref);
   }, [mode, searchParams]);
-
-  useEffect(() => {
-    setDismissedGenerationIds(() => new Set());
-  }, [selectedSessionId]);
 
   const compatibleModels = useMemo(
     () => models.filter((m) => m.type === mode),
@@ -405,6 +428,7 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
           onSessionCreate={createSession}
           onSessionDelete={deleteSession}
           mode={mode}
+          sessionThumbnails={sessionThumbnails}
           busy={busy}
         />
         <div className={styles.main}>

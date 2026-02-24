@@ -89,7 +89,7 @@ export function NavigationFrame({
   }
 
   return (
-    <div className="relative min-h-screen bg-void text-dawn">
+    <div className="relative min-h-screen bg-void text-dawn dot-grid-bg">
       <div className="hud-corner hud-corner-tl" />
       <div className="hud-corner hud-corner-tr" />
       <div className="hud-corner hud-corner-bl" />

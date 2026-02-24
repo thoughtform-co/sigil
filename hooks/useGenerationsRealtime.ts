@@ -58,7 +58,9 @@ export function useGenerationsRealtime(
         if (payloadSessionId !== sessionId) return;
         setGenerations((prev) => {
           const next = prev.filter((g) => g.id !== generation.id);
-          next.unshift(mapPayloadToItem(generation));
+          // Keep feed oldest->newest so new generations appear at the bottom.
+          next.push(mapPayloadToItem(generation));
+          next.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
           return next;
         });
       })

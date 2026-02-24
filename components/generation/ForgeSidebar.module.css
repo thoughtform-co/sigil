@@ -1,13 +1,21 @@
 /* ForgeSidebar — 72px thumbnail strip, aligned with left HUD rail */
 
 .sidebar {
+  position: fixed;
+  top: 52%;
+  left: calc(var(--hud-padding) + 60px);
+  transform: translateY(-50%);
+  z-index: 20;
   width: 72px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-height: 0;
-  padding: calc(clamp(24px, 4vw, 56px) + 56px) 4px 0;
+  justify-content: center;
+  height: calc(100vh - (var(--hud-padding) * 2));
+  max-height: 760px;
+  min-height: 420px;
+  padding: 0 4px;
   gap: 8px;
 }
 
@@ -72,12 +80,14 @@
 }
 
 .sessionList {
-  flex: 1;
+  flex: 0 1 auto;
+  max-height: clamp(180px, 46vh, 520px);
   overflow-y: auto;
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 6px;
 }
 
@@ -250,4 +260,18 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--dawn-30);
+}
+
+@media (max-width: 980px) {
+  .sidebar {
+    position: static;
+    top: auto;
+    left: auto;
+    transform: none;
+    z-index: auto;
+    height: auto;
+    max-height: none;
+    min-height: 0;
+    justify-content: flex-start;
+  }
 }

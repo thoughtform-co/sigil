@@ -7,6 +7,7 @@ export type SessionItem = {
   name: string;
   type: string;
   updatedAt: string;
+  thumbnailUrl?: string | null;
 };
 
 export type OutputItem = {

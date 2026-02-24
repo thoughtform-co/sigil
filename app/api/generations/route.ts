@@ -29,7 +29,8 @@ export async function GET(request: Request) {
 
   const generations = await prisma.generation.findMany({
     where: { sessionId },
-    orderBy: { createdAt: "desc" },
+    // Vesper flow: older entries first so newest render at the bottom.
+    orderBy: { createdAt: "asc" },
     select: {
       id: true,
       prompt: true,

@@ -32,11 +32,38 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Project not found or access denied" }, { status: 404 });
   }
 
-  const sessions = await prisma.session.findMany({
+  const sessionsRaw = await prisma.session.findMany({
     where: { projectId },
     orderBy: { updatedAt: "desc" },
-    select: { id: true, name: true, type: true, updatedAt: true },
+    select: {
+      id: true,
+      name: true,
+      type: true,
+      updatedAt: true,
+      generations: {
+        where: {
+          outputs: { some: {} },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: {
+          outputs: {
+            orderBy: { createdAt: "asc" },
+            take: 1,
+            select: { fileUrl: true },
+          },
+        },
+      },
+    },
   });
+
+  const sessions = sessionsRaw.map((session) => ({
+    id: session.id,
+    name: session.name,
+    type: session.type,
+    updatedAt: session.updatedAt,
+    thumbnailUrl: session.generations[0]?.outputs[0]?.fileUrl ?? null,
+  }));
 
   return NextResponse.json({ sessions });
 }

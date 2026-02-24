@@ -94,97 +94,130 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Generation already claimed", id: generation.id });
   }
 
-  const routed = routeModel(generation.modelId);
-  const adapter = getModel(routed.modelId);
-  if (!adapter) {
-    await prisma.generation.update({
-      where: { id: generation.id },
-      data: { status: "failed" },
-    });
-    void broadcastUpdatedGeneration(generation.sessionId, generation.id);
-    return NextResponse.json({ error: `Unknown model: ${routed.modelId}` }, { status: 400 });
-  }
+  try {
+    const routed = routeModel(generation.modelId);
+    const adapter = getModel(routed.modelId);
+    if (!adapter) {
+      await prisma.generation.update({
+        where: { id: generation.id },
+        data: { status: "failed" },
+      });
+      void broadcastUpdatedGeneration(generation.sessionId, generation.id);
+      return NextResponse.json({ error: `Unknown model: ${routed.modelId}` }, { status: 400 });
+    }
 
-  const result = await adapter.generate({
-    prompt: generation.prompt,
-    negativePrompt: generation.negativePrompt ?? undefined,
-    ...((generation.parameters as Record<string, unknown>) ?? {}),
-  });
-
-  if (result.status !== "completed" || !result.outputs?.length) {
-    await prisma.generation.update({
-      where: { id: generation.id },
-      data: { status: "failed" },
+    const result = await adapter.generate({
+      prompt: generation.prompt,
+      negativePrompt: generation.negativePrompt ?? undefined,
+      ...((generation.parameters as Record<string, unknown>) ?? {}),
     });
+
+    if (result.status !== "completed" || !result.outputs?.length) {
+      await prisma.generation.update({
+        where: { id: generation.id },
+        data: { status: "failed" },
+      });
+      void broadcastUpdatedGeneration(generation.sessionId, generation.id);
+
+      return NextResponse.json({
+        id: generation.id,
+        status: "failed",
+        error: result.error ?? "Generation did not produce outputs",
+      });
+    }
+    const outputs = result.outputs;
+    const modelConfig = getModelConfig(routed.modelId);
+    const computedCost =
+      modelConfig
+        ? calculateGenerationCost({
+            model: modelConfig,
+            outputCount: outputs.length,
+            predictTimeSeconds: result.metrics?.predictTime,
+            outputHasVideo: outputs.some((output) => Boolean(output.duration)),
+          })
+        : undefined;
+
+    const persistedOutputs = await Promise.all(
+      outputs.map(async (output, index) => {
+        const fileType = output.duration ? "video" : "image";
+        try {
+          const platformUrl = await uploadProviderOutput({
+            sourceUrl: output.url,
+            userId: generation.userId,
+            generationId: generation.id,
+            outputIndex: index,
+            fileType,
+          });
+          return { ...output, url: platformUrl };
+        } catch {
+          // Keep image outputs durable even when storage is unavailable by inlining a data URL.
+          if (fileType === "image") {
+            try {
+              const fallbackResponse = await fetch(output.url);
+              if (fallbackResponse.ok) {
+                const contentType = fallbackResponse.headers.get("content-type") || "image/png";
+                const buffer = Buffer.from(await fallbackResponse.arrayBuffer());
+                if (buffer.length <= 8 * 1024 * 1024) {
+                  const dataUrl = `data:${contentType};base64,${buffer.toString("base64")}`;
+                  return { ...output, url: dataUrl };
+                }
+              }
+            } catch {
+              // Ignore and keep provider URL fallback below.
+            }
+          }
+
+          // Last-resort fallback to provider URL if storage upload fails.
+          return output;
+        }
+      }),
+    );
+
+    await prisma.$transaction(async (tx) => {
+      await tx.generation.update({
+        where: { id: generation.id },
+        data: {
+          status: "completed",
+          modelId: routed.modelId,
+          cost: typeof computedCost === "number" ? new Prisma.Decimal(computedCost) : undefined,
+        },
+      });
+
+      await tx.output.createMany({
+        data: persistedOutputs.map((output) => ({
+          generationId: generation.id,
+          fileUrl: output.url,
+          fileType: output.duration ? "video" : "image",
+          width: output.width,
+          height: output.height,
+          duration: output.duration,
+        })),
+      });
+    });
+
     void broadcastUpdatedGeneration(generation.sessionId, generation.id);
 
     return NextResponse.json({
       id: generation.id,
-      status: "failed",
-      error: result.error ?? "Generation did not produce outputs",
+      status: "completed",
+      outputCount: persistedOutputs.length,
+      modelId: routed.modelId,
+      routed: routed.routed,
+      routeReason: routed.reason,
     });
+  } catch (err) {
+    console.error(`[generate/process] ${generation.id} failed:`, err);
+    await prisma.generation
+      .update({
+        where: { id: generation.id },
+        data: { status: "failed" },
+      })
+      .catch((dbErr) => console.error(`[generate/process] failed to set status failed:`, dbErr));
+    void broadcastUpdatedGeneration(generation.sessionId, generation.id);
+    const message = err instanceof Error ? err.message : "Processing failed";
+    return NextResponse.json(
+      { id: generation.id, status: "failed", error: message },
+      { status: 500 },
+    );
   }
-  const outputs = result.outputs;
-  const modelConfig = getModelConfig(routed.modelId);
-  const computedCost =
-    modelConfig
-      ? calculateGenerationCost({
-          model: modelConfig,
-          outputCount: outputs.length,
-          predictTimeSeconds: result.metrics?.predictTime,
-          outputHasVideo: outputs.some((output) => Boolean(output.duration)),
-        })
-      : undefined;
-
-  const persistedOutputs = await Promise.all(
-    outputs.map(async (output, index) => {
-      const fileType = output.duration ? "video" : "image";
-      try {
-        const platformUrl = await uploadProviderOutput({
-          sourceUrl: output.url,
-          userId: generation.userId,
-          generationId: generation.id,
-          outputIndex: index,
-          fileType,
-        });
-        return { ...output, url: platformUrl };
-      } catch {
-        // Fallback to provider URL if storage upload fails.
-        return output;
-      }
-    }),
-  );
-
-  await prisma.$transaction(async (tx) => {
-    await tx.generation.update({
-      where: { id: generation.id },
-      data: {
-        status: "completed",
-        modelId: routed.modelId,
-        cost: typeof computedCost === "number" ? new Prisma.Decimal(computedCost) : undefined,
-      },
-    });
-
-    await tx.output.createMany({
-      data: persistedOutputs.map((output) => ({
-        generationId: generation.id,
-        fileUrl: output.url,
-        fileType: output.duration ? "video" : "image",
-        width: output.width,
-        height: output.height,
-        duration: output.duration,
-      })),
-    });
-  });
-
-  void broadcastUpdatedGeneration(generation.sessionId, generation.id);
-
-  return NextResponse.json({
-    id: generation.id,
-    status: "completed",
-    outputCount: persistedOutputs.length,
-    modelId: routed.modelId,
-    routed: routed.routed,
-    routeReason: routed.reason,
-  });
 }

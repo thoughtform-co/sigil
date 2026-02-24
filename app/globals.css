@@ -123,6 +123,23 @@ body {
   background: var(--void);
   color: var(--dawn);
   font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+/* Subtle dot grid — behind HUD and content (wireframe / anatomy reference) */
+.dot-grid-bg {
+  position: relative;
+}
+
+.dot-grid-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image: radial-gradient(circle at center, var(--dawn-08) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: 0 0;
+  pointer-events: none;
 }
 
 /* ─── ENTRANCE ANIMATIONS ─── */
