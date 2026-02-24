@@ -14,6 +14,7 @@ type NavigationFrameProps = {
   title?: string;
   modeLabel?: string;
   showNavPanel?: boolean;
+  navSize?: "default" | "large";
 };
 
 const RAIL_WIDTH = 48;
@@ -28,8 +29,7 @@ const TICK_LABELS: Record<number, string> = {
 
 const NAV_PANEL_WIDTH = 180;
 const SIDEBAR_ITEMS: { href: string; label: string; separator?: boolean }[] = [
-  { href: "/projects", label: "projects" },
-  { href: "/briefings", label: "briefings" },
+  { href: "/dashboard", label: "journeys" },
   { href: "/analytics", label: "analytics", separator: true },
   { href: "/bookmarks", label: "bookmarks" },
   { href: "/admin", label: "settings" },
@@ -150,6 +150,7 @@ export function NavigationFrame({
   children,
   title = "SIGIL",
   showNavPanel = true,
+  navSize = "default",
 }: NavigationFrameProps) {
   const pathname = usePathname();
   const [isLight, setIsLight] = useState(false);
@@ -332,7 +333,7 @@ export function NavigationFrame({
         {/* SIGIL badge — always visible, links to /projects, toggle on right */}
         <div style={{ display: "flex", alignItems: "stretch" }}>
           <Link
-            href="/projects"
+            href="/dashboard"
             style={{
               flex: 1,
               background: "var(--gold)",
@@ -398,7 +399,9 @@ export function NavigationFrame({
               const isActive =
                 item.href === "/"
                   ? pathname === "/"
-                  : pathname === item.href || pathname.startsWith(item.href + "/");
+                  : pathname === item.href ||
+                    pathname.startsWith(item.href + "/") ||
+                    (item.href === "/dashboard" && pathname.startsWith("/journeys/"));
               return (
                 <div key={item.href}>
                   <Link
@@ -408,9 +411,9 @@ export function NavigationFrame({
                       display: "flex",
                       alignItems: "center",
                       gap: "8px",
-                      padding: "11px 12px",
+                      padding: navSize === "large" ? "14px 12px" : "11px 12px",
                       fontFamily: "var(--font-mono)",
-                      fontSize: "13px",
+                      fontSize: navSize === "large" ? 15 : 13,
                       letterSpacing: "0.1em",
                       textTransform: "uppercase",
                       color: isActive ? "var(--gold)" : "var(--dawn-40)",

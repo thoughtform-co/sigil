@@ -29,12 +29,12 @@ export function ProjectsView() {
         const response = await fetch("/api/projects", { cache: "no-store" });
         if (!response.ok) {
           const body = await response.json().catch(() => ({}));
-          throw new Error(body.error ?? "Failed to load projects");
+          throw new Error(body.error ?? "Failed to load routes");
         }
         const data = (await response.json()) as { projects: Project[] };
         setProjects(data.projects);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load projects");
+        setError(err instanceof Error ? err.message : "Failed to load routes");
       } finally {
         setLoading(false);
       }
@@ -59,7 +59,7 @@ export function ProjectsView() {
 
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(payload.error ?? "Failed to create project");
+        throw new Error(payload.error ?? "Failed to create route");
       }
 
       const createdProject = payload.project as Project;
@@ -67,10 +67,10 @@ export function ProjectsView() {
       setNewProjectName("");
       setProjectDescription("");
       setDialogOpen(false);
-      router.push(`/projects/${createdProject.id}/image`);
+      router.push(`/routes/${createdProject.id}/image`);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create project");
+      setError(err instanceof Error ? err.message : "Failed to create route");
     } finally {
       setCreating(false);
     }
@@ -85,14 +85,14 @@ export function ProjectsView() {
     >
       <HudPanel>
         <HudPanelHeader
-          title="generation projects"
+          title="routes"
           actions={
             <button
               type="button"
               className="sigil-btn-secondary"
               onClick={() => setDialogOpen(true)}
             >
-              + new project
+              + new route
             </button>
           }
         />
@@ -133,7 +133,7 @@ export function ProjectsView() {
                 color: "var(--dawn-30)",
               }}
             >
-              Loading projects...
+              Loading routes...
             </span>
           </div>
         ) : hasProjects ? (
@@ -155,15 +155,15 @@ export function ProjectsView() {
           </div>
         ) : (
           <HudEmptyState
-            title="No projects yet"
-            body="Create a project to open the workspace. Then add image or video sessions to start generating."
+            title="No routes yet"
+            body="Create a route to open the workspace. Then add image or video waypoints to start generating."
             action={
               <button
                 type="button"
                 className="sigil-btn-primary"
                 onClick={() => setDialogOpen(true)}
               >
-                + create first project
+                + create first route
               </button>
             }
           />
@@ -173,7 +173,7 @@ export function ProjectsView() {
       <Dialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
-        title="create new project"
+        title="create new route"
         footer={
           <>
             <button
@@ -215,7 +215,7 @@ export function ProjectsView() {
                   void createProject();
                 }
               }}
-              placeholder="Project name (you’ll add sessions in the workspace)"
+              placeholder="Route name (you’ll add waypoints in the workspace)"
               autoFocus
             />
           </div>

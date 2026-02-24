@@ -5,12 +5,13 @@ type ProjectCardProps = {
   name: string;
   description: string;
   updatedAt: string;
+  waypointCount?: number;
 };
 
-export function ProjectCard({ id, name, description, updatedAt }: ProjectCardProps) {
+export function ProjectCard({ id, name, description, updatedAt, waypointCount }: ProjectCardProps) {
   return (
     <Link
-      href={`/projects/${id}/image`}
+      href={`/routes/${id}/image`}
       className="group relative block overflow-hidden transition-all"
       style={{
         background: "var(--surface-0)",
@@ -116,6 +117,11 @@ export function ProjectCard({ id, name, description, updatedAt }: ProjectCardPro
           paddingTop: "12px",
         }}
       >
+        {waypointCount !== undefined && (
+          <span style={{ display: "block", marginBottom: "4px" }}>
+            {waypointCount} waypoint{waypointCount !== 1 ? "s" : ""}
+          </span>
+        )}
         updated {updatedAt}
       </div>
     </Link>

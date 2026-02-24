@@ -41,8 +41,8 @@ export function AdminHealthPanel() {
   }
 
   const stats = [
-    { label: "Projects", value: data.stats.projects },
-    { label: "Sessions", value: data.stats.sessions },
+    { label: "Routes", value: data.stats.projects },
+    { label: "Waypoints", value: data.stats.sessions },
     { label: "Generations", value: data.stats.generations },
     { label: "Outputs", value: data.stats.outputs },
   ];

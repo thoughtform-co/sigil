@@ -160,7 +160,7 @@ export function ForgePromptBar({
           <div className={styles.sideStrip}>
             <div className={styles.modeBar}>
               <Link
-                href={`/projects/${projectId}/image`}
+                href={`/routes/${projectId}/image`}
                 className={`${styles.modeButton} ${generationType === "image" ? styles.modeButtonActive : ""}`}
                 title="Image mode"
               >
@@ -171,7 +171,7 @@ export function ForgePromptBar({
                 </svg>
               </Link>
               <Link
-                href={`/projects/${projectId}/video`}
+                href={`/routes/${projectId}/video`}
                 className={`${styles.modeButton} ${generationType === "video" ? styles.modeButtonActive : ""}`}
                 title="Video mode"
               >
@@ -180,7 +180,7 @@ export function ForgePromptBar({
                 </svg>
               </Link>
               <Link
-                href={`/projects/${projectId}/canvas`}
+                href={`/routes/${projectId}/canvas`}
                 className={`${styles.modeButton} ${generationType === "canvas" ? styles.modeButtonActive : ""}`}
                 title="Canvas workflow"
               >
@@ -410,7 +410,7 @@ export function ForgePromptBar({
         <div className={styles.sideStrip}>
           <div className={styles.modeBar}>
             <Link
-              href={`/projects/${projectId}/image`}
+              href={`/routes/${projectId}/image`}
               className={`${styles.modeButton} ${generationType === "image" ? styles.modeButtonActive : ""}`}
               title="Image mode"
             >
@@ -421,7 +421,7 @@ export function ForgePromptBar({
               </svg>
             </Link>
             <Link
-              href={`/projects/${projectId}/video`}
+              href={`/routes/${projectId}/video`}
               className={`${styles.modeButton} ${generationType === "video" ? styles.modeButtonActive : ""}`}
               title="Video mode"
             >
@@ -430,7 +430,7 @@ export function ForgePromptBar({
               </svg>
             </Link>
             <Link
-              href={`/projects/${projectId}/canvas`}
+              href={`/routes/${projectId}/canvas`}
               className={`${styles.modeButton} ${generationType === "canvas" ? styles.modeButtonActive : ""}`}
               title="Canvas workflow"
             >

@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation";
 
-type ProjectPageProps = {
+type RoutePageProps = {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-export default async function ProjectDetailPage({ params, searchParams }: ProjectPageProps) {
+export default async function RouteDetailPage({ params, searchParams }: RoutePageProps) {
   const { id } = await params;
   const query = await searchParams;
   const ref = query.ref;

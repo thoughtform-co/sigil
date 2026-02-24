@@ -376,6 +376,21 @@ body {
   padding-bottom: 0;
 }
 
+/* Dashboard gallery: max 4 columns, then wrap; fewer columns on small screens */
+.dashboard-gallery-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+@media (max-width: 900px) {
+  .dashboard-gallery-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 500px) {
+  .dashboard-gallery-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ─── SHARED HUD PANEL & ACTION UTILITIES (token-driven) ─── */
 
 .sigil-section-label {

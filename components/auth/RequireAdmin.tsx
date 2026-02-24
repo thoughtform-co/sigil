@@ -15,7 +15,7 @@ export function RequireAdmin({ children }: { children: React.ReactNode }) {
       return;
     }
     if (!isAdmin) {
-      router.replace("/projects");
+      router.replace("/dashboard");
     }
   }, [isAdmin, loading, router, user]);
 
