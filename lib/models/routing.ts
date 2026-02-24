@@ -9,7 +9,7 @@ const hasFalKey = () => Boolean(process.env.FAL_KEY);
 const hasKlingKeys = () => Boolean(process.env.KLING_ACCESS_KEY && process.env.KLING_SECRET_KEY);
 
 export function routeModel(modelId: string): RoutingResult {
-  if (modelId === "gemini-2.5-flash-image" && !hasGeminiKey()) {
+  if (modelId === "gemini-nano-banana-pro" && !hasGeminiKey()) {
     return {
       modelId: "nano-banana-backup",
       routed: true,

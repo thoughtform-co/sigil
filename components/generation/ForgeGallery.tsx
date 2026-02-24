@@ -31,6 +31,8 @@ export function ForgeGallery({
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const feedRef = useRef<HTMLDivElement>(null);
   const lastSeenLastIdRef = useRef<string | null>(null);
+  const lastSeenStatusRef = useRef<string | null>(null);
+  const lastSeenOutputCountRef = useRef<number>(0);
 
   const closeLightbox = useCallback(() => setLightboxUrl(null), []);
 
@@ -43,12 +45,36 @@ export function ForgeGallery({
   }, [closeLightbox]);
 
   useEffect(() => {
-    const lastId = generations.length > 0 ? generations[generations.length - 1].id : null;
-    if (lastId && lastId !== lastSeenLastIdRef.current) {
-      lastSeenLastIdRef.current = lastId;
-      feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight, behavior: "smooth" });
+    if (generations.length === 0) {
+      lastSeenLastIdRef.current = null;
+      lastSeenStatusRef.current = null;
+      lastSeenOutputCountRef.current = 0;
+      return;
     }
-    if (!lastId) lastSeenLastIdRef.current = null;
+
+    const lastGen = generations[generations.length - 1];
+    const lastId = lastGen.id;
+    const status = lastGen.status;
+    const outputCount = lastGen.outputs?.length ?? 0;
+
+    const isNewGen = lastId !== lastSeenLastIdRef.current;
+    const statusChanged = status !== lastSeenStatusRef.current;
+    const outputsAdded = outputCount > lastSeenOutputCountRef.current;
+
+    if (isNewGen || statusChanged || outputsAdded) {
+      lastSeenLastIdRef.current = lastId;
+      lastSeenStatusRef.current = status;
+      lastSeenOutputCountRef.current = outputCount;
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          feedRef.current?.scrollTo({
+            top: feedRef.current.scrollHeight,
+            behavior: isNewGen ? "smooth" : "auto",
+          });
+        });
+      });
+    }
   }, [generations]);
 
   return (
