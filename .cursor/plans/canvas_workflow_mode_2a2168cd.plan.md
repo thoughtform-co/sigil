@@ -4,16 +4,16 @@ overview: Add a node-based canvas workflow mode to Sigil as a fourth project mod
 todos:
   - id: phase-1-foundation
     content: "Phase 1: Install @xyflow/react + zustand, add Prisma schema (Workflow, WorkflowExecution, Generation.source), create /projects/[id]/canvas route, add Canvas button to mode bar, render empty React Flow canvas"
-    status: pending
+    status: completed
   - id: phase-2-nodes
     content: "Phase 2: Build node type components (ImageGen, VideoGen, Upscale, ImageInput), canvas toolbar with add-node menu, save/load workflow persistence via API"
-    status: pending
+    status: completed
   - id: phase-3-execution
     content: "Phase 3: Build topological sort execution engine, wire to existing /api/generate/process, add node status visualization and output preview inside nodes"
-    status: pending
+    status: completed
   - id: phase-4-sync
     content: "Phase 4: Sync terminal node outputs to traditional view (auto-create Generation + Output), add provenance badge to ForgeGenerationCard, link back to workflow"
-    status: pending
+    status: completed
 isProject: false
 ---
 
@@ -165,6 +165,7 @@ When `mode === "canvas"`, `ProjectWorkspace` keeps the same structural shell as 
 **Key departure from Weavy/ComfyUI:** Weavy uses separate nodes for Prompt, Reference Image, and Model -- requiring the user to wire a Prompt node into every generation node. This is flexible but adds friction for the most common workflow. Our approach: **generation nodes are self-contained**, mirroring the traditional prompt bar experience.
 
 Each ImageGen or VideoGen node embeds:
+
 - **Prompt textarea** (built-in, not a separate node)
 - **Reference image input** (built-in drop zone / picker, not a separate node)
 - **Model selector** dropdown
@@ -186,7 +187,10 @@ graph LR
   V2 -->|user picks| VG["VideoGen: animate this"]
 ```
 
+
+
 **How it works:**
+
 1. User has an ImageGen node with a prompt
 2. User clicks a "Branch" action (or a keyboard shortcut)
 3. The system fans out: creates N child nodes (one per selected model, or N variations of the same model)
@@ -200,16 +204,19 @@ This turns the canvas into an **exploration tree** rather than a fixed pipeline.
 ### Node Categories (Progressive Roadmap)
 
 **Phase 1 -- Core Generation Nodes:**
+
 - `ImageGenNode` -- self-contained image generation (prompt, ref image, model, params, output)
 - `VideoGenNode` -- self-contained video generation (prompt, ref image/video, model, params, output)
 - `ImageInputNode` -- pick from existing project outputs, upload, or paste URL
 
 **Phase 2 -- Transformation Nodes:**
+
 - `UpscaleNode` -- scale factor, model picker (Real-ESRGAN, etc.)
 - `StyleTransferNode` -- apply style from one image to another
 - `InpaintNode` -- mask region + prompt for inpainting
 
 **Phase 3 -- Editing Nodes (Weavy-style):**
+
 - `CropNode` -- crop / reframe
 - `ColorAdjustNode` -- hue, saturation, brightness, contrast
 - `ConcatenateNode` -- stitch videos together

@@ -1,13 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { RunicRain } from "@/components/ui/RunicRain";
 
 type ViewState = "form" | "sent" | "error";
 
+const IS_DEV = process.env.NODE_ENV === "development";
+
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [view, setView] = useState<ViewState>("form");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -22,6 +27,51 @@ export default function LoginPage() {
     requestAnimationFrame(() => setMounted(true));
   }, []);
 
+  const handleMagicLink = async () => {
+    const checkRes = await fetch("/api/auth/check-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email.trim() }),
+    });
+    const checkData = (await checkRes.json()) as { allowed?: boolean };
+    if (!checkData.allowed) {
+      setErrorMsg("This email is not on the access list. Contact an admin for access.");
+      setView("error");
+      return;
+    }
+
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.trim(),
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+
+    if (error) {
+      setErrorMsg(error.message);
+      setView("error");
+    } else {
+      setView("sent");
+    }
+  };
+
+  const handlePassword = async () => {
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+
+    if (error) {
+      setErrorMsg(error.message);
+      setView("error");
+    } else {
+      router.replace("/projects");
+      router.refresh();
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || loading) return;
@@ -30,32 +80,10 @@ export default function LoginPage() {
     setErrorMsg("");
 
     try {
-      const checkRes = await fetch("/api/auth/check-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
-      });
-      const checkData = (await checkRes.json()) as { allowed?: boolean };
-      if (!checkData.allowed) {
-        setErrorMsg("This email is not on the access list. Contact an admin for access.");
-        setView("error");
-        setLoading(false);
-        return;
-      }
-
-      const supabase = createClient();
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email.trim(),
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-
-      if (error) {
-        setErrorMsg(error.message);
-        setView("error");
+      if (IS_DEV && password) {
+        await handlePassword();
       } else {
-        setView("sent");
+        await handleMagicLink();
       }
     } catch {
       setErrorMsg("Something went wrong. Please try again.");
@@ -201,6 +229,45 @@ export default function LoginPage() {
                   />
                 </div>
 
+                {IS_DEV && (
+                  <div>
+                    <label
+                      htmlFor="password"
+                      className="block text-xs font-medium mb-1.5 tracking-wide uppercase"
+                      style={{
+                        color: "var(--dawn-40)",
+                        fontFamily: "var(--font-mono)",
+                      }}
+                    >
+                      Password
+                      <span
+                        className="ml-2 normal-case tracking-normal"
+                        style={{ color: "var(--dawn-30)", fontSize: "9px" }}
+                      >
+                        dev only — leave empty for magic link
+                      </span>
+                    </label>
+                    <input
+                      id="password"
+                      type="password"
+                      autoComplete="current-password"
+                      placeholder="optional in dev"
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (view === "error") setView("form");
+                      }}
+                      className="w-full rounded-lg px-3.5 py-2.5 text-sm outline-none transition-colors focus:ring-2 focus:ring-[var(--gold-30)]"
+                      style={{
+                        color: "var(--dawn)",
+                        background: "var(--dawn-04)",
+                        border: "1px solid var(--dawn-08)",
+                        fontFamily: "var(--font-mono)",
+                      }}
+                    />
+                  </div>
+                )}
+
                 {view === "error" && errorMsg && (
                   <p
                     className="text-xs"
@@ -245,10 +312,10 @@ export default function LoginPage() {
                           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                         />
                       </svg>
-                      Sending...
+                      {IS_DEV && password ? "Signing in..." : "Sending..."}
                     </span>
                   ) : (
-                    "Send Magic Link"
+                    IS_DEV && password ? "Sign In" : "Send Magic Link"
                   )}
                 </button>
               </form>

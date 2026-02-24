@@ -657,3 +657,13 @@ body {
   pointer-events: none;
   animation: energyFlow 2s linear infinite;
 }
+
+@keyframes sigilParticlePulse {
+  0%,
+  100% {
+    opacity: 0.48;
+  }
+  50% {
+    opacity: 1;
+  }
+}
