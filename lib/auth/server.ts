@@ -6,7 +6,10 @@ export type AuthedUser = {
   email: string | null;
 };
 
-const AUTH_BYPASS = process.env.SIGIL_AUTH_BYPASS === "true" || process.env.NEXT_PUBLIC_SIGIL_AUTH_BYPASS === "true";
+const AUTH_BYPASS =
+  process.env.NODE_ENV === "development" &&
+  (process.env.SIGIL_AUTH_BYPASS === "true" ||
+    process.env.NEXT_PUBLIC_SIGIL_AUTH_BYPASS === "true");
 const BYPASS_USER_ID = "00000000-0000-4000-8000-000000000001";
 const BYPASS_USER_EMAIL = "sigil-local@thoughtform.dev";
 

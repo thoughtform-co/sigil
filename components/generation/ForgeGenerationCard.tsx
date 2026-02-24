@@ -144,6 +144,8 @@ export function ForgeGenerationCard({
           {copied && <span className={styles.copiedBadge}>COPIED</span>}
         </button>
 
+        <div className={styles.promptPanelDivider} aria-hidden />
+
         <div className={styles.metaReadouts}>
           <span className={styles.readout}>
             <span className={styles.readoutLabel}>ID</span>
@@ -167,6 +169,8 @@ export function ForgeGenerationCard({
             </span>
           )}
         </div>
+
+        <div className={styles.promptPanelDivider} aria-hidden />
 
         <div className={styles.promptActions}>
           {failed ? (

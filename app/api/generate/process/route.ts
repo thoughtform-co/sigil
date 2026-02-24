@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getAuthedUser } from "@/lib/auth/server";
 import { getModel, getModelConfig } from "@/lib/models/registry";
 import { routeModel } from "@/lib/models/routing";
 import { calculateGenerationCost } from "@/lib/cost/calculator";
@@ -57,6 +58,9 @@ async function broadcastUpdatedGeneration(sessionId: string, generationId: strin
 }
 
 export async function POST(request: Request) {
+  const user = await getAuthedUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const body = await request.json().catch(() => null);
   const parsed = processRequestSchema.safeParse(body);
   if (!parsed.success) {

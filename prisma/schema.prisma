@@ -191,6 +191,16 @@ model UserModelPin {
   @@map("user_model_pins")
 }
 
+model AllowedEmail {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
+  note      String?
+  addedBy   String   @map("added_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("allowed_emails")
+}
+
 model PromptEnhancementPrompt {
   id           String   @id @default(uuid()) @db.Uuid
   name         String

@@ -19,22 +19,17 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0;
   padding: 10px 10px 10px 16px;
   min-height: 200px;
-  background: var(--surface-0);
-  border: 1px solid var(--dawn-08);
+  background: transparent;
 }
 
-.promptPanel::before {
-  content: "";
-  position: absolute;
-  top: 12px;
-  left: 0;
-  width: 2px;
-  height: 20px;
-  background: var(--gold-30);
-  pointer-events: none;
+.promptPanelDivider {
+  height: 1px;
+  background: var(--dawn-08);
+  margin: 10px 0;
+  flex-shrink: 0;
 }
 
 .promptBlock {
@@ -101,8 +96,12 @@
 }
 
 .readoutLabel {
-  color: var(--dawn-30);
-  margin-right: 0.25em;
+  display: inline-block;
+  padding: 1px 4px;
+  background: var(--gold-10);
+  border: 1px solid var(--gold-30);
+  color: var(--gold);
+  margin-right: 6px;
 }
 
 .readoutValue {

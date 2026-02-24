@@ -1,6 +1,7 @@
 import { NavigationFrame } from "@/components/hud/NavigationFrame";
 import { RequireAdmin } from "@/components/auth/RequireAdmin";
 import { AdminHealthPanel } from "@/components/admin/AdminHealthPanel";
+import { AllowedEmailsAdmin } from "@/components/admin/AllowedEmailsAdmin";
 import { PromptEnhancementAdmin } from "@/components/admin/PromptEnhancementAdmin";
 import { FailedGenerationsPanel } from "@/components/admin/FailedGenerationsPanel";
 import { HudPanel, HudPanelHeader } from "@/components/ui/hud";
@@ -16,6 +17,9 @@ export default function AdminPage() {
           <HudPanel>
             <HudPanelHeader title="system settings" />
             <AdminHealthPanel />
+            <div style={{ marginTop: "var(--space-xl)" }}>
+              <AllowedEmailsAdmin />
+            </div>
             <div style={{ marginTop: "var(--space-xl)" }}>
               <PromptEnhancementAdmin />
             </div>

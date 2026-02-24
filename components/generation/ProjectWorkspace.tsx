@@ -7,7 +7,7 @@ import { useGenerationsRealtime } from "@/hooks/useGenerationsRealtime";
 import { ForgeSidebar } from "@/components/generation/ForgeSidebar";
 import { ForgeGallery } from "@/components/generation/ForgeGallery";
 import { ForgePromptBar } from "@/components/generation/ForgePromptBar";
-import { ForgeCostTicker } from "@/components/generation/ForgeCostTicker";
+
 import { BrainstormPanel } from "@/components/generation/BrainstormPanel";
 import { ConvertToVideoModal } from "@/components/generation/ConvertToVideoModal";
 import { CanvasSidebar } from "@/components/canvas/CanvasSidebar";
@@ -565,7 +565,6 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
             busy={busy}
           />
           <div className={styles.main}>
-            <ForgeCostTicker />
             <CanvasWorkspace
               projectId={projectId}
               workflowId={selectedWorkflowId}
@@ -613,7 +612,6 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
           busy={busy}
         />
         <div className={styles.main}>
-          <ForgeCostTicker />
           <ForgeGallery
             generations={generationsVisible}
             onRetry={retryGeneration}
