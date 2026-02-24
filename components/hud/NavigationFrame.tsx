@@ -31,7 +31,6 @@ type NavigationFrameProps = {
   showNavPanel?: boolean;
 };
 
-const HUD_PADDING = "clamp(24px, 4vw, 56px)";
 const RAIL_WIDTH = 48;
 const NAV_PANEL_WIDTH = 180;
 const TICK_COUNT = 20;
@@ -100,9 +99,9 @@ export function NavigationFrame({
       <aside
         className="hud-rail-tick fixed z-30 pointer-events-none"
         style={{
-          top: `calc(${HUD_PADDING} + 32px)`,
-          bottom: `calc(${HUD_PADDING} + 32px)`,
-          left: HUD_PADDING,
+          top: "calc(var(--hud-padding) + 32px)",
+          bottom: "calc(var(--hud-padding) + 32px)",
+          left: "var(--hud-padding)",
           width: RAIL_WIDTH,
         }}
       >
@@ -144,9 +143,9 @@ export function NavigationFrame({
       <aside
         className="hud-rail-tick fixed z-30 pointer-events-none"
         style={{
-          top: `calc(${HUD_PADDING} + 32px)`,
-          bottom: `calc(${HUD_PADDING} + 32px)`,
-          right: HUD_PADDING,
+          top: "calc(var(--hud-padding) + 32px)",
+          bottom: "calc(var(--hud-padding) + 32px)",
+          right: "var(--hud-padding)",
           width: RAIL_WIDTH,
         }}
       >
@@ -175,9 +174,9 @@ export function NavigationFrame({
         <nav
           className="sigil-nav-panel fixed z-30"
           style={{
-            top: `calc(${HUD_PADDING} + 32px)`,
-            bottom: `calc(${HUD_PADDING} + 32px)`,
-            left: `calc(${HUD_PADDING} + ${RAIL_WIDTH}px + 4px)`,
+            top: "calc(var(--hud-padding) + 32px)",
+            bottom: "calc(var(--hud-padding) + 32px)",
+            left: `calc(var(--hud-padding) + ${RAIL_WIDTH}px + 4px)`,
             width: NAV_PANEL_WIDTH,
             display: "flex",
             flexDirection: "column",

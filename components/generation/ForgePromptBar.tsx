@@ -1,12 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState, useEffect, useCallback } from "react";
 import type { GenerationType, ModelItem } from "@/components/generation/types";
 import styles from "./ForgePromptBar.module.css";
 
 type ForgePromptBarProps = {
+  projectId: string;
   generationType: GenerationType;
-  onGenerationTypeChange: (type: GenerationType) => void;
   prompt: string;
   onPromptChange: (value: string) => void;
   referenceImageUrl: string;
@@ -29,11 +30,13 @@ type ForgePromptBarProps = {
   busy: boolean;
   enhancing: boolean;
   message: string | null;
+  brainstormOpen?: boolean;
+  onBrainstormToggle?: () => void;
 };
 
 export function ForgePromptBar({
+  projectId,
   generationType,
-  onGenerationTypeChange,
   prompt,
   onPromptChange,
   referenceImageUrl,
@@ -56,6 +59,8 @@ export function ForgePromptBar({
   busy,
   enhancing,
   message,
+  brainstormOpen,
+  onBrainstormToggle,
 }: ForgePromptBarProps) {
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
@@ -137,113 +142,72 @@ export function ForgePromptBar({
   }, [onReferenceImageUrlChange]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       void onSubmit();
     }
   };
 
-  const canSubmit = hasSession && modelId && prompt.trim() && !busy;
+  const canSubmit = modelId && prompt.trim() && !busy;
 
   return (
     <div className={styles.promptBarContainer}>
-      <div className={styles.promptBarWrapper}>
-        <div className={styles.modelPickerContainer} ref={modelPickerRef}>
-          <button
-            type="button"
-            className={styles.modelPickerButton}
-            onClick={() => setShowModelPicker(!showModelPicker)}
-            disabled={busy}
-          >
-            <span className={styles.modelPickerLabel}>{displayModelName}</span>
-            <span className={styles.modelPickerChevron}>▼</span>
-          </button>
-          {showModelPicker && (
-            <div className={styles.modelDropdown}>
-              {models.map((model) => (
-                <button
-                  key={model.id}
-                  type="button"
-                  className={`${styles.modelOption} ${modelId === model.id ? styles.modelOptionActive : ""}`}
-                  onClick={() => {
-                    onModelChange(model.id);
-                    setShowModelPicker(false);
-                  }}
-                >
-                  {model.name}
-                  {model.provider ? ` (${model.provider})` : ""}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className={styles.unifiedPromptContainer}>
-          <div
-            className={styles.imageZone}
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageSelect}
-              className={styles.fileInput}
-            />
-            {imagePreview || referenceImageUrl ? (
-              <div className={styles.imagePreview}>
-                <img
-                  src={imagePreview || referenceImageUrl}
-                  alt="Reference"
-                  onError={() => setImagePreview(null)}
-                />
-                <button
-                  type="button"
-                  className={styles.clearImage}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    clearImage();
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-            ) : (
-              <div className={styles.uploadPlaceholder}>
-                <span className={styles.uploadIcon}>+</span>
-                <span className={styles.uploadText}>IMAGE</span>
-              </div>
-            )}
-          </div>
+      <div className={styles.promptBarRow}>
+        <div
+          className={styles.unifiedPromptContainer}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageSelect}
+            className={styles.fileInput}
+          />
 
           <div className={styles.promptAndParams}>
-            <div className={styles.promptTextArea}>
-              <textarea
-                ref={textareaRef}
-                id="forge-prompt-bar-prompt"
-                className={styles.promptInput}
-                value={prompt}
-                onChange={(e) => onPromptChange(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Describe what to generate… (Ctrl+Enter to generate)"
-                rows={1}
-                disabled={busy}
-              />
-              {showUrlInput && (
-                <div className={styles.urlRow}>
-                  <input
-                    type="url"
-                    value={referenceImageUrl}
-                    onChange={(e) => onReferenceImageUrlChange(e.target.value)}
-                    className={styles.refInput}
-                    placeholder="Paste reference image URL"
-                    aria-label="Reference image URL"
+            {/* Attachments row above prompt */}
+            <div className={styles.attachRow}>
+              <button
+                type="button"
+                className={styles.addImageBtn}
+                onClick={() => fileInputRef.current?.click()}
+                title="Add reference image"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <rect x="3" y="3" width="18" height="18" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <path d="M21 15l-5-5L5 21" />
+                </svg>
+              </button>
+              {(imagePreview || referenceImageUrl) && (
+                <div className={styles.attachThumb}>
+                  <img
+                    src={imagePreview || referenceImageUrl}
+                    alt="Reference"
+                    onError={() => setImagePreview(null)}
                   />
+                  <button
+                    type="button"
+                    className={styles.attachRemove}
+                    onClick={clearImage}
+                  >
+                    ×
+                  </button>
                 </div>
               )}
-              {!showUrlInput && (
+              {showUrlInput && (
+                <input
+                  type="url"
+                  value={referenceImageUrl}
+                  onChange={(e) => onReferenceImageUrlChange(e.target.value)}
+                  className={styles.refInput}
+                  placeholder="Paste image URL"
+                  aria-label="Reference image URL"
+                />
+              )}
+              {!showUrlInput && !imagePreview && !referenceImageUrl && (
                 <button
                   type="button"
                   className={styles.urlToggle}
@@ -254,24 +218,50 @@ export function ForgePromptBar({
               )}
             </div>
 
+            {/* Prompt textarea */}
+            <div className={styles.promptTextArea}>
+              <textarea
+                ref={textareaRef}
+                id="forge-prompt-bar-prompt"
+                className={styles.promptInput}
+                value={prompt}
+                onChange={(e) => onPromptChange(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Describe what to generate… (Enter to generate)"
+                rows={1}
+                disabled={busy}
+              />
+            </div>
+
             <div className={styles.paramsRow}>
-              <div className={styles.durationToggle} role="group" aria-label="Mode">
+              <div className={styles.modelPickerContainer} ref={modelPickerRef}>
                 <button
                   type="button"
-                  className={`${styles.paramButton} ${generationType === "image" ? styles.paramActive : ""}`}
-                  onClick={() => onGenerationTypeChange("image")}
+                  className={styles.modelPickerButton}
+                  onClick={() => setShowModelPicker(!showModelPicker)}
                   disabled={busy}
                 >
-                  IMAGE
+                  <span className={styles.modelPickerLabel}>{displayModelName}</span>
+                  <span className={styles.modelPickerChevron}>▼</span>
                 </button>
-                <button
-                  type="button"
-                  className={`${styles.paramButton} ${generationType === "video" ? styles.paramActive : ""}`}
-                  onClick={() => onGenerationTypeChange("video")}
-                  disabled={busy}
-                >
-                  VIDEO
-                </button>
+                {showModelPicker && (
+                  <div className={styles.modelDropdown}>
+                    {models.map((model) => (
+                      <button
+                        key={model.id}
+                        type="button"
+                        className={`${styles.modelOption} ${modelId === model.id ? styles.modelOptionActive : ""}`}
+                        onClick={() => {
+                          onModelChange(model.id);
+                          setShowModelPicker(false);
+                        }}
+                      >
+                        {model.name}
+                        {model.provider ? ` (${model.provider})` : ""}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <select
                 value={aspectRatio}
@@ -345,6 +335,7 @@ export function ForgePromptBar({
             className={styles.generateButton}
             onClick={() => void onSubmit()}
             disabled={!canSubmit}
+            title="Generate"
           >
             {busy ? (
               <span className={styles.generating}>
@@ -354,6 +345,44 @@ export function ForgePromptBar({
               <span className={styles.generateIcon}>▶</span>
             )}
           </button>
+        </div>
+
+        {/* Right-side strip: image/video nav + brainstorm toggle */}
+        <div className={styles.sideStrip}>
+          <div className={styles.modeBar}>
+            <Link
+              href={`/projects/${projectId}/image`}
+              className={`${styles.modeButton} ${generationType === "image" ? styles.modeButtonActive : ""}`}
+              title="Image mode"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <rect x="3" y="3" width="18" height="18" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <path d="M21 15l-5-5L5 21" />
+              </svg>
+            </Link>
+            <Link
+              href={`/projects/${projectId}/video`}
+              className={`${styles.modeButton} ${generationType === "video" ? styles.modeButtonActive : ""}`}
+              title="Video mode"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </Link>
+          </div>
+          {onBrainstormToggle && (
+            <button
+              type="button"
+              className={`${styles.brainstormButton} ${brainstormOpen ? styles.brainstormButtonActive : ""}`}
+              onClick={onBrainstormToggle}
+              title={brainstormOpen ? "Close brainstorm" : "Open brainstorm"}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
       {message && <p className={styles.message} role="status">{message}</p>}

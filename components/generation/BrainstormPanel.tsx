@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import styles from "./BrainstormPanel.module.css";
 
 type BrainstormMessage = {
@@ -13,23 +13,20 @@ type BrainstormMessage = {
 type BrainstormPanelProps = {
   projectId: string;
   onSendPrompt?: (text: string) => void;
-  open?: boolean;
   onClose?: () => void;
-  variant?: "docked" | "floating";
 };
 
 export function BrainstormPanel({
   projectId,
   onSendPrompt,
-  open = true,
   onClose,
-  variant = "docked",
 }: BrainstormPanelProps) {
   const [messages, setMessages] = useState<BrainstormMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const logRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function loadMessages() {
@@ -40,16 +37,22 @@ export function BrainstormPanel({
           cache: "no-store",
         });
         const data = (await response.json()) as { messages?: BrainstormMessage[]; error?: string };
-        if (!response.ok) throw new Error(data.error ?? "Failed to load brainstorm messages");
+        if (!response.ok) throw new Error(data.error ?? "Failed to load");
         setMessages(data.messages ?? []);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load brainstorm messages");
+        setError(err instanceof Error ? err.message : "Failed to load");
       } finally {
         setLoading(false);
       }
     }
     void loadMessages();
   }, [projectId]);
+
+  useEffect(() => {
+    if (logRef.current) {
+      logRef.current.scrollTop = logRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   async function sendMessage() {
     const content = draft.trim();
@@ -63,63 +66,62 @@ export function BrainstormPanel({
         body: JSON.stringify({ content }),
       });
       const data = (await response.json()) as { messages?: BrainstormMessage[]; error?: string };
-      if (!response.ok) throw new Error(data.error ?? "Failed to send brainstorm message");
+      if (!response.ok) throw new Error(data.error ?? "Failed to send");
       setMessages((prev) => [...prev, ...(data.messages ?? [])]);
       setDraft("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send brainstorm message");
+      setError(err instanceof Error ? err.message : "Failed to send");
     } finally {
       setSubmitting(false);
     }
   }
 
-  const panelContent = (
-    <>
+  return (
+    <div className={styles.panel}>
       <div className={styles.header}>
-        <h2 className={styles.label}>Brainstorm</h2>
+        <span className={styles.label}>brainstorm</span>
         {onClose && (
-          <button
-            type="button"
-            onClick={onClose}
-            className={styles.closeBtn}
-            aria-label="Close brainstorm panel"
-          >
-            Close
+          <button type="button" onClick={onClose} className={styles.closeBtn}>
+            esc
           </button>
         )}
       </div>
-      <div className={styles.messages}>
+
+      <div className={styles.messages} ref={logRef}>
         {loading ? (
-          <p className={styles.loading}>Loading messages…</p>
+          <p className={styles.loading}>loading…</p>
         ) : messages.length === 0 ? (
-          <p className={styles.empty}>Start a concept thread for this project.</p>
+          <p className={styles.empty}>no messages yet. start a concept thread.</p>
         ) : (
-          messages.map((message) => (
-            <div
-              key={message.id}
-              className={`${styles.card} ${
-                message.role === "assistant" ? styles.cardAssistant : styles.cardUser
-              }`}
-            >
-              <div className={styles.cardHeader}>
-                <span className={styles.role}>{message.role}</span>
-                {message.role === "assistant" && onSendPrompt && (
+          messages.map((msg) => {
+            const isUser = msg.role === "user";
+            return (
+              <div key={msg.id} className={styles.line}>
+                <span className={`${styles.prefix} ${isUser ? styles.prefixUser : ""}`}>
+                  {isUser ? ">" : "$"}
+                </span>
+                <span className={isUser ? styles.lineContentUser : styles.lineContent}>
+                  {msg.content}
+                </span>
+                {!isUser && onSendPrompt && (
                   <button
                     type="button"
-                    onClick={() => onSendPrompt(message.content)}
-                    className={styles.usePromptBtn}
+                    className={styles.useLink}
+                    onClick={() => onSendPrompt(msg.content)}
                   >
-                    Use as prompt
+                    [use]
                   </button>
                 )}
               </div>
-              <p className={styles.cardBody}>{message.content}</p>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
+
       <div className={styles.compose}>
-        <textarea
+        <span className={styles.promptPrefix}>{">"}</span>
+        <input
+          type="text"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
@@ -128,48 +130,21 @@ export function BrainstormPanel({
               void sendMessage();
             }
           }}
-          placeholder="Ask for concept variants, shot ideas, or style passes…"
-          className={styles.textarea}
-          rows={2}
+          placeholder="concept, variant, style pass…"
+          className={styles.input}
+          disabled={submitting}
         />
-        <div className={styles.buttons}>
-          <button
-            type="button"
-            onClick={() => void sendMessage()}
-            disabled={submitting || !draft.trim()}
-            className={styles.sendPrimary}
-          >
-            {submitting ? "Sending…" : "Send"}
-          </button>
-          {onSendPrompt && draft.trim() && (
-            <button
-              type="button"
-              onClick={() => {
-                onSendPrompt(draft.trim());
-                setDraft("");
-              }}
-              className={styles.sendToPrompt}
-            >
-              Send to prompt
-            </button>
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={() => void sendMessage()}
+          disabled={submitting || !draft.trim()}
+          className={styles.sendBtn}
+        >
+          {submitting ? "…" : "send"}
+        </button>
       </div>
-      {error && (
-        <p className={styles.error} role="alert">
-          {error}
-        </p>
-      )}
-    </>
+
+      {error && <p className={styles.error}>{error}</p>}
+    </div>
   );
-
-  if (variant === "floating") {
-    return (
-      <div className={styles.floatingBackdrop}>
-        <div className={styles.floatingPanel}>{panelContent}</div>
-      </div>
-    );
-  }
-
-  return <div className={styles.panel}>{panelContent}</div>;
 }

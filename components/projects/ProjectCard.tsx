@@ -10,7 +10,7 @@ type ProjectCardProps = {
 export function ProjectCard({ id, name, description, updatedAt }: ProjectCardProps) {
   return (
     <Link
-      href={`/projects/${id}`}
+      href={`/projects/${id}/image`}
       className="group relative block overflow-hidden transition-all"
       style={{
         background: "var(--surface-0)",

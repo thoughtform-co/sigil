@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { getModelConfig } from "@/lib/models/registry";
+import { getAuthedUser } from "@/lib/auth/server";
 import { broadcastGenerationUpdate } from "@/lib/supabase/realtime";
 
 const generateRequestSchema = z.object({
@@ -14,13 +15,8 @@ const generateRequestSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
+  const user = await getAuthedUser();
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -39,11 +35,22 @@ export async function POST(request: Request) {
         OR: [{ ownerId: user.id }, { members: { some: { userId: user.id } } }],
       },
     },
-    select: { id: true },
+    select: { id: true, type: true },
   });
 
   if (!session) {
     return NextResponse.json({ error: "Session not found or access denied" }, { status: 404 });
+  }
+
+  const modelConfig = getModelConfig(modelId);
+  if (!modelConfig) {
+    return NextResponse.json({ error: "Model not found" }, { status: 400 });
+  }
+  if (modelConfig.type !== session.type) {
+    return NextResponse.json(
+      { error: "Model type does not match session type (image vs video)" },
+      { status: 400 },
+    );
   }
 
   const generation = await prisma.generation.create({

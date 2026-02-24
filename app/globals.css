@@ -59,6 +59,9 @@
   --z-modal: 40;
   --z-nav: 50;
 
+  /* HUD corner/shell padding (overridden at 1280px for tighter layout) */
+  --hud-padding: clamp(24px, 4vw, 56px);
+
   /* Overlay (token-only; no hardcoded color) */
   --overlay-bg: rgba(5, 4, 3, 0.75);
 }
@@ -186,8 +189,8 @@ body {
 }
 
 .hud-corner-tl {
-  top: clamp(24px, 4vw, 56px);
-  left: clamp(24px, 4vw, 56px);
+  top: var(--hud-padding);
+  left: var(--hud-padding);
 }
 
 .hud-corner-tl::before {
@@ -205,8 +208,8 @@ body {
 }
 
 .hud-corner-tr {
-  top: clamp(24px, 4vw, 56px);
-  right: clamp(24px, 4vw, 56px);
+  top: var(--hud-padding);
+  right: var(--hud-padding);
 }
 
 .hud-corner-tr::before {
@@ -224,8 +227,8 @@ body {
 }
 
 .hud-corner-bl {
-  bottom: clamp(24px, 4vw, 56px);
-  left: clamp(24px, 4vw, 56px);
+  bottom: var(--hud-padding);
+  left: var(--hud-padding);
 }
 
 .hud-corner-bl::before {
@@ -243,8 +246,8 @@ body {
 }
 
 .hud-corner-br {
-  bottom: clamp(24px, 4vw, 56px);
-  right: clamp(24px, 4vw, 56px);
+  bottom: var(--hud-padding);
+  right: var(--hud-padding);
 }
 
 .hud-corner-br::before {
@@ -270,6 +273,12 @@ body {
   display: none;
 }
 
+@media (max-width: 1280px) {
+  :root {
+    --hud-padding: clamp(16px, 2.5vw, 32px);
+  }
+}
+
 @media (max-width: 1100px) {
   .hud-rail-tick {
     display: none;
@@ -281,7 +290,7 @@ body {
 
   /* When panel hides, revert shell padding to standard */
   .hud-shell--with-panel {
-    padding-left: calc(clamp(24px, 4vw, 56px) + 60px);
+    padding-left: calc(var(--hud-padding) + 60px);
   }
 
   /* Show header nav links as fallback */
@@ -315,16 +324,16 @@ body {
 
 .hud-shell {
   min-height: 100vh;
-  padding-top: calc(clamp(24px, 4vw, 56px) + 80px);
-  padding-bottom: calc(clamp(24px, 4vw, 56px) + 40px);
-  padding-left: calc(clamp(24px, 4vw, 56px) + 60px);
-  padding-right: calc(clamp(24px, 4vw, 56px) + 60px);
+  padding-top: calc(var(--hud-padding) + 80px);
+  padding-bottom: calc(var(--hud-padding) + 40px);
+  padding-left: calc(var(--hud-padding) + 60px);
+  padding-right: calc(var(--hud-padding) + 60px);
 }
 
 /* Shell with left nav panel: clear the panel, content pushed right */
 .hud-shell--with-panel {
-  padding-left: calc(clamp(24px, 4vw, 56px) + 48px + 180px + 8px);
-  padding-right: calc(clamp(24px, 4vw, 56px) + 20px);
+  padding-left: calc(var(--hud-padding) + 48px + 180px + 8px);
+  padding-right: calc(var(--hud-padding) + 20px);
   display: flex;
   flex-direction: column;
   align-items: center;

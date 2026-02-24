@@ -1,36 +1,27 @@
-/* ForgeGenerationCard — Atlas ForgeVideoCard pattern: prompt banner, 16:9, corner accents, scanlines, hover actions */
+/* ForgeGenerationCard — horizontal Vesper row with prompt panel and media rail */
 
 .card {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  background: var(--surface-0);
-  border: 1px solid var(--dawn-08);
-  transition: all 250ms cubic-bezier(0.19, 1, 0.22, 1);
-  max-width: 720px;
-  width: 100%;
-  overflow: hidden;
   position: relative;
-}
-
-.card:hover {
-  border-color: var(--dawn-30);
-  transform: translateY(-2px);
-  box-shadow:
-    0 0 0 1px rgba(236, 227, 214, 0.03),
-    0 20px 50px -15px rgba(0, 0, 0, 0.5);
+  display: grid;
+  grid-template-columns: minmax(320px, 360px) minmax(0, 1fr);
+  width: 100%;
+  max-width: 1240px;
+  border: 1px solid var(--dawn-08);
+  background: var(--surface-0);
+  overflow: hidden;
+  transition: border-color 120ms ease, background 120ms ease;
 }
 
 .card::before,
 .card::after {
   content: "";
   position: absolute;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 300ms ease;
-  z-index: 10;
+  transition: opacity 120ms ease;
+  z-index: 2;
 }
 
 .card::before {
@@ -41,10 +32,14 @@
 }
 
 .card::after {
-  bottom: -1px;
   right: -1px;
-  border-bottom: 1px solid var(--dawn-15);
+  bottom: -1px;
   border-right: 1px solid var(--dawn-15);
+  border-bottom: 1px solid var(--dawn-15);
+}
+
+.card:hover {
+  border-color: var(--dawn-15);
 }
 
 .card:hover::before,
@@ -53,347 +48,328 @@
 }
 
 .cardProcessing {
-  border-color: var(--gold-20, rgba(202, 165, 84, 0.2));
+  border-color: var(--gold-15);
 }
 
 .cardFailed {
-  border-color: rgba(139, 90, 90, 0.3);
+  border-color: var(--alert);
 }
 
-/* Prompt banner (above media) */
-.promptLine {
-  padding: 10px 14px;
-  cursor: pointer;
-  transition: background 150ms ease;
+.promptPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-right: 1px solid var(--dawn-08);
+  min-height: 320px;
+  background:
+    linear-gradient(180deg, rgba(202, 165, 84, 0.05) 0%, rgba(202, 165, 84, 0) 100%),
+    var(--surface-0);
+}
+
+.promptBlock {
   position: relative;
-  border-bottom: 1px solid var(--dawn-08);
-  background: rgba(10, 9, 8, 0.4);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--dawn-08);
+  background: rgba(10, 9, 8, 0.55);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+  flex: 1;
 }
 
-.promptLine:hover {
-  background: rgba(10, 9, 8, 0.6);
+.promptBlock:hover {
+  border-color: var(--dawn-15);
+  background: rgba(10, 9, 8, 0.72);
 }
 
 .promptCopied {
-  background: rgba(202, 165, 84, 0.1);
+  border-color: var(--gold-15);
 }
 
 .promptText {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  line-height: 1.4;
-  letter-spacing: 0.04em;
+  display: block;
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.5;
   color: var(--dawn-70);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 210px;
+  overflow: auto;
 }
 
 .copiedBadge {
   position: absolute;
-  top: 50%;
-  right: 14px;
-  transform: translateY(-50%);
-  padding: 3px 6px;
-  background: var(--gold);
-  color: var(--void);
+  top: 8px;
+  right: 8px;
+  padding: 2px 5px;
+  border: 1px solid var(--gold);
+  color: var(--gold);
   font-family: var(--font-mono);
-  font-size: 7px;
-  letter-spacing: 0.1em;
-  animation: fadeInOut 2s ease;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-@keyframes fadeInOut {
-  0%, 100% { opacity: 0; }
-  10%, 90% { opacity: 1; }
+.metaReadouts {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--dawn-08);
+  background: var(--void);
 }
 
-/* 16:9 media container */
-.videoContainer {
+.readout {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dawn-50);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.promptActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--dawn-08);
+}
+
+.textAction {
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  color: var(--dawn-70);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, opacity 120ms ease;
+}
+
+.textAction:hover {
+  color: var(--gold);
+  border-color: var(--gold-15);
+}
+
+.textAction:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.textActionActive {
+  color: var(--gold);
+  border-color: var(--gold-15);
+}
+
+.mediaPanel {
+  min-height: 300px;
+  padding: 14px;
+  background: var(--void);
+  display: flex;
+}
+
+.mediaGrid {
   width: 100%;
-  aspect-ratio: 16 / 9;
+  display: grid;
+  gap: 12px;
+}
+
+.mediaGridSingle {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.mediaGridMulti {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.outputCard {
+  border: 1px solid var(--dawn-08);
+  background: var(--surface-0);
+  min-height: 120px;
   position: relative;
   overflow: hidden;
-  background: #000;
 }
 
-.video,
-.sourceImage {
+.mediaFrame {
+  position: relative;
+  width: 100%;
+  min-height: 140px;
+  background: #000;
+  overflow: hidden;
+}
+
+.mediaButton {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+.media {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  transition: transform 500ms cubic-bezier(0.19, 1, 0.22, 1);
 }
 
-.card:hover .video,
-.card:hover .sourceImage {
-  transform: scale(1.03);
-}
-
-.videoContainer::after {
-  content: "";
+.hoverActions {
   position: absolute;
   inset: 0;
-  pointer-events: none;
   opacity: 0;
-  transition: opacity 300ms ease;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent 0px,
-    transparent 2px,
-    rgba(0, 0, 0, 0.03) 2px,
-    rgba(0, 0, 0, 0.03) 4px
-  );
+  transition: opacity 120ms ease;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.5);
 }
 
-.card:hover .videoContainer::after {
+.outputCard:hover .hoverActions {
   opacity: 1;
 }
 
-/* Processing overlay */
-.sourceImageBackground {
+.actionsTopLeft,
+.actionsTopRight,
+.actionsBottomRight {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  filter: brightness(0.5) saturate(0.7);
+  display: flex;
+  gap: 6px;
+  pointer-events: auto;
 }
 
-.processingOverlay {
-  position: absolute;
-  inset: 0;
+.actionsTopLeft {
+  top: 8px;
+  left: 8px;
+}
+
+.actionsTopRight {
+  top: 8px;
+  right: 8px;
+}
+
+.actionsBottomRight {
+  bottom: 8px;
+  right: 8px;
+}
+
+.actionButton {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--dawn-15);
+  background: rgba(10, 9, 8, 0.82);
+  color: var(--dawn-70);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease, background 120ms ease;
+}
+
+.actionButton:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(10, 9, 8, 0.95);
+}
+
+.actionButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.actionActive {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.actionIcon {
+  width: 14px;
+  height: 14px;
+}
+
+.mediaState {
+  width: 100%;
+  min-height: 260px;
+  border: 1px solid var(--dawn-08);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 12px;
-  background: rgba(0, 0, 0, 0.4);
-}
-
-.progressIcon {
-  position: relative;
-  width: 36px;
-  height: 36px;
+  gap: 10px;
+  padding: 18px;
+  text-align: center;
+  background: radial-gradient(circle at center, rgba(202, 165, 84, 0.07) 0%, rgba(5, 4, 3, 0) 70%);
 }
 
 .progressDiamond {
-  width: 100%;
-  height: 100%;
+  width: 34px;
+  height: 34px;
   border: 1px solid var(--gold);
   transform: rotate(45deg);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(5, 4, 3, 0.6);
   animation: diamondPulse 2s ease-in-out infinite;
 }
 
-@keyframes diamondPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(202, 165, 84, 0.3); }
-  50% { box-shadow: 0 0 8px 2px rgba(202, 165, 84, 0.15); }
-}
-
 .progressPercent {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  color: var(--gold);
   transform: rotate(-45deg);
-}
-
-.progressInfo {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--gold);
 }
 
 .phaseMessage {
   font-family: var(--font-mono);
-  font-size: 8px;
-  letter-spacing: 0.06em;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--dawn-50);
-  max-width: 180px;
-  animation: messageGlow 4s ease-in-out infinite;
-}
-
-@keyframes messageGlow {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 0.8; }
-}
-
-/* Failed overlay */
-.failedOverlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  background: rgba(0, 0, 0, 0.6);
-}
-
-.failedIcon {
-  width: 24px;
-  height: 24px;
-  border: 1px solid var(--status-error);
-  transform: rotate(45deg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--status-error);
-  background: rgba(5, 4, 3, 0.6);
-}
-
-.failedIcon svg {
-  transform: rotate(-45deg);
-  width: 12px;
-  height: 12px;
+  max-width: 360px;
 }
 
 .failedTitle {
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--status-error);
+  color: var(--alert);
 }
 
 .errorMessage {
-  font-family: var(--font-mono);
-  font-size: 7px;
-  color: var(--dawn-30);
-  max-width: 90%;
-  text-align: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  line-height: 1.4;
-}
-
-/* Approved badge */
-.approvedBadge {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--gold);
-  color: var(--void);
+  font-family: var(--font-body);
   font-size: 12px;
-  z-index: 5;
+  color: var(--dawn-50);
 }
 
-/* Hover actions */
-.hoverActions {
-  position: absolute;
-  bottom: 12px;
-  right: 12px;
-  display: flex;
-  gap: 6px;
-  animation: fadeIn 150ms ease;
-  z-index: 5;
+@keyframes diamondPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(202, 165, 84, 0.12);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(202, 165, 84, 0.04);
+  }
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.actionButton {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(10, 9, 8, 0.8);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid var(--dawn-15);
-  cursor: pointer;
-  transition: all 150ms ease;
-}
-
-.actionButton:hover {
-  background: rgba(10, 9, 8, 0.95);
-  border-color: var(--dawn-30);
-}
-
-.actionActive {
-  background: var(--gold);
-  border-color: var(--gold);
-}
-
-.actionActive:hover {
-  background: #d4b064;
-}
-
-.actionIcon {
-  color: var(--dawn-70);
-  width: 16px;
-  height: 16px;
-}
-
-.actionActive .actionIcon {
-  color: var(--void);
-}
-
-/* Extra outputs row (when generation has multiple outputs) */
-.extraOutputs {
-  display: flex;
-  gap: 4px;
-  padding: 8px;
-  border-top: 1px solid var(--dawn-08);
-  background: var(--void);
-  flex-wrap: wrap;
-}
-
-.extraThumb {
-  width: 48px;
-  height: 48px;
-  object-fit: cover;
-  cursor: pointer;
-  border: 1px solid var(--dawn-08);
-}
-
-.extraThumb:hover {
-  border-color: var(--dawn-30);
-}
-
-@media (max-width: 768px) {
+@media (max-width: 980px) {
   .card {
-    max-width: 100%;
+    grid-template-columns: minmax(0, 1fr);
   }
-  .promptText {
-    font-size: 9px;
+
+  .promptPanel {
+    border-right: 0;
+    border-bottom: 1px solid var(--dawn-08);
   }
-  .progressIcon {
-    width: 28px;
-    height: 28px;
-  }
-  .progressPercent {
-    font-size: 8px;
-  }
-  .phaseMessage {
-    font-size: 7px;
-    max-width: 140px;
-  }
-  .actionButton {
-    width: 28px;
-    height: 28px;
-  }
-  .actionIcon {
-    width: 14px;
-    height: 14px;
+
+  .mediaGridMulti {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

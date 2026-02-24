@@ -1,33 +1,31 @@
-/* ForgeSidebar — 72px thumbnail strip (Atlas pattern): 64x64 squares, hover tooltip, icon overlays */
+/* ForgeSidebar — 72px thumbnail strip, aligned with left HUD rail */
 
 .sidebar {
   width: 72px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
+  align-items: center;
   min-height: 0;
-  padding: 8px 4px;
-  border-right: 1px solid var(--dawn-08);
+  padding: calc(clamp(24px, 4vw, 56px) + 16px) 4px 0;
+  gap: 8px;
 }
 
 .projectRow {
   flex-shrink: 0;
-  margin-bottom: 8px;
+  width: 64px;
+  text-align: center;
 }
 
 .projectLink {
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 8px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--dawn-40);
+  color: var(--dawn-30);
   text-decoration: none;
   display: block;
-  padding: 4px 0;
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  transform: rotate(-180deg);
-  max-height: 48px;
+  padding: 6px 2px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -41,8 +39,7 @@
 /* New session button — 64x64 */
 .newButton {
   width: 64px;
-  height: 64px;
-  margin: 0 auto 8px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -160,7 +157,7 @@
   color: var(--dawn-15);
 }
 
-/* Hover overlay: delete (and optional rename) */
+/* Hover overlay: delete */
 .actionOverlay {
   position: absolute;
   inset: 0;
@@ -243,7 +240,7 @@
 }
 
 .empty {
-  padding: 16px 8px;
+  padding: 12px 4px;
   text-align: center;
 }
 
@@ -253,6 +250,4 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--dawn-30);
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
 }

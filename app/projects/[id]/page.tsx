@@ -1,19 +1,17 @@
-import { NavigationFrame } from "@/components/hud/NavigationFrame";
-import { RequireAuth } from "@/components/auth/RequireAuth";
-import { ProjectWorkspace } from "@/components/generation/ProjectWorkspace";
+import { redirect } from "next/navigation";
 
 type ProjectPageProps = {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-export default async function ProjectDetailPage({ params }: ProjectPageProps) {
+export default async function ProjectDetailPage({ params, searchParams }: ProjectPageProps) {
   const { id } = await params;
-
-  return (
-    <RequireAuth>
-      <NavigationFrame title="SIGIL" modeLabel={`project / ${id}`} showNavPanel={false}>
-        <ProjectWorkspace projectId={id} />
-      </NavigationFrame>
-    </RequireAuth>
-  );
+  const query = await searchParams;
+  const ref = query.ref;
+  const search =
+    ref != null && ref !== ""
+      ? `?ref=${encodeURIComponent(Array.isArray(ref) ? ref[0] : ref)}`
+      : "";
+  redirect(`/projects/${id}/image${search}`);
 }

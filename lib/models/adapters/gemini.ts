@@ -2,14 +2,20 @@ import { BaseModelAdapter, GenerationRequest, GenerationResponse, ModelConfig } 
 import { NANO_BANANA_BACKUP_CONFIG, KLING_2_6_CONFIG, ReplicateAdapter } from "@/lib/models/adapters/replicate";
 
 export const NANO_BANANA_CONFIG: ModelConfig = {
-  id: "gemini-2.5-flash-image",
-  name: "Gemini 2.5 Flash Image",
-  provider: "google",
+  id: "gemini-nano-banana-pro",
+  name: "Nano Banana Pro",
+  provider: "Google",
   type: "image",
-  description: "Fast image generation model.",
+  description: "Gemini 3 Pro Image - Advanced image generation with superior quality",
+  defaultAspectRatio: "1:1",
+  maxResolution: 4096,
+  supportedAspectRatios: ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"],
   capabilities: {
+    editing: true,
     "text-2-image": true,
     "image-2-image": true,
+    multiImageEditing: true,
+    maxReferenceImages: 14,
   },
 };
 

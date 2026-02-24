@@ -8,7 +8,6 @@ import {
   SEEDREAM_4_CONFIG,
 } from "@/lib/models/adapters/replicate";
 import { KLING_OFFICIAL_CONFIG, KlingOfficialAdapter } from "@/lib/models/adapters/kling";
-import { FAL_SEEDREAM_4_CONFIG, FalAdapter } from "@/lib/models/adapters/fal";
 
 type AdapterCtor = new (config: ModelConfig) => BaseModelAdapter;
 
@@ -30,7 +29,6 @@ class ModelRegistry {
     this.register(NANO_BANANA_BACKUP_CONFIG, ReplicateAdapter);
 
     this.register(KLING_OFFICIAL_CONFIG, KlingOfficialAdapter);
-    this.register(FAL_SEEDREAM_4_CONFIG, FalAdapter);
   }
 
   register(config: ModelConfig, adapter: AdapterCtor) {

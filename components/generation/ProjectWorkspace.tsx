@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { GenerationItem, GenerationType, ModelItem, SessionItem } from "@/components/generation/types";
 import { useGenerationsRealtime } from "@/hooks/useGenerationsRealtime";
 import { ForgeSidebar } from "@/components/generation/ForgeSidebar";
@@ -10,17 +11,17 @@ import { ForgeCostTicker } from "@/components/generation/ForgeCostTicker";
 import { BrainstormPanel } from "@/components/generation/BrainstormPanel";
 import styles from "./ProjectWorkspace.module.css";
 
-export function ProjectWorkspace({ projectId }: { projectId: string }) {
+export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode: GenerationType }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [models, setModels] = useState<ModelItem[]>([]);
   const [sessions, setSessions] = useState<SessionItem[]>([]);
-  const [generationType, setGenerationType] = useState<GenerationType>("image");
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-  const lastActiveSessionByType = useRef<Record<GenerationType, string | null>>({ image: null, video: null });
   const [generations, setGenerations] = useState<GenerationItem[]>([]);
   const [prompt, setPrompt] = useState("");
   const [referenceImageUrl, setReferenceImageUrl] = useState("");
   const [aspectRatio, setAspectRatio] = useState("1:1");
-  const [resolution, setResolution] = useState("1024");
+  const [resolution, setResolution] = useState("4096");
   const [numOutputs, setNumOutputs] = useState("1");
   const [duration, setDuration] = useState("5");
   const [modelId, setModelId] = useState("");
@@ -29,7 +30,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   const [busy, setBusy] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
   const [dismissedGenerationIds, setDismissedGenerationIds] = useState<Set<string>>(() => new Set());
-  const [brainstormOpen, setBrainstormOpen] = useState(true);
+  const [brainstormOpen, setBrainstormOpen] = useState(false);
   const [isNarrow, setIsNarrow] = useState(false);
 
   useEffect(() => {
@@ -53,22 +54,24 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
 
   useEffect(() => {
     async function loadModels() {
-      const response = await fetch("/api/models", { cache: "no-store" });
+      const response = await fetch(`/api/models?type=${mode}`, { cache: "no-store" });
       if (!response.ok) return;
       const data = (await response.json()) as { models: ModelItem[] };
       setModels(data.models);
+      const storageKey = `sigil:lastModel:${projectId}:${mode}`;
+      const stored = typeof window !== "undefined" ? sessionStorage.getItem(storageKey) : null;
+      const storedValid = stored && data.models.some((m) => m.id === stored);
       setModelId((prev) => {
-        if (prev || data.models.length === 0) return prev;
-        const firstImage = data.models.find((m) => m.type === "image");
-        return (firstImage || data.models[0]).id;
+        if (prev && data.models.some((m) => m.id === prev)) return prev;
+        return storedValid ? stored! : data.models[0]?.id ?? "";
       });
     }
     void loadModels();
-  }, []);
+  }, [mode, projectId]);
 
   const sessionsFiltered = useMemo(
-    () => sessions.filter((s) => s.type === generationType),
-    [sessions, generationType],
+    () => sessions.filter((s) => s.type === mode),
+    [sessions, mode],
   );
 
   useEffect(() => {
@@ -82,19 +85,26 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   }, [projectId]);
 
   useEffect(() => {
-    const filtered = sessions.filter((s) => s.type === generationType);
+    const filtered = sessions.filter((s) => s.type === mode);
     if (filtered.length === 0) {
       setSelectedSessionId(null);
       return;
     }
-    const lastForType = lastActiveSessionByType.current[generationType];
-    const validLast = lastForType && filtered.some((s) => s.id === lastForType);
+    const storageKey = `sigil:lastSession:${projectId}:${mode}`;
+    const stored = typeof window !== "undefined" ? sessionStorage.getItem(storageKey) : null;
+    const storedValid = stored && filtered.some((s) => s.id === stored);
     setSelectedSessionId((prev) => {
       const stillValid = prev && filtered.some((s) => s.id === prev);
       if (stillValid) return prev;
-      return validLast ? lastForType : filtered[0].id;
+      return storedValid ? stored : filtered[0].id;
     });
-  }, [sessions, generationType]);
+  }, [sessions, mode, projectId]);
+
+  useEffect(() => {
+    if (!selectedSessionId) return;
+    const storageKey = `sigil:lastSession:${projectId}:${mode}`;
+    sessionStorage.setItem(storageKey, selectedSessionId);
+  }, [selectedSessionId, projectId, mode]);
 
   useEffect(() => {
     async function loadGenerations() {
@@ -145,30 +155,35 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   }
 
   function handleConvertToVideo(imageUrl: string) {
-    setReferenceImageUrl(imageUrl);
-    setGenerationType("video");
+    router.push(`/projects/${projectId}/video?ref=${encodeURIComponent(imageUrl)}`);
   }
 
   useEffect(() => {
-    if (activeSession) {
-      lastActiveSessionByType.current[activeSession.type as GenerationType] = activeSession.id;
-    }
-  }, [activeSession]);
+    if (mode !== "video") return;
+    const ref = searchParams.get("ref");
+    if (ref != null && ref !== "") setReferenceImageUrl(ref);
+  }, [mode, searchParams]);
 
   useEffect(() => {
     setDismissedGenerationIds(() => new Set());
   }, [selectedSessionId]);
 
-  const compatibleModels = useMemo(() => {
-    if (!activeSession) return models;
-    return models.filter((m) => m.type === activeSession.type);
-  }, [activeSession, models]);
+  const compatibleModels = useMemo(
+    () => models.filter((m) => m.type === mode),
+    [models, mode],
+  );
 
   useEffect(() => {
     if (!compatibleModels.length) return;
     if (compatibleModels.some((m) => m.id === modelId)) return;
     setModelId(compatibleModels[0].id);
   }, [compatibleModels, modelId]);
+
+  useEffect(() => {
+    if (!modelId) return;
+    const storageKey = `sigil:lastModel:${projectId}:${mode}`;
+    sessionStorage.setItem(storageKey, modelId);
+  }, [modelId, projectId, mode]);
 
   async function createSession(type: "image" | "video") {
     setBusy(true);
@@ -187,7 +202,6 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
       if (!response.ok) throw new Error(data.error ?? "Failed to create session");
       const created = data.session!;
       setSessions((prev) => [created, ...prev]);
-      setGenerationType(type);
       setSelectedSessionId(created.id);
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Failed to create session");
@@ -197,10 +211,29 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   }
 
   async function submitGeneration() {
-    if (!selectedSessionId || !prompt.trim()) return;
+    if (!prompt.trim()) return;
     setBusy(true);
     setMessage(null);
     try {
+      let sessionId = selectedSessionId;
+      if (!sessionId) {
+        const sessionResponse = await fetch("/api/sessions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            projectId,
+            name: `${mode === "image" ? "Image" : "Video"} Session ${sessions.length + 1}`,
+            type: mode,
+          }),
+        });
+        const sessionData = (await sessionResponse.json()) as { session?: SessionItem; error?: string };
+        if (!sessionResponse.ok) throw new Error(sessionData.error ?? "Failed to create session");
+        const created = sessionData.session!;
+        setSessions((prev) => [created, ...prev]);
+        setSelectedSessionId(created.id);
+        sessionId = created.id;
+      }
+
       const parameters: Record<string, unknown> = {
         aspectRatio,
         resolution: Number(resolution),
@@ -213,7 +246,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          sessionId: selectedSessionId,
+          sessionId,
           modelId,
           prompt: prompt.trim(),
           parameters,
@@ -224,7 +257,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
       setPrompt("");
       setReferenceImageUrl("");
       setMessage(data.generation ? `Generation queued: ${data.generation.id}` : "Generation queued.");
-      const refresh = await fetch(`/api/generations?sessionId=${selectedSessionId}`, {
+      const refresh = await fetch(`/api/generations?sessionId=${sessionId}`, {
         cache: "no-store",
       });
       if (refresh.ok) {
@@ -349,7 +382,8 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
       if (!response.ok) throw new Error(data.error ?? "Failed to delete session");
       const remaining = sessions.filter((s) => s.id !== sessionId);
       setSessions(remaining);
-      setSelectedSessionId(remaining[0]?.id ?? null);
+      const nextOfMode = remaining.find((s) => s.type === mode);
+      setSelectedSessionId(nextOfMode?.id ?? null);
       setGenerations([]);
       setMessage("Session deleted.");
     } catch (err) {
@@ -370,21 +404,11 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
           onSessionSelect={setSelectedSessionId}
           onSessionCreate={createSession}
           onSessionDelete={deleteSession}
-          generationType={generationType}
+          mode={mode}
           busy={busy}
         />
         <div className={styles.main}>
           <ForgeCostTicker />
-          <div className={styles.topBar}>
-            <button
-              type="button"
-              className={`${styles.brainstormToggle} ${brainstormOpen ? styles.brainstormToggleActive : ""}`}
-              onClick={() => setBrainstormOpen((v) => !v)}
-              aria-label={brainstormOpen ? "Close brainstorm" : "Open brainstorm"}
-            >
-              Brainstorm
-            </button>
-          </div>
           <ForgeGallery
             generations={generationsVisible}
             onRetry={retryGeneration}
@@ -397,18 +421,10 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
             busy={busy}
           />
         </div>
-        {brainstormOpen && !isNarrow && (
-          <BrainstormPanel
-            projectId={projectId}
-            onSendPrompt={setPrompt}
-            onClose={() => setBrainstormOpen(false)}
-            variant="docked"
-          />
-        )}
       </div>
       <ForgePromptBar
-        generationType={generationType}
-        onGenerationTypeChange={setGenerationType}
+        projectId={projectId}
+        generationType={mode}
         prompt={prompt}
         onPromptChange={setPrompt}
         referenceImageUrl={referenceImageUrl}
@@ -431,13 +447,14 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
         busy={busy}
         enhancing={enhancing}
         message={message}
+        brainstormOpen={brainstormOpen}
+        onBrainstormToggle={() => setBrainstormOpen((v) => !v)}
       />
-      {brainstormOpen && isNarrow && (
+      {brainstormOpen && (
         <BrainstormPanel
           projectId={projectId}
           onSendPrompt={setPrompt}
           onClose={() => setBrainstormOpen(false)}
-          variant="floating"
         />
       )}
     </div>

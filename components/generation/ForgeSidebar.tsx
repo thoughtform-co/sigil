@@ -13,8 +13,8 @@ type ForgeSidebarProps = {
   onSessionCreate: (type: "image" | "video") => void;
   onSessionDelete: (sessionId: string) => void;
   onSessionRename?: (sessionId: string, name: string) => void;
-  /** Current generation type; "+" creates a session of this type */
-  generationType: "image" | "video";
+  /** Current mode; "+" creates a session of this type */
+  mode: "image" | "video";
   /** Optional thumbnail URL per session id (e.g. first output of latest generation) */
   sessionThumbnails?: Record<string, string>;
   busy: boolean;
@@ -28,7 +28,7 @@ export function ForgeSidebar({
   onSessionSelect,
   onSessionCreate,
   onSessionDelete,
-  generationType,
+  mode,
   sessionThumbnails,
   busy,
 }: ForgeSidebarProps) {
@@ -42,7 +42,7 @@ export function ForgeSidebar({
       <button
         type="button"
         className={styles.newButton}
-        onClick={() => onSessionCreate(generationType)}
+        onClick={() => onSessionCreate(mode)}
         disabled={busy}
         aria-label="New session"
       >

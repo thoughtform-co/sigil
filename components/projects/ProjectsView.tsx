@@ -67,7 +67,7 @@ export function ProjectsView() {
       setNewProjectName("");
       setProjectDescription("");
       setDialogOpen(false);
-      router.push(`/projects/${createdProject.id}`);
+      router.push(`/projects/${createdProject.id}/image`);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create project");

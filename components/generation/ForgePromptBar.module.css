@@ -1,4 +1,4 @@
-/* ForgePromptBar — compact horizontal bar (Atlas pattern): model pill, unified container, param pills */
+/* ForgePromptBar — unified bar with right-side icon strip (Vesper pattern) */
 
 .promptBarContainer {
   position: fixed;
@@ -15,14 +15,15 @@
   pointer-events: none;
 }
 
-.promptBarWrapper {
+/* Horizontal row: prompt container + side strip */
+.promptBarRow {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
+  align-items: flex-end;
+  gap: 8px;
   pointer-events: auto;
 }
 
-/* Model picker pill */
+/* Model picker — inline in params row */
 .modelPickerContainer {
   position: relative;
   flex-shrink: 0;
@@ -32,9 +33,9 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 14px;
-  background: var(--surface-0);
-  border: 1px solid var(--dawn-15);
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px solid var(--dawn-08);
   color: var(--dawn-70);
   font-family: var(--font-mono);
   font-size: 10px;
@@ -48,7 +49,6 @@
 .modelPickerButton:hover:not(:disabled) {
   border-color: var(--dawn-30);
   color: var(--dawn);
-  background: rgba(236, 227, 214, 0.05);
 }
 
 .modelPickerButton:disabled {
@@ -118,91 +118,86 @@
   background: rgba(202, 165, 84, 0.1);
 }
 
-/* Unified container */
+/* Unified prompt container */
 .unifiedPromptContainer {
-  flex: 1;
   display: flex;
   gap: 12px;
   background: var(--surface-0);
   border: 1px solid var(--dawn-15);
   padding: 12px;
   min-width: 0;
-}
-
-/* Image upload zone 80x80 */
-.imageZone {
-  width: 80px;
-  height: 80px;
-  flex-shrink: 0;
-  border: 1px dashed var(--dawn-15);
-  cursor: pointer;
-  transition: all 150ms ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.imageZone:hover {
-  border-color: var(--gold);
-  background: rgba(202, 165, 84, 0.05);
+  flex: 1;
 }
 
 .fileInput {
   display: none;
 }
 
-.uploadPlaceholder {
-  width: 100%;
-  height: 100%;
+/* Attachments row above prompt */
+.attachRow {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--dawn-08);
+}
+
+.addImageBtn {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-}
-
-.uploadIcon {
-  font-family: var(--font-mono);
-  font-size: 24px;
+  background: transparent;
+  border: 1px dashed var(--dawn-15);
   color: var(--dawn-30);
+  cursor: pointer;
+  transition: all 150ms ease;
+  padding: 0;
 }
 
-.uploadText {
-  font-family: var(--font-mono);
-  font-size: 8px;
-  letter-spacing: 0.15em;
-  color: var(--dawn-30);
+.addImageBtn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(202, 165, 84, 0.05);
 }
 
-.imagePreview {
-  width: 100%;
-  height: 100%;
+.attachThumb {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
   position: relative;
+  border: 1px solid var(--dawn-15);
+  overflow: hidden;
 }
 
-.imagePreview img {
+.attachThumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.clearImage {
+.attachRemove {
   position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 18px;
-  height: 18px;
+  top: -1px;
+  right: -1px;
+  width: 14px;
+  height: 14px;
   background: var(--void);
   border: 1px solid var(--dawn-15);
   color: var(--dawn-50);
   cursor: pointer;
-  font-size: 12px;
+  font-size: 10px;
+  line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 150ms ease;
+  padding: 0;
 }
 
-.clearImage:hover {
+.attachRemove:hover {
   background: var(--surface-1);
   color: var(--dawn);
 }
@@ -259,11 +254,6 @@
   border-radius: 0;
 }
 
-/* URL fallback (optional reference image URL) */
-.urlRow {
-  margin-top: 4px;
-}
-
 .urlToggle {
   background: none;
   border: none;
@@ -280,8 +270,8 @@
 }
 
 .refInput {
-  width: 100%;
-  margin-top: 6px;
+  flex: 1;
+  min-width: 0;
   padding: 6px 10px;
   font-family: var(--font-mono);
   font-size: 11px;
@@ -299,7 +289,7 @@
   border-color: var(--gold-30);
 }
 
-/* Params row — pills */
+/* Params row */
 .paramsRow {
   display: flex;
   align-items: center;
@@ -340,7 +330,7 @@
 
 .paramSelect {
   padding: 6px 10px;
-  background: transparent;
+  background: var(--surface-0);
   border: 1px solid var(--dawn-08);
   color: var(--dawn-70);
   font-family: var(--font-mono);
@@ -348,6 +338,18 @@
   letter-spacing: 0.05em;
   cursor: pointer;
   outline: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='8' height='5' viewBox='0 0 8 5' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l3 3 3-3' stroke='%23ece3d6' stroke-opacity='0.4' stroke-width='1'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  padding-right: 20px;
+}
+
+.paramSelect option {
+  background: var(--surface-0);
+  color: var(--dawn-70);
 }
 
 .paramSelect:focus {
@@ -395,10 +397,10 @@
   cursor: not-allowed;
 }
 
-/* Gold generate button 48x80 */
+/* Generate button inside unified container */
 .generateButton {
   width: 48px;
-  height: 80px;
+  align-self: stretch;
   flex-shrink: 0;
   background: var(--gold);
   border: none;
@@ -441,6 +443,113 @@
   to { transform: rotate(360deg); }
 }
 
+@media (max-width: 1100px) {
+  .promptBarContainer {
+    max-width: 100%;
+    padding: 0 clamp(12px, 2.5vw, 20px);
+  }
+
+  .generateButton {
+    width: 40px;
+  }
+
+  .addImageBtn,
+  .attachThumb {
+    width: 28px;
+    height: 28px;
+  }
+
+  .paramButton,
+  .paramSelect,
+  .durationBtn {
+    font-size: 8px;
+    padding: 5px 8px;
+  }
+
+  .durationBtn {
+    padding: 5px 10px;
+  }
+
+  .modelPickerButton {
+    font-size: 9px;
+    padding: 5px 8px;
+  }
+}
+
+/* Right-side strip: mode toggle bar + brainstorm, full height of prompt bar */
+.sideStrip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+  align-self: stretch;
+}
+
+/* Image/Video joined nav bar */
+.modeBar {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--dawn-08);
+  background: var(--surface-0);
+}
+
+.modeButton {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--dawn-08);
+  color: var(--dawn-30);
+  cursor: pointer;
+  transition: all 150ms ease;
+  padding: 0;
+  text-decoration: none;
+}
+
+.modeButton:last-child {
+  border-bottom: none;
+}
+
+.modeButton:hover {
+  color: var(--dawn-70);
+  background: var(--dawn-04);
+}
+
+.modeButtonActive {
+  color: var(--gold);
+  background: rgba(202, 165, 84, 0.08);
+}
+
+/* Brainstorm button stretches to fill remaining height */
+.brainstormButton {
+  flex: 1;
+  width: 36px;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-0);
+  border: 1px solid var(--dawn-08);
+  color: var(--dawn-30);
+  cursor: pointer;
+  transition: all 150ms ease;
+  padding: 0;
+}
+
+.brainstormButton:hover {
+  border-color: var(--dawn-30);
+  color: var(--dawn-70);
+}
+
+.brainstormButtonActive {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(202, 165, 84, 0.08);
+}
+
 .message {
   font-family: var(--font-mono);
   font-size: 10px;
@@ -449,24 +558,19 @@
 }
 
 @media (max-width: 768px) {
-  .promptBarWrapper {
+  .promptBarRow {
     flex-direction: column;
-    gap: 8px;
+    align-items: stretch;
   }
 
-  .modelPickerButton {
-    width: 100%;
-    justify-content: space-between;
+  .sideStrip {
+    flex-direction: row;
+    justify-content: flex-end;
   }
 
   .unifiedPromptContainer {
     flex-direction: column;
     padding: 10px;
-  }
-
-  .imageZone {
-    width: 100%;
-    height: 60px;
   }
 
   .generateButton {
