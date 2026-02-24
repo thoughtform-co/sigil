@@ -1,18 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getAuthedUser } from "@/lib/auth/server";
+import { requireAdmin } from "@/lib/auth/require-admin";
 
 export async function GET() {
-  const user = await getAuthedUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const profile = await prisma.profile.findUnique({
-    where: { id: user.id },
-    select: { role: true },
-  });
-  if (profile?.role !== "admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const result = await requireAdmin();
+  if ("error" in result) return result.error;
+  const { user } = result;
 
   const list = await prisma.allowedEmail.findMany({
     orderBy: { createdAt: "desc" },
@@ -28,16 +21,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const user = await getAuthedUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const profile = await prisma.profile.findUnique({
-    where: { id: user.id },
-    select: { role: true },
-  });
-  if (profile?.role !== "admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const result = await requireAdmin();
+  if ("error" in result) return result.error;
+  const { user } = result;
 
   let body: { email?: string; note?: string };
   try {

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthedUser } from "@/lib/auth/server";
 import { prisma } from "@/lib/prisma";
 import { persistReferenceImage } from "@/lib/reference-images";
+import { validateImageDataUrl } from "@/lib/security/image-validation";
+import { checkRateLimit } from "@/lib/api/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +19,9 @@ export async function POST(request: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const rateLimitResponse = checkRateLimit("upload", user.id);
+  if (rateLimitResponse) return rateLimitResponse;
 
   const contentType = request.headers.get("content-type") ?? "";
   let dataUrl: string;
@@ -57,6 +62,12 @@ export async function POST(request: NextRequest) {
     const raw = body?.dataUrl ?? body?.referenceImageUrl;
     if (typeof raw !== "string" || !raw.startsWith("data:")) {
       return NextResponse.json({ error: "Missing or invalid dataUrl" }, { status: 400 });
+    }
+    try {
+      validateImageDataUrl(raw);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Invalid image";
+      return NextResponse.json({ error: msg }, { status: 400 });
     }
     const projectId = body?.projectId;
     if (projectId) {

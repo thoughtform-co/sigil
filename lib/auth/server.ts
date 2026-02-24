@@ -7,9 +7,7 @@ export type AuthedUser = {
 };
 
 const AUTH_BYPASS =
-  process.env.NODE_ENV === "development" &&
-  (process.env.SIGIL_AUTH_BYPASS === "true" ||
-    process.env.NEXT_PUBLIC_SIGIL_AUTH_BYPASS === "true");
+  process.env.NODE_ENV === "development" && process.env.SIGIL_AUTH_BYPASS === "true";
 const BYPASS_USER_ID = "dcd1da5c-773c-4029-910c-e360fa415fd0";
 const BYPASS_USER_EMAIL = "vince@thoughtform.co";
 

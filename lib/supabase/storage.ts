@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getSafeFetchUrl } from "@/lib/security/url-safety";
 
 /**
  * Storage: outputs (generated media) + references (uploaded reference images).
@@ -105,12 +106,9 @@ export async function uploadProviderOutput(params: {
   outputsBucketReady ??= ensureOutputsBucketExists(admin);
   await outputsBucketReady;
 
-  let fetchUrl = sourceUrl;
-  if (sourceUrl.startsWith("gs://")) {
-    const gsPath = sourceUrl.replace("gs://", "");
-    const [bucketName, ...pathParts] = gsPath.split("/");
-    const filePath = pathParts.join("/");
-    fetchUrl = `https://storage.googleapis.com/${bucketName}/${filePath}`;
+  const fetchUrl = getSafeFetchUrl(sourceUrl, { allowGsToGoogleStorage: true });
+  if (!fetchUrl) {
+    throw new Error("Source URL is not allowed for server-side fetch (SSRF protection)");
   }
 
   const response = await fetch(fetchUrl, {

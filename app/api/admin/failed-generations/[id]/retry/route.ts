@@ -1,31 +1,23 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getAuthedUser } from "@/lib/auth/server";
+import { requireAdmin } from "@/lib/auth/require-admin";
+import { notFound } from "@/lib/api/errors";
+import { json } from "@/lib/api/responses";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
 export async function POST(request: Request, context: RouteContext) {
-  const user = await getAuthedUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const profile = await prisma.profile.findUnique({
-    where: { id: user.id },
-    select: { role: true },
-  });
-  if (profile?.role !== "admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const result = await requireAdmin();
+  if ("error" in result) return result.error;
 
   const { id } = await context.params;
   const generation = await prisma.generation.findUnique({
     where: { id },
     select: { id: true },
   });
-  if (!generation) {
-    return NextResponse.json({ error: "Generation not found" }, { status: 404 });
-  }
+  if (!generation) return notFound("Generation not found");
 
   await prisma.$transaction([
     prisma.output.deleteMany({ where: { generationId: id } }),
@@ -45,5 +37,5 @@ export async function POST(request: Request, context: RouteContext) {
     // Retry dispatch failures are reflected by stale processing status.
   });
 
-  return NextResponse.json({ retried: true, id }, { status: 202 });
+  return json({ retried: true, id }, 202);
 }

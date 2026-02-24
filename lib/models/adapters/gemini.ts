@@ -4,6 +4,7 @@ import {
   GenerationResponse,
   ModelConfig,
 } from "@/lib/models/base";
+import { getSafeFetchUrl } from "@/lib/security/url-safety";
 
 export const NANO_BANANA_CONFIG: ModelConfig = {
   id: "gemini-nano-banana-pro",
@@ -462,7 +463,9 @@ export class GeminiAdapter extends BaseModelAdapter {
         return { bytes: Buffer.from(base64, "base64"), contentType: mime };
       }
       if (httpUrl && typeof httpUrl === "string" && httpUrl.startsWith("http")) {
-        const imageResponse = await fetch(httpUrl);
+        const safeUrl = getSafeFetchUrl(httpUrl);
+        if (!safeUrl) return null;
+        const imageResponse = await fetch(safeUrl);
         if (!imageResponse.ok) return null;
         const buf = await imageResponse.arrayBuffer();
         const contentType = imageResponse.headers.get("content-type") || "image/jpeg";

@@ -1,20 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getAuthedUser } from "@/lib/auth/server";
+import { requireAdmin } from "@/lib/auth/require-admin";
+import { json } from "@/lib/api/responses";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function DELETE(_request: Request, context: RouteContext) {
-  const user = await getAuthedUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const profile = await prisma.profile.findUnique({
-    where: { id: user.id },
-    select: { role: true },
-  });
-  if (profile?.role !== "admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const result = await requireAdmin();
+  if ("error" in result) return result.error;
 
   const { id } = await context.params;
 
@@ -22,5 +15,5 @@ export async function DELETE(_request: Request, context: RouteContext) {
     where: { id },
   });
 
-  return NextResponse.json({ ok: true });
+  return json({ ok: true });
 }

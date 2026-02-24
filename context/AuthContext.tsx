@@ -14,49 +14,46 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-const AUTH_BYPASS = process.env.NEXT_PUBLIC_SIGIL_AUTH_BYPASS === "true";
-const BYPASS_USER_ID = "00000000-0000-4000-8000-000000000001";
-const BYPASS_USER_EMAIL = "sigil-local@thoughtform.dev";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(
-    AUTH_BYPASS
-      ? ({
-          id: BYPASS_USER_ID,
-          email: BYPASS_USER_EMAIL,
-        } as unknown as User)
-      : null,
-  );
+  const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [role, setRole] = useState<"admin" | "user" | null>(AUTH_BYPASS ? "admin" : null);
-  const [loading, setLoading] = useState(!AUTH_BYPASS);
+  const [role, setRole] = useState<"admin" | "user" | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  async function hydrateRole() {
+  async function hydrateFromMe() {
     try {
       const response = await fetch("/api/me", { cache: "no-store" });
       if (!response.ok) {
         setRole(null);
+        setUser(null);
         return;
       }
-      const data = (await response.json()) as { profile?: { role?: "admin" | "user" } };
-      setRole(data.profile?.role ?? null);
+      const data = (await response.json()) as {
+        user?: { id: string; email: string | null };
+        profile?: { role?: "admin" | "user" };
+      };
+      if (data.user) {
+        setUser({ id: data.user.id, email: data.user.email } as User);
+        setRole(data.profile?.role ?? null);
+      } else {
+        setRole(null);
+      }
     } catch {
       setRole(null);
     }
   }
 
   useEffect(() => {
-    if (AUTH_BYPASS) return;
-
     const supabase = createClient();
 
     supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session ?? null);
-      setUser(data.session?.user ?? null);
       if (data.session?.user) {
-        void hydrateRole();
+        setSession(data.session);
+        setUser(data.session.user);
+        void hydrateFromMe();
       } else {
-        setRole(null);
+        void hydrateFromMe();
       }
       setLoading(false);
     });
@@ -67,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(currentSession ?? null);
       setUser(currentSession?.user ?? null);
       if (currentSession?.user) {
-        void hydrateRole();
+        void hydrateFromMe();
       } else {
         setRole(null);
       }
@@ -87,9 +84,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAdmin: role === "admin",
       loading,
       signOut: async () => {
-        if (AUTH_BYPASS) return;
         const supabase = createClient();
         await supabase.auth.signOut();
+        setUser(null);
+        setSession(null);
         setRole(null);
       },
     }),

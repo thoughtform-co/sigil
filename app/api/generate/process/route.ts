@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getAuthedUser } from "@/lib/auth/server";
@@ -8,10 +7,13 @@ import { routeModel } from "@/lib/models/routing";
 import { calculateGenerationCost } from "@/lib/cost/calculator";
 import { uploadProviderOutput } from "@/lib/supabase/storage";
 import { broadcastGenerationUpdate } from "@/lib/supabase/realtime";
-
-const processRequestSchema = z.object({
-  generationId: z.string().uuid(),
-});
+import { getSafeFetchUrl } from "@/lib/security/url-safety";
+import { processRequestSchema } from "@/lib/models/contracts";
+import { normalizeGenerationRequest } from "@/lib/models/request-builder";
+import { isProcessable } from "@/lib/models/generation-status";
+import { observeGeneration } from "@/lib/observability/generation";
+import { unauthorized, notFound, badRequest, internalError } from "@/lib/api/errors";
+import { json } from "@/lib/api/responses";
 
 async function broadcastUpdatedGeneration(sessionId: string, generationId: string): Promise<void> {
   try {
@@ -59,12 +61,12 @@ async function broadcastUpdatedGeneration(sessionId: string, generationId: strin
 
 export async function POST(request: Request) {
   const user = await getAuthedUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return unauthorized();
 
   const body = await request.json().catch(() => null);
   const parsed = processRequestSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    return badRequest("Validation failed", parsed.error.flatten());
   }
 
   const generation = await prisma.generation.findUnique({
@@ -82,10 +84,10 @@ export async function POST(request: Request) {
   });
 
   if (!generation) {
-    return NextResponse.json({ error: "Generation not found" }, { status: 404 });
+    return notFound("Generation not found");
   }
 
-  if (generation.status !== "processing" && generation.status !== "processing_locked") {
+  if (!isProcessable(generation.status)) {
     return NextResponse.json({ message: "Generation already processed", id: generation.id });
   }
 
@@ -110,22 +112,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Unknown model: ${routed.modelId}` }, { status: 400 });
     }
 
-    const params = (generation.parameters as Record<string, unknown>) ?? {};
-    const referenceImageUrl =
-      typeof params.referenceImageUrl === "string" ? params.referenceImageUrl : undefined;
-    const requestPayload = {
-      prompt: generation.prompt,
-      negativePrompt: generation.negativePrompt ?? undefined,
-      ...params,
-      parameters: params,
-      referenceImage: referenceImageUrl,
-      referenceImageUrl: referenceImageUrl,
-      referenceImages: referenceImageUrl ? [referenceImageUrl] : undefined,
-    };
+    const requestPayload = normalizeGenerationRequest(
+      generation.prompt,
+      generation.negativePrompt,
+      (generation.parameters as Record<string, unknown>) ?? {}
+    );
 
+    observeGeneration({ type: "start", generationId: generation.id, modelId: routed.modelId });
     const result = await adapter.generate(requestPayload);
 
     if (result.status !== "completed" || !result.outputs?.length) {
+      observeGeneration({
+        type: "adapter_failed",
+        generationId: generation.id,
+        modelId: routed.modelId,
+        error: result.error ?? "No outputs",
+      });
       await prisma.generation.update({
         where: { id: generation.id },
         data: { status: "failed" },
@@ -171,13 +173,16 @@ export async function POST(request: Request) {
           // Keep image outputs durable even when storage is unavailable by inlining a data URL.
           if (fileType === "image") {
             try {
-              const fallbackResponse = await fetch(output.url);
-              if (fallbackResponse.ok) {
-                const contentType = fallbackResponse.headers.get("content-type") || "image/png";
-                const buffer = Buffer.from(await fallbackResponse.arrayBuffer());
-                if (buffer.length <= 8 * 1024 * 1024) {
-                  const dataUrl = `data:${contentType};base64,${buffer.toString("base64")}`;
-                  return { ...output, url: dataUrl };
+              const safeFallbackUrl = getSafeFetchUrl(output.url, { allowGsToGoogleStorage: true });
+              if (safeFallbackUrl) {
+                const fallbackResponse = await fetch(safeFallbackUrl);
+                if (fallbackResponse.ok) {
+                  const contentType = fallbackResponse.headers.get("content-type") || "image/png";
+                  const buffer = Buffer.from(await fallbackResponse.arrayBuffer());
+                  if (buffer.length <= 8 * 1024 * 1024) {
+                    const dataUrl = `data:${contentType};base64,${buffer.toString("base64")}`;
+                    return { ...output, url: dataUrl };
+                  }
                 }
               }
             } catch {

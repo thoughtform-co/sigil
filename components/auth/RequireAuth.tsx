@@ -4,21 +4,16 @@ import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
-const AUTH_BYPASS = process.env.NEXT_PUBLIC_SIGIL_AUTH_BYPASS === "true";
-
 export function RequireAuth({ children }: { children: React.ReactNode }) {
   const { loading, user } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
   useEffect(() => {
-    if (AUTH_BYPASS) return;
     if (!loading && !user) {
       router.replace(`/login?next=${encodeURIComponent(pathname || "/projects")}`);
     }
   }, [loading, pathname, router, user]);
-
-  if (AUTH_BYPASS) return <>{children}</>;
 
   if (loading || !user) {
     return (

@@ -4,14 +4,11 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
-const AUTH_BYPASS = process.env.NEXT_PUBLIC_SIGIL_AUTH_BYPASS === "true";
-
 export function RequireAdmin({ children }: { children: React.ReactNode }) {
   const { loading, user, isAdmin } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (AUTH_BYPASS) return;
     if (loading) return;
     if (!user) {
       router.replace("/login?next=/admin");
@@ -21,8 +18,6 @@ export function RequireAdmin({ children }: { children: React.ReactNode }) {
       router.replace("/projects");
     }
   }, [isAdmin, loading, router, user]);
-
-  if (AUTH_BYPASS) return <>{children}</>;
 
   if (loading || !user || !isAdmin) {
     return (

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getAuthedUser } from "@/lib/auth/server";
+import { requireAdmin } from "@/lib/auth/require-admin";
 
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
@@ -15,22 +15,9 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
-async function requireAdmin() {
-  const user = await getAuthedUser();
-  if (!user) return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  const profile = await prisma.profile.findUnique({
-    where: { id: user.id },
-    select: { role: true },
-  });
-  if (profile?.role !== "admin") {
-    return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
-  }
-  return { user };
-}
-
 export async function PATCH(request: Request, context: RouteContext) {
-  const guard = await requireAdmin();
-  if (guard.error) return guard.error;
+  const result = await requireAdmin();
+  if ("error" in result) return result.error;
 
   const { id } = await context.params;
   const body = await request.json().catch(() => null);
@@ -43,15 +30,15 @@ export async function PATCH(request: Request, context: RouteContext) {
     where: { id },
     data: {
       ...parsed.data,
-      updatedBy: guard.user.id,
+      updatedBy: result.user.id,
     },
   });
   return NextResponse.json(updated);
 }
 
 export async function DELETE(_request: Request, context: RouteContext) {
-  const guard = await requireAdmin();
-  if (guard.error) return guard.error;
+  const result = await requireAdmin();
+  if ("error" in result) return result.error;
 
   const { id } = await context.params;
   await prisma.promptEnhancementPrompt.delete({ where: { id } });
