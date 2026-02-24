@@ -106,11 +106,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Unknown model: ${routed.modelId}` }, { status: 400 });
     }
 
-    const result = await adapter.generate({
+    const params = (generation.parameters as Record<string, unknown>) ?? {};
+    const referenceImageUrl =
+      typeof params.referenceImageUrl === "string" ? params.referenceImageUrl : undefined;
+    const requestPayload = {
       prompt: generation.prompt,
       negativePrompt: generation.negativePrompt ?? undefined,
-      ...((generation.parameters as Record<string, unknown>) ?? {}),
-    });
+      ...params,
+      referenceImage: referenceImageUrl,
+      referenceImageUrl: referenceImageUrl,
+      referenceImages: referenceImageUrl ? [referenceImageUrl] : undefined,
+    };
+
+    const result = await adapter.generate(requestPayload);
 
     if (result.status !== "completed" || !result.outputs?.length) {
       await prisma.generation.update({

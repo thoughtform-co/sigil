@@ -141,6 +141,7 @@ export function NavigationFrame({
 
       {/* Right rail with tick marks */}
       <aside
+        data-hud-rail="right"
         className="hud-rail-tick fixed z-30 pointer-events-none"
         style={{
           top: "calc(var(--hud-padding) + 32px)",
@@ -344,7 +345,7 @@ export function NavigationFrame({
         </header>
       )}
 
-      <main className={`hud-shell ${showNavPanel ? "hud-shell--with-panel" : ""}`}>
+      <main className={`hud-shell ${showNavPanel ? "hud-shell--with-panel" : "hud-shell--workspace"}`}>
         {children}
       </main>
     </div>

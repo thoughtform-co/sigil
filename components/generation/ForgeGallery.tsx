@@ -10,7 +10,7 @@ type ForgeGalleryProps = {
   onRetry: (generationId: string) => void;
   onReuse: (generation: GenerationItem) => void;
   onRerun?: (generationId: string) => void;
-  onConvertToVideo?: (imageUrl: string) => void;
+  onConvertToVideo?: (outputId: string, imageUrl: string) => void;
   onUseAsReference?: (imageUrl: string) => void;
   onDismiss?: (generationId: string) => void;
   onApprove: (outputId: string, isApproved: boolean) => void;
@@ -43,6 +43,66 @@ export function ForgeGallery({
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
   }, [closeLightbox]);
+
+  const updateScrollBeam = useCallback(() => {
+    const feed = feedRef.current;
+    const rail = document.querySelector<HTMLElement>('[data-hud-rail="right"]');
+    if (!feed || !rail) return;
+
+    const scrollable = Math.max(feed.scrollHeight - feed.clientHeight, 0);
+    if (scrollable > 0) {
+      const pct = feed.scrollTop / scrollable;
+      const railH = rail.offsetHeight;
+      const beamH = 120;
+      const maxPos = ((railH - beamH) / railH) * 100;
+      rail.style.setProperty("--scroll-beam-position", `${pct * maxPos}%`);
+      rail.classList.add("has-scroll");
+    } else {
+      rail.classList.remove("has-scroll");
+      rail.style.setProperty("--scroll-beam-position", "0%");
+    }
+  }, []);
+
+  useEffect(() => {
+    const feed = feedRef.current;
+    if (!feed) return;
+
+    updateScrollBeam();
+    feed.addEventListener("scroll", updateScrollBeam, { passive: true });
+    window.addEventListener("resize", updateScrollBeam);
+    const ro = new ResizeObserver(updateScrollBeam);
+    ro.observe(feed);
+
+    return () => {
+      feed.removeEventListener("scroll", updateScrollBeam);
+      window.removeEventListener("resize", updateScrollBeam);
+      ro.disconnect();
+      const rail = document.querySelector<HTMLElement>('[data-hud-rail="right"]');
+      rail?.classList.remove("has-scroll");
+    };
+  }, [updateScrollBeam]);
+
+  useEffect(() => {
+    const feed = feedRef.current;
+    if (!feed) return;
+
+    const handleWheelAnywhere = (event: WheelEvent) => {
+      if (lightboxUrl) return;
+      if (event.defaultPrevented) return;
+      if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+
+      const scrollable = feed.scrollHeight - feed.clientHeight;
+      if (scrollable <= 0) return;
+
+      // Prevent browser/page scrollbar and route wheel motion to the feed.
+      event.preventDefault();
+      feed.scrollTop += event.deltaY;
+      updateScrollBeam();
+    };
+
+    window.addEventListener("wheel", handleWheelAnywhere, { passive: false });
+    return () => window.removeEventListener("wheel", handleWheelAnywhere);
+  }, [lightboxUrl, updateScrollBeam]);
 
   useEffect(() => {
     if (generations.length === 0) {

@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import type { CSSProperties } from "react";
 import type { GenerationItem, OutputItem } from "@/components/generation/types";
+import { VideoIterationsStackHint } from "@/components/generation/VideoIterationsStackHint";
 import styles from "./ForgeGenerationCard.module.css";
 
 function isProcessing(status: string): boolean {
@@ -29,7 +31,7 @@ type ForgeGenerationCardProps = {
   onReuse: (generation: GenerationItem) => void;
   onRerun?: (generationId: string) => void;
   onDismiss?: (generationId: string) => void;
-  onConvertToVideo?: (imageUrl: string) => void;
+  onConvertToVideo?: (outputId: string, imageUrl: string) => void;
   onUseAsReference?: (imageUrl: string) => void;
   onApprove: (outputId: string, isApproved: boolean) => void;
   onLightboxOpen?: (url: string) => void;
@@ -73,6 +75,22 @@ function getPlaceholderAspectRatio(generation: GenerationItem): string {
     return rawAspect.replace(":", " / ");
   }
   return "16 / 9";
+}
+
+function getFlowDuration(output: OutputItem, generation: GenerationItem): number {
+  // Sync flow speed with media context:
+  // - Video: follow output duration (bounded for subtlety)
+  // - Image: deterministic tempo derived from generation timestamp
+  if (typeof output.duration === "number" && output.duration > 0) {
+    return Math.min(14, Math.max(6, output.duration));
+  }
+  const sec = new Date(generation.createdAt).getSeconds();
+  return 7 + (sec % 4); // 7–10s
+}
+
+function getFlowDelay(generation: GenerationItem): number {
+  const ms = new Date(generation.createdAt).getTime();
+  return -((ms % 6000) / 1000);
 }
 
 export function ForgeGenerationCard({
@@ -184,34 +202,52 @@ export function ForgeGenerationCard({
         {hasOutputs ? (
           <div className={`${styles.mediaGrid} ${multiOutput ? styles.mediaGridMulti : styles.mediaGridSingle}`}>
             {generation.outputs.map((output: OutputItem) => (
-              <article key={output.id} className={styles.outputCard}>
+              <article key={output.id} className={`${styles.outputCard} forge-output-card`} style={{ overflow: "visible" }}>
+                {(() => {
+                  const frameStyle = {
+                    aspectRatio: getAspectRatioStyle(output, generation),
+                    ["--flow-duration" as const]: `${getFlowDuration(output, generation)}s`,
+                    ["--flow-delay" as const]: `${getFlowDelay(generation)}s`,
+                  } as CSSProperties;
+
+                  return (
                 <div
                   className={styles.mediaFrame}
-                  style={{ aspectRatio: getAspectRatioStyle(output, generation) }}
+                  style={{ ...frameStyle, zIndex: 1, position: "relative" }}
                 >
-                  <div className={styles.cornerMarks} aria-hidden />
-                  {output.fileType === "video" ? (
-                    <video
-                      className={styles.media}
-                      controls
-                      src={output.fileUrl}
-                      preload="metadata"
-                      playsInline
+                  {output.fileType !== "video" && onConvertToVideo && (
+                    <VideoIterationsStackHint
+                      outputId={output.id}
+                      onClick={() => onConvertToVideo(output.id, output.fileUrl)}
                     />
-                  ) : onLightboxOpen ? (
-                    <button
-                      type="button"
-                      className={styles.mediaButton}
-                      onClick={() => onLightboxOpen(output.fileUrl)}
-                      title="Open image"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img className={styles.media} src={output.fileUrl} alt="Generated output" />
-                    </button>
-                  ) : (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img className={styles.media} src={output.fileUrl} alt="Generated output" />
                   )}
+                  <div className={styles.energyFlow} aria-hidden />
+                  <div className={styles.mediaInset}>
+                    <div className={styles.mediaViewport}>
+                      {output.fileType === "video" ? (
+                        <video
+                          className={styles.media}
+                          controls
+                          src={output.fileUrl}
+                          preload="metadata"
+                          playsInline
+                        />
+                      ) : onLightboxOpen ? (
+                        <button
+                          type="button"
+                          className={styles.mediaButton}
+                          onClick={() => onLightboxOpen(output.fileUrl)}
+                          title="Open image"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img className={styles.media} src={output.fileUrl} alt="Generated output" />
+                        </button>
+                      ) : (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img className={styles.media} src={output.fileUrl} alt="Generated output" />
+                      )}
+                    </div>
+                  </div>
 
                   <div className={styles.hoverActions}>
                     <div className={styles.actionsTopLeft}>
@@ -275,7 +311,7 @@ export function ForgeGenerationCard({
                           <button
                             type="button"
                             className={styles.actionButton}
-                            onClick={() => onConvertToVideo(output.fileUrl)}
+                            onClick={() => onConvertToVideo(output.id, output.fileUrl)}
                             disabled={busy}
                             title="Convert to video"
                           >
@@ -288,6 +324,8 @@ export function ForgeGenerationCard({
                     )}
                   </div>
                 </div>
+                  );
+                })()}
               </article>
             ))}
           </div>

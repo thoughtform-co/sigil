@@ -248,12 +248,26 @@ export class ReplicateAdapter extends BaseModelAdapter {
     const duration = Number(parameters.duration || 5);
     const aspectRatio = String(request.aspectRatio || parameters.aspectRatio || "16:9");
 
+    const referenceImageUrl =
+      typeof request.referenceImageUrl === "string"
+        ? request.referenceImageUrl
+        : typeof request.referenceImage === "string"
+          ? request.referenceImage
+          : Array.isArray(request.referenceImages) && request.referenceImages.length > 0
+            ? request.referenceImages[0]
+            : typeof parameters.referenceImageUrl === "string"
+              ? parameters.referenceImageUrl
+              : undefined;
+
     const input: Record<string, unknown> = {
       prompt: request.prompt,
       duration,
       aspect_ratio: aspectRatio,
       generate_audio: parameters.generateAudio !== false,
     };
+    if (referenceImageUrl) {
+      input.start_image = referenceImageUrl;
+    }
 
     const prediction = await this.createPrediction(version, input);
     const result = await this.pollPrediction(prediction.id);

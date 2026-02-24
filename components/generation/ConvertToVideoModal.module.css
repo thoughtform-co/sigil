@@ -1,0 +1,321 @@
+/* ConvertToVideoModal — Sigil visual language, two-panel layout */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-nav);
+  background: var(--overlay-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s var(--ease-out) both;
+}
+
+.panel {
+  width: 100%;
+  max-width: 900px;
+  max-height: calc(100vh - var(--space-2xl));
+  margin: 0 var(--space-lg);
+  background: var(--surface-0);
+  border: 1px solid var(--dawn-15);
+  display: flex;
+  flex-direction: column;
+  animation: fadeInUp 0.3s var(--ease-out) both;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-lg) var(--space-xl);
+  border-bottom: 1px solid var(--dawn-08);
+}
+
+.title {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dawn-70);
+}
+
+.closeBtn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--dawn-08);
+  color: var(--dawn-70);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color var(--duration-fast), color var(--duration-fast);
+}
+
+.closeBtn:hover {
+  border-color: var(--dawn-30);
+  color: var(--dawn);
+}
+
+.body {
+  flex: 1;
+  overflow: auto;
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: var(--space-xl);
+  padding: var(--space-xl);
+}
+
+@media (max-width: 720px) {
+  .body {
+    grid-template-columns: 1fr;
+  }
+}
+
+.formSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.previewWrap {
+  width: 100%;
+  max-width: 240px;
+  aspect-ratio: 16 / 9;
+  background: var(--surface-2);
+  border: 1px solid var(--dawn-08);
+  overflow: hidden;
+}
+
+.previewImg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dawn-50);
+  margin-top: var(--space-xs);
+}
+
+.sessionRow {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.sessionRow .sigil-input {
+  flex: 1;
+  min-width: 140px;
+}
+
+.paramsRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.paramSelect {
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--dawn-70);
+  background: var(--dawn-04);
+  border: 1px solid var(--dawn-08);
+  cursor: pointer;
+  transition: border-color var(--duration-fast);
+}
+
+.paramSelect:hover:not(:disabled) {
+  border-color: var(--dawn-30);
+}
+
+.paramSelect:focus {
+  border-color: var(--gold-30);
+  outline: none;
+}
+
+.durationGroup {
+  display: flex;
+  gap: 0;
+}
+
+.durationBtn {
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--dawn-50);
+  background: var(--dawn-04);
+  border: 1px solid var(--dawn-08);
+  cursor: pointer;
+  transition: border-color var(--duration-fast), color var(--duration-fast);
+}
+
+.durationBtn:first-of-type {
+  border-right: none;
+}
+
+.durationBtn:hover:not(:disabled) {
+  border-color: var(--dawn-30);
+  color: var(--dawn);
+}
+
+.durationActive {
+  border-color: var(--gold-30);
+  color: var(--gold);
+  background: var(--gold-10);
+}
+
+.message {
+  font-size: 12px;
+  color: var(--dawn-50);
+  margin-top: var(--space-xs);
+}
+
+.iterationsSection {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-left: 1px solid var(--dawn-08);
+  padding-left: var(--space-xl);
+}
+
+@media (max-width: 720px) {
+  .iterationsSection {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid var(--dawn-08);
+    padding-top: var(--space-xl);
+  }
+}
+
+.iterationsTitle {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dawn-50);
+  margin-bottom: var(--space-sm);
+}
+
+.iterationsEmpty {
+  font-size: 12px;
+  color: var(--dawn-40);
+}
+
+.iterationsList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  overflow-y: auto;
+}
+
+.iterationItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.iterationMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--dawn-50);
+}
+
+.iterationStatus {
+  text-transform: lowercase;
+}
+
+.iterationStatus[data-status="processing"],
+.iterationStatus[data-status="processing_locked"] {
+  color: var(--gold);
+}
+
+.iterationStatus[data-status="completed"] {
+  color: var(--status-success);
+}
+
+.iterationStatus[data-status="failed"] {
+  color: var(--status-error);
+}
+
+.iterationTime {
+  font-family: var(--font-mono);
+  color: var(--dawn-40);
+}
+
+.iterationMedia {
+  width: 100%;
+  max-height: 140px;
+  object-fit: contain;
+  background: var(--surface-2);
+  border: 1px solid var(--dawn-08);
+}
+
+.iterationPlaceholder {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2);
+  border: 1px solid var(--dawn-08);
+  font-size: 11px;
+  color: var(--dawn-40);
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-xl) var(--space-xl);
+  border-top: 1px solid var(--dawn-08);
+}
+
+.secondaryBtn {
+  padding: 8px 16px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--dawn-70);
+  background: transparent;
+  border: 1px solid var(--dawn-08);
+  cursor: pointer;
+  transition: border-color var(--duration-fast), color var(--duration-fast);
+}
+
+.secondaryBtn:hover {
+  border-color: var(--dawn-30);
+  color: var(--dawn);
+}
+
+.primaryBtn {
+  padding: 8px 16px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--void);
+  background: var(--gold);
+  border: 1px solid var(--gold);
+  cursor: pointer;
+  transition: opacity var(--duration-fast);
+}
+
+.primaryBtn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.primaryBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

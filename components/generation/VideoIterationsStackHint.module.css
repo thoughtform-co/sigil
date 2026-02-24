@@ -1,0 +1,71 @@
+.wrapper {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 0;
+}
+
+.wrapper.pulsing {
+  animation: stackPulse 2s ease-in-out infinite;
+}
+
+.stackLayer {
+  position: absolute;
+  pointer-events: none;
+  border-left: 0;
+  backdrop-filter: blur(1px);
+}
+
+.iconButton {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  background: rgba(91, 138, 122, 0.2);
+  border: 1px solid var(--dawn-15);
+  color: var(--status-success);
+  transition: opacity 120ms ease, transform 120ms ease;
+  z-index: 10;
+}
+
+.iconButton:hover {
+  background: rgba(91, 138, 122, 0.3);
+  transform: scale(1.1);
+}
+
+.iconButton.hiddenUntilHover {
+  opacity: 0;
+}
+
+.cardGroup:hover .iconButton.hiddenUntilHover {
+  opacity: 1;
+}
+
+.iconButton.visible {
+  opacity: 1;
+}
+
+.iconButton svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.iconButton.spin svg {
+  animation: iconSpin 1s linear infinite;
+}
+
+@keyframes stackPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes iconSpin {
+  to { transform: rotate(360deg); }
+}

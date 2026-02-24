@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import type { GenerationItem, GenerationType, ModelItem, SessionItem } from "@/components/generation/types";
 import { useGenerationsRealtime } from "@/hooks/useGenerationsRealtime";
 import { ForgeSidebar } from "@/components/generation/ForgeSidebar";
@@ -9,10 +9,10 @@ import { ForgeGallery } from "@/components/generation/ForgeGallery";
 import { ForgePromptBar } from "@/components/generation/ForgePromptBar";
 import { ForgeCostTicker } from "@/components/generation/ForgeCostTicker";
 import { BrainstormPanel } from "@/components/generation/BrainstormPanel";
+import { ConvertToVideoModal } from "@/components/generation/ConvertToVideoModal";
 import styles from "./ProjectWorkspace.module.css";
 
 export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode: GenerationType }) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [models, setModels] = useState<ModelItem[]>([]);
   const [sessions, setSessions] = useState<SessionItem[]>([]);
@@ -31,6 +31,9 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
   const [enhancing, setEnhancing] = useState(false);
   const [brainstormOpen, setBrainstormOpen] = useState(false);
   const [isNarrow, setIsNarrow] = useState(false);
+  const [convertModalOpen, setConvertModalOpen] = useState(false);
+  const [convertOutputId, setConvertOutputId] = useState<string | null>(null);
+  const [convertImageUrl, setConvertImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)");
@@ -181,8 +184,16 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
     }
   }
 
-  function handleConvertToVideo(imageUrl: string) {
-    router.push(`/projects/${projectId}/video?ref=${encodeURIComponent(imageUrl)}`);
+  function handleConvertToVideo(outputId: string, imageUrl: string) {
+    setConvertOutputId(outputId);
+    setConvertImageUrl(imageUrl);
+    setConvertModalOpen(true);
+  }
+
+  function closeConvertModal() {
+    setConvertModalOpen(false);
+    setConvertOutputId(null);
+    setConvertImageUrl(null);
   }
 
   useEffect(() => {
@@ -257,13 +268,31 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
         sessionId = created.id;
       }
 
+      let resolvedReferenceUrl = referenceImageUrl.trim() || undefined;
+      if (resolvedReferenceUrl && resolvedReferenceUrl.startsWith("data:")) {
+        const uploadRes = await fetch("/api/upload/reference-image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            dataUrl: resolvedReferenceUrl,
+            projectId: projectId || undefined,
+          }),
+        });
+        if (!uploadRes.ok) {
+          const uploadData = (await uploadRes.json().catch(() => ({}))) as { error?: string };
+          throw new Error(uploadData.error ?? "Reference image upload failed");
+        }
+        const uploadData = (await uploadRes.json()) as { url?: string; referenceImageUrl?: string };
+        resolvedReferenceUrl = uploadData.referenceImageUrl ?? uploadData.url ?? resolvedReferenceUrl;
+      }
+
       const parameters: Record<string, unknown> = {
         aspectRatio,
         resolution: Number(resolution),
         numOutputs: Number(numOutputs),
         duration: Number(duration),
       };
-      if (referenceImageUrl.trim()) parameters.referenceImageUrl = referenceImageUrl.trim();
+      if (resolvedReferenceUrl) parameters.referenceImageUrl = resolvedReferenceUrl;
 
       const response = await fetch("/api/generate", {
         method: "POST",
@@ -479,6 +508,18 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
           projectId={projectId}
           onSendPrompt={setPrompt}
           onClose={() => setBrainstormOpen(false)}
+        />
+      )}
+      {convertModalOpen && convertOutputId && convertImageUrl && (
+        <ConvertToVideoModal
+          projectId={projectId}
+          outputId={convertOutputId}
+          imageUrl={convertImageUrl}
+          open={convertModalOpen}
+          onClose={closeConvertModal}
+          onSuccess={() => {
+            closeConvertModal();
+          }}
         />
       )}
     </div>

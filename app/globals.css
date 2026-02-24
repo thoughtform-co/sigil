@@ -176,6 +176,19 @@ body {
   50% { opacity: 0.8; }
 }
 
+@keyframes stack-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.animate-stack-pulse {
+  animation: stack-pulse 2s ease-in-out infinite;
+}
+
+.forge-output-card:hover .video-stack-hint-btn[data-hidden-until-hover] {
+  opacity: 1;
+}
+
 .animate-fade-in-up {
   animation: fadeInUp 0.6s var(--ease-out) both;
 }
@@ -354,6 +367,14 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+/* Workspace pages own scrolling internally (gallery feed), so lock shell height
+   to prevent browser scrollbar competing with the feed scrollbar. */
+.hud-shell--workspace {
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* ─── SHARED HUD PANEL & ACTION UTILITIES (token-driven) ─── */
@@ -571,4 +592,56 @@ body {
 .sigil-select:focus-visible {
   outline: 2px solid var(--gold);
   outline-offset: 2px;
+}
+
+/* ─── ENERGY BEAM SCROLL INDICATOR ─── */
+/* Tensor gold photon flow on the right HUD rail — replaces native scrollbar */
+
+@keyframes energyFlow {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 120px; }
+}
+
+[data-hud-rail="right"]::before {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  opacity: 0.22;
+  background: linear-gradient(to bottom, transparent 0%, var(--gold-30) 20%, var(--gold-30) 80%, transparent 100%);
+  box-shadow: 0 0 6px rgba(202, 165, 84, 0.2);
+  pointer-events: none;
+}
+
+[data-hud-rail="right"].has-scroll::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  width: 2px;
+  height: 120px;
+  background:
+    linear-gradient(
+      to bottom,
+      transparent 0%,
+      var(--gold) 15%,
+      var(--gold) 85%,
+      transparent 100%
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 4px,
+      rgba(202, 165, 84, 0.3) 4px,
+      rgba(202, 165, 84, 0.3) 6px
+    );
+  opacity: 0.82;
+  top: var(--scroll-beam-position, 0%);
+  transition: top 0.15s ease-out, opacity 0.3s ease;
+  box-shadow:
+    0 0 8px var(--gold-dim),
+    0 0 16px rgba(202, 165, 84, 0.25);
+  pointer-events: none;
+  animation: energyFlow 2s linear infinite;
 }
