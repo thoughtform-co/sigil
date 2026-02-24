@@ -9,7 +9,7 @@ type VideoIterationsStackHintProps = {
 };
 
 const STACK_LAYERS = 3;
-const GLOW_COLOR = "91, 138, 122"; /* --status-success #5b8a7a */
+const GLOW_COLOR = "202, 165, 84"; /* --gold #caa554 */
 
 export function VideoIterationsStackHint({ outputId, onClick }: VideoIterationsStackHintProps) {
   const { count, hasProcessing } = useVideoIterations(outputId, { limit: 10, enabled: true });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 export type VideoIterationOutput = {
   id: string;
@@ -36,15 +36,18 @@ export function useVideoIterations(
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const hasFetchedRef = useRef(false);
+
   const fetchIterations = useCallback(async () => {
     if (!outputId || !enabled) {
       setIterations([]);
       setCount(0);
       setHasProcessing(false);
       setLatestStatus(null);
+      hasFetchedRef.current = false;
       return;
     }
-    setLoading(true);
+    if (!hasFetchedRef.current) setLoading(true);
     setError(null);
     try {
       const url = `/api/outputs/${outputId}/video-iterations${limit ? `?limit=${limit}` : ""}`;
@@ -72,6 +75,7 @@ export function useVideoIterations(
       setLatestStatus(null);
     } finally {
       setLoading(false);
+      hasFetchedRef.current = true;
     }
   }, [outputId, limit, enabled]);
 

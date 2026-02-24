@@ -143,6 +143,11 @@
   outline: none;
 }
 
+.paramSelect option {
+  background: var(--surface-0);
+  color: var(--dawn-70);
+}
+
 .durationGroup {
   display: flex;
   gap: 0;

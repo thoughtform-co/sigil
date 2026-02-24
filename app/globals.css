@@ -4,6 +4,8 @@
    SIGIL — Atlas Design Tokens (from Thoughtform Brandworld)
    ═══════════════════════════════════════════════════════════════ */
 :root {
+  color-scheme: dark;
+
   /* Spacing (8px grid) */
   --space-xs: 8px;
   --space-sm: 12px;
@@ -68,6 +70,7 @@
 
 /* Light mode — Thoughtform Color System (warm parchment / ink) */
 :root.light {
+  color-scheme: light;
   --void: #ECE3D6;
   --surface-0: #E4DAC9;
   --surface-1: #DDD2C0;
@@ -112,6 +115,13 @@
 
 *:not(.threat-dot) {
   border-radius: 0 !important;
+}
+
+select,
+select option {
+  color-scheme: dark;
+  background-color: var(--surface-0);
+  color: var(--dawn);
 }
 
 html,

@@ -1,11 +1,45 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import type { SessionItem } from "@/components/generation/types";
 import type { ModelItem } from "@/components/generation/types";
 import { useVideoIterations } from "@/hooks/useVideoIterations";
 import styles from "./ConvertToVideoModal.module.css";
+
+type VideoModelSpec = {
+  aspectRatios: string[];
+  resolutions: { value: string; label: string }[];
+  durations: string[];
+};
+
+const VIDEO_MODEL_SPECS: Record<string, VideoModelSpec> = {
+  "veo-3.1": {
+    aspectRatios: ["16:9", "9:16"],
+    resolutions: [
+      { value: "720p", label: "720p" },
+      { value: "1080p", label: "1080p" },
+      { value: "4k", label: "4K" },
+    ],
+    durations: ["4", "6", "8"],
+  },
+  "kling-2.6": {
+    aspectRatios: ["16:9", "9:16", "1:1"],
+    resolutions: [{ value: "1080p", label: "1080p" }],
+    durations: ["5", "10"],
+  },
+  "kling-official": {
+    aspectRatios: ["16:9", "9:16", "1:1"],
+    resolutions: [{ value: "1080p", label: "1080p" }],
+    durations: ["5", "10"],
+  },
+};
+
+const DEFAULT_SPEC: VideoModelSpec = {
+  aspectRatios: ["16:9", "9:16", "1:1"],
+  resolutions: [{ value: "720p", label: "720p" }],
+  durations: ["5", "10"],
+};
 
 type ConvertToVideoModalProps = {
   projectId: string;
@@ -40,8 +74,7 @@ export function ConvertToVideoModal({
   const [prompt, setPrompt] = useState("");
   const [modelId, setModelId] = useState("");
   const [aspectRatio, setAspectRatio] = useState("16:9");
-  const [resolution, setResolution] = useState("1024");
-  const [numOutputs, setNumOutputs] = useState("1");
+  const [resolution, setResolution] = useState("720p");
   const [duration, setDuration] = useState("5");
   const [sessionId, setSessionId] = useState<string>("new");
   const [sessionName, setSessionName] = useState("");
@@ -51,6 +84,14 @@ export function ConvertToVideoModal({
   const [message, setMessage] = useState<string | null>(null);
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [modelsLoading, setModelsLoading] = useState(true);
+
+  const spec = useMemo(() => VIDEO_MODEL_SPECS[modelId] ?? DEFAULT_SPEC, [modelId]);
+
+  useEffect(() => {
+    if (!spec.aspectRatios.includes(aspectRatio)) setAspectRatio(spec.aspectRatios[0]);
+    if (!spec.resolutions.some((r) => r.value === resolution)) setResolution(spec.resolutions[0].value);
+    if (!spec.durations.includes(duration)) setDuration(spec.durations[0]);
+  }, [spec, aspectRatio, resolution, duration]);
 
   const { iterations, loading: iterationsLoading, refetch } = useVideoIterations(open ? outputId : null);
 
@@ -106,8 +147,7 @@ export function ConvertToVideoModal({
 
       const parameters: Record<string, unknown> = {
         aspectRatio,
-        resolution: Number(resolution),
-        numOutputs: Number(numOutputs),
+        resolution,
         duration: Number(duration),
         referenceImageUrl: imageUrl,
         sourceOutputId: outputId,
@@ -142,7 +182,6 @@ export function ConvertToVideoModal({
     sessions.length,
     aspectRatio,
     resolution,
-    numOutputs,
     duration,
     imageUrl,
     outputId,
@@ -216,7 +255,7 @@ export function ConvertToVideoModal({
             <label className={styles.label}>Video session</label>
             <div className={styles.sessionRow}>
               <select
-                className="sigil-input"
+                className="sigil-select"
                 value={sessionId}
                 onChange={(e) => setSessionId(e.target.value)}
                 disabled={busy || sessionsLoading}
@@ -243,7 +282,7 @@ export function ConvertToVideoModal({
             </div>
             <label className={styles.label}>Model</label>
             <select
-              className="sigil-input"
+              className="sigil-select"
               value={modelId}
               onChange={(e) => setModelId(e.target.value)}
               disabled={busy || modelsLoading}
@@ -263,52 +302,35 @@ export function ConvertToVideoModal({
                 disabled={busy}
                 aria-label="Aspect ratio"
               >
-                <option value="1:1">1:1</option>
-                <option value="16:9">16:9</option>
-                <option value="9:16">9:16</option>
-                <option value="4:3">4:3</option>
-                <option value="3:4">3:4</option>
+                {spec.aspectRatios.map((ar) => (
+                  <option key={ar} value={ar}>{ar}</option>
+                ))}
               </select>
-              <select
-                className={styles.paramSelect}
-                value={resolution}
-                onChange={(e) => setResolution(e.target.value)}
-                disabled={busy}
-                aria-label="Resolution"
-              >
-                <option value="1024">1K</option>
-                <option value="2048">2K</option>
-                <option value="4096">4K</option>
-              </select>
-              <select
-                className={styles.paramSelect}
-                value={numOutputs}
-                onChange={(e) => setNumOutputs(e.target.value)}
-                disabled={busy}
-                aria-label="Outputs"
-              >
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-              </select>
+              {spec.resolutions.length > 1 && (
+                <select
+                  className={styles.paramSelect}
+                  value={resolution}
+                  onChange={(e) => setResolution(e.target.value)}
+                  disabled={busy}
+                  aria-label="Resolution"
+                >
+                  {spec.resolutions.map((r) => (
+                    <option key={r.value} value={r.value}>{r.label}</option>
+                  ))}
+                </select>
+              )}
               <div className={styles.durationGroup} role="group" aria-label="Duration">
-                <button
-                  type="button"
-                  className={`${styles.durationBtn} ${duration === "5" ? styles.durationActive : ""}`}
-                  onClick={() => setDuration("5")}
-                  disabled={busy}
-                >
-                  5s
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.durationBtn} ${duration === "10" ? styles.durationActive : ""}`}
-                  onClick={() => setDuration("10")}
-                  disabled={busy}
-                >
-                  10s
-                </button>
+                {spec.durations.map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    className={`${styles.durationBtn} ${duration === d ? styles.durationActive : ""}`}
+                    onClick={() => setDuration(d)}
+                    disabled={busy}
+                  >
+                    {d}s
+                  </button>
+                ))}
               </div>
             </div>
             {message && (

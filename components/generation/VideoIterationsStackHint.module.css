@@ -27,15 +27,15 @@
   align-items: center;
   justify-content: center;
   pointer-events: auto;
-  background: rgba(91, 138, 122, 0.2);
+  background: var(--gold-10);
   border: 1px solid var(--dawn-15);
-  color: var(--status-success);
+  color: var(--gold);
   transition: opacity 120ms ease, transform 120ms ease;
   z-index: 10;
 }
 
 .iconButton:hover {
-  background: rgba(91, 138, 122, 0.3);
+  background: var(--gold-20);
   transform: scale(1.1);
 }
 
