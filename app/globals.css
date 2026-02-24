@@ -385,6 +385,8 @@ body {
   height: 100vh;
   min-height: 0;
   overflow: hidden;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 /* ─── SHARED HUD PANEL & ACTION UTILITIES (token-driven) ─── */

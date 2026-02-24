@@ -21,7 +21,8 @@
   overflow-y: auto;
   min-height: 0;
   flex: 1;
-  padding: calc(clamp(24px, 4vw, 56px) + 16px) 16px var(--feed-padding-bottom, 260px);
+  /* Keep top nearly flush with workspace so cards can extend higher (Vesper-like) */
+  padding: 8px 16px var(--feed-padding-bottom, 260px);
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
