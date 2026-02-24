@@ -1,0 +1,59 @@
+/* ProjectWorkspace — narrow sidebar, centered feed, brainstorm overlay (Atlas pattern) */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 120px);
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 0;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  padding: 12px 16px;
+  gap: 12px;
+}
+
+.brainstormToggle {
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dawn-50);
+  background: transparent;
+  border: 1px solid var(--dawn-08);
+  cursor: pointer;
+  transition: border-color 150ms ease, color 150ms ease;
+}
+
+.brainstormToggle:hover {
+  border-color: var(--dawn-30);
+  color: var(--dawn-70);
+}
+
+.brainstormToggleActive {
+  border-color: var(--gold);
+  color: var(--gold);
+}

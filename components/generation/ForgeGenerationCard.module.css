@@ -1,0 +1,399 @@
+/* ForgeGenerationCard — Atlas ForgeVideoCard pattern: prompt banner, 16:9, corner accents, scanlines, hover actions */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: var(--surface-0);
+  border: 1px solid var(--dawn-08);
+  transition: all 250ms cubic-bezier(0.19, 1, 0.22, 1);
+  max-width: 720px;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.card:hover {
+  border-color: var(--dawn-30);
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 0 1px rgba(236, 227, 214, 0.03),
+    0 20px 50px -15px rgba(0, 0, 0, 0.5);
+}
+
+.card::before,
+.card::after {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 300ms ease;
+  z-index: 10;
+}
+
+.card::before {
+  top: -1px;
+  left: -1px;
+  border-top: 1px solid var(--dawn-15);
+  border-left: 1px solid var(--dawn-15);
+}
+
+.card::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 1px solid var(--dawn-15);
+  border-right: 1px solid var(--dawn-15);
+}
+
+.card:hover::before,
+.card:hover::after {
+  opacity: 1;
+}
+
+.cardProcessing {
+  border-color: var(--gold-20, rgba(202, 165, 84, 0.2));
+}
+
+.cardFailed {
+  border-color: rgba(139, 90, 90, 0.3);
+}
+
+/* Prompt banner (above media) */
+.promptLine {
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 150ms ease;
+  position: relative;
+  border-bottom: 1px solid var(--dawn-08);
+  background: rgba(10, 9, 8, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.promptLine:hover {
+  background: rgba(10, 9, 8, 0.6);
+}
+
+.promptCopied {
+  background: rgba(202, 165, 84, 0.1);
+}
+
+.promptText {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+  color: var(--dawn-70);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.copiedBadge {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  transform: translateY(-50%);
+  padding: 3px 6px;
+  background: var(--gold);
+  color: var(--void);
+  font-family: var(--font-mono);
+  font-size: 7px;
+  letter-spacing: 0.1em;
+  animation: fadeInOut 2s ease;
+}
+
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0; }
+  10%, 90% { opacity: 1; }
+}
+
+/* 16:9 media container */
+.videoContainer {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  position: relative;
+  overflow: hidden;
+  background: #000;
+}
+
+.video,
+.sourceImage {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: transform 500ms cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.card:hover .video,
+.card:hover .sourceImage {
+  transform: scale(1.03);
+}
+
+.videoContainer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 300ms ease;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+}
+
+.card:hover .videoContainer::after {
+  opacity: 1;
+}
+
+/* Processing overlay */
+.sourceImageBackground {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: brightness(0.5) saturate(0.7);
+}
+
+.processingOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.progressIcon {
+  position: relative;
+  width: 36px;
+  height: 36px;
+}
+
+.progressDiamond {
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--gold);
+  transform: rotate(45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 4, 3, 0.6);
+  animation: diamondPulse 2s ease-in-out infinite;
+}
+
+@keyframes diamondPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(202, 165, 84, 0.3); }
+  50% { box-shadow: 0 0 8px 2px rgba(202, 165, 84, 0.15); }
+}
+
+.progressPercent {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--gold);
+  transform: rotate(-45deg);
+}
+
+.progressInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+}
+
+.phaseMessage {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  color: var(--dawn-50);
+  max-width: 180px;
+  animation: messageGlow 4s ease-in-out infinite;
+}
+
+@keyframes messageGlow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.8; }
+}
+
+/* Failed overlay */
+.failedOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.failedIcon {
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--status-error);
+  transform: rotate(45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--status-error);
+  background: rgba(5, 4, 3, 0.6);
+}
+
+.failedIcon svg {
+  transform: rotate(-45deg);
+  width: 12px;
+  height: 12px;
+}
+
+.failedTitle {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--status-error);
+}
+
+.errorMessage {
+  font-family: var(--font-mono);
+  font-size: 7px;
+  color: var(--dawn-30);
+  max-width: 90%;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.4;
+}
+
+/* Approved badge */
+.approvedBadge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gold);
+  color: var(--void);
+  font-size: 12px;
+  z-index: 5;
+}
+
+/* Hover actions */
+.hoverActions {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  display: flex;
+  gap: 6px;
+  animation: fadeIn 150ms ease;
+  z-index: 5;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.actionButton {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 9, 8, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--dawn-15);
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.actionButton:hover {
+  background: rgba(10, 9, 8, 0.95);
+  border-color: var(--dawn-30);
+}
+
+.actionActive {
+  background: var(--gold);
+  border-color: var(--gold);
+}
+
+.actionActive:hover {
+  background: #d4b064;
+}
+
+.actionIcon {
+  color: var(--dawn-70);
+  width: 16px;
+  height: 16px;
+}
+
+.actionActive .actionIcon {
+  color: var(--void);
+}
+
+/* Extra outputs row (when generation has multiple outputs) */
+.extraOutputs {
+  display: flex;
+  gap: 4px;
+  padding: 8px;
+  border-top: 1px solid var(--dawn-08);
+  background: var(--void);
+  flex-wrap: wrap;
+}
+
+.extraThumb {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  cursor: pointer;
+  border: 1px solid var(--dawn-08);
+}
+
+.extraThumb:hover {
+  border-color: var(--dawn-30);
+}
+
+@media (max-width: 768px) {
+  .card {
+    max-width: 100%;
+  }
+  .promptText {
+    font-size: 9px;
+  }
+  .progressIcon {
+    width: 28px;
+    height: 28px;
+  }
+  .progressPercent {
+    font-size: 8px;
+  }
+  .phaseMessage {
+    font-size: 7px;
+    max-width: 140px;
+  }
+  .actionButton {
+    width: 28px;
+    height: 28px;
+  }
+  .actionIcon {
+    width: 14px;
+    height: 14px;
+  }
+}

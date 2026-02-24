@@ -156,7 +156,7 @@ export function ProjectsView() {
         ) : (
           <HudEmptyState
             title="No projects yet"
-            body="Create a project to start generating images and video."
+            body="Create a project to open the workspace. Then add image or video sessions to start generating."
             action={
               <button
                 type="button"
@@ -215,7 +215,7 @@ export function ProjectsView() {
                   void createProject();
                 }
               }}
-              placeholder="Enter project name..."
+              placeholder="Project name (you’ll add sessions in the workspace)"
               autoFocus
             />
           </div>

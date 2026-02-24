@@ -1,0 +1,234 @@
+/* BrainstormPanel — concept thread (Thoughtform tokens) */
+
+.panel {
+  border-left: 1px solid var(--dawn-08);
+  padding: 16px;
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 320px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dawn-50);
+}
+
+.closeBtn {
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dawn-30);
+  background: transparent;
+  border: 1px solid var(--dawn-08);
+  cursor: pointer;
+  transition: color var(--duration-fast), border-color var(--duration-fast);
+}
+
+.closeBtn:hover {
+  color: var(--dawn);
+  border-color: var(--dawn-15);
+}
+
+.messages {
+  margin-top: 12px;
+  max-height: 256px;
+  overflow-y: auto;
+  border: 1px solid var(--dawn-08);
+  background: var(--void);
+  padding: 8px;
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.loading {
+  font-size: 12px;
+  color: var(--dawn-30);
+}
+
+.empty {
+  font-size: 12px;
+  color: var(--dawn-30);
+}
+
+.card {
+  border: 1px solid var(--dawn-15);
+  padding: 8px;
+  font-size: 12px;
+  transition: border-color var(--duration-fast), background var(--duration-fast);
+}
+
+.cardUser {
+  border-color: var(--gold-30);
+  background: var(--gold-10);
+  color: var(--dawn);
+}
+
+.cardAssistant {
+  border-color: var(--dawn-15);
+  background: var(--dawn-04);
+  color: var(--dawn-70);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.role {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.usePromptBtn {
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold);
+  background: transparent;
+  border: 1px solid var(--dawn-08);
+  cursor: pointer;
+  transition: border-color var(--duration-fast);
+}
+
+.usePromptBtn:hover {
+  border-color: var(--gold);
+}
+
+.cardBody {
+  white-space: pre-wrap;
+  font-family: var(--font-sans);
+  font-size: 13px;
+}
+
+.compose {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.textarea {
+  flex: 1;
+  min-width: 0;
+  min-height: 64px;
+  padding: 10px 12px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--dawn);
+  background: var(--dawn-04);
+  border: 1px solid var(--dawn-08);
+  outline: none;
+  resize: vertical;
+  transition: border-color var(--duration-fast);
+}
+
+.textarea::placeholder {
+  color: var(--dawn-40);
+}
+
+.textarea:focus {
+  border-color: var(--gold-30);
+}
+
+.buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.sendPrimary {
+  padding: 10px 20px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--void);
+  background: var(--gold);
+  border: 1px solid var(--gold);
+  cursor: pointer;
+  transition: background var(--duration-fast), border-color var(--duration-fast);
+}
+
+.sendPrimary:hover:not(:disabled) {
+  background: var(--dawn);
+  border-color: var(--dawn);
+}
+
+.sendPrimary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sendToPrompt {
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dawn-40);
+  background: transparent;
+  border: 1px solid var(--dawn-08);
+  cursor: pointer;
+  transition: border-color var(--duration-fast), color var(--duration-fast);
+}
+
+.sendToPrompt:hover {
+  border-color: var(--dawn-30);
+  color: var(--dawn-70);
+}
+
+.error {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--status-error);
+}
+
+/* Floating variant */
+.floatingBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(5, 4, 3, 0.95);
+  border: 1px solid var(--dawn-08);
+  transition: opacity var(--duration-fast);
+}
+
+.floatingPanel {
+  width: 100%;
+  max-width: 448px;
+  border: 1px solid var(--dawn-08);
+  background: var(--surface-0);
+  padding: 16px;
+  max-height: 80vh;
+  overflow-y: auto;
+}

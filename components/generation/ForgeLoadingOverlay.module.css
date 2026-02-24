@@ -1,0 +1,35 @@
+/* ForgeLoadingOverlay — processing state overlay (Thoughtform tokens) */
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 4, 3, 0.75);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.diamond {
+  width: 20px;
+  height: 20px;
+  background: var(--gold-30);
+  transform: rotate(45deg);
+  animation: forgePulse 1.2s ease-in-out infinite;
+}
+
+.message {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dawn-50);
+  max-width: 80%;
+  text-align: center;
+}
+
+@keyframes forgePulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}

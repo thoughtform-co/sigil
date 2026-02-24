@@ -1,15 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { GenerationItem, GenerationType, ModelItem, SessionItem } from "@/components/generation/types";
+import { useGenerationsRealtime } from "@/hooks/useGenerationsRealtime";
+import { ForgeSidebar } from "@/components/generation/ForgeSidebar";
+import { ForgeGallery } from "@/components/generation/ForgeGallery";
+import { ForgePromptBar } from "@/components/generation/ForgePromptBar";
+import { ForgeCostTicker } from "@/components/generation/ForgeCostTicker";
 import { BrainstormPanel } from "@/components/generation/BrainstormPanel";
-import { SessionBar, type SessionItem } from "@/components/generation/SessionBar";
-import { GenerationGallery, type GenerationItem } from "@/components/generation/GenerationGallery";
-import { PromptBar, type ModelItem } from "@/components/generation/PromptBar";
+import styles from "./ProjectWorkspace.module.css";
 
 export function ProjectWorkspace({ projectId }: { projectId: string }) {
   const [models, setModels] = useState<ModelItem[]>([]);
   const [sessions, setSessions] = useState<SessionItem[]>([]);
+  const [generationType, setGenerationType] = useState<GenerationType>("image");
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const lastActiveSessionByType = useRef<Record<GenerationType, string | null>>({ image: null, video: null });
   const [generations, setGenerations] = useState<GenerationItem[]>([]);
   const [prompt, setPrompt] = useState("");
   const [referenceImageUrl, setReferenceImageUrl] = useState("");
@@ -22,13 +28,24 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
+  const [dismissedGenerationIds, setDismissedGenerationIds] = useState<Set<string>>(() => new Set());
+  const [brainstormOpen, setBrainstormOpen] = useState(true);
+  const [isNarrow, setIsNarrow] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const fn = () => setIsNarrow(mq.matches);
+    fn();
+    mq.addEventListener("change", fn);
+    return () => mq.removeEventListener("change", fn);
+  }, []);
 
   useEffect(() => {
     async function loadProject() {
       const response = await fetch("/api/projects", { cache: "no-store" });
       if (!response.ok) return;
       const data = (await response.json()) as { projects: Array<{ id: string; name: string }> };
-      const found = data.projects.find((project) => project.id === projectId);
+      const found = data.projects.find((p) => p.id === projectId);
       if (found) setProjectName(found.name);
     }
     void loadProject();
@@ -42,12 +59,17 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
       setModels(data.models);
       setModelId((prev) => {
         if (prev || data.models.length === 0) return prev;
-        const firstImageModel = data.models.find((m) => m.type === "image");
-        return (firstImageModel || data.models[0]).id;
+        const firstImage = data.models.find((m) => m.type === "image");
+        return (firstImage || data.models[0]).id;
       });
     }
     void loadModels();
   }, []);
+
+  const sessionsFiltered = useMemo(
+    () => sessions.filter((s) => s.type === generationType),
+    [sessions, generationType],
+  );
 
   useEffect(() => {
     async function loadSessions() {
@@ -55,17 +77,31 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
       if (!response.ok) return;
       const data = (await response.json()) as { sessions: SessionItem[] };
       setSessions(data.sessions);
-      if (data.sessions.length > 0) {
-        setSelectedSessionId((prev) => prev ?? data.sessions[0].id);
-      }
     }
     void loadSessions();
   }, [projectId]);
 
   useEffect(() => {
+    const filtered = sessions.filter((s) => s.type === generationType);
+    if (filtered.length === 0) {
+      setSelectedSessionId(null);
+      return;
+    }
+    const lastForType = lastActiveSessionByType.current[generationType];
+    const validLast = lastForType && filtered.some((s) => s.id === lastForType);
+    setSelectedSessionId((prev) => {
+      const stillValid = prev && filtered.some((s) => s.id === prev);
+      if (stillValid) return prev;
+      return validLast ? lastForType : filtered[0].id;
+    });
+  }, [sessions, generationType]);
+
+  useEffect(() => {
     async function loadGenerations() {
       if (!selectedSessionId) return;
-      const response = await fetch(`/api/generations?sessionId=${selectedSessionId}`, { cache: "no-store" });
+      const response = await fetch(`/api/generations?sessionId=${selectedSessionId}`, {
+        cache: "no-store",
+      });
       if (!response.ok) return;
       const data = (await response.json()) as { generations: GenerationItem[] };
       setGenerations(data.generations);
@@ -73,17 +109,24 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
     void loadGenerations();
   }, [selectedSessionId]);
 
+  useGenerationsRealtime(selectedSessionId, setGenerations);
+
   useEffect(() => {
     if (!selectedSessionId) return;
-    if (!generations.some((g) => g.status === "processing" || g.status === "processing_locked")) return;
+    const hasProcessing = generations.some(
+      (g) => g.status === "processing" || g.status === "processing_locked",
+    );
+    if (!hasProcessing) return;
     const interval = setInterval(() => {
       void (async () => {
-        const response = await fetch(`/api/generations?sessionId=${selectedSessionId}`, { cache: "no-store" });
+        const response = await fetch(`/api/generations?sessionId=${selectedSessionId}`, {
+          cache: "no-store",
+        });
         if (!response.ok) return;
         const data = (await response.json()) as { generations: GenerationItem[] };
         setGenerations(data.generations);
       })();
-    }, 5000);
+    }, 10000);
     return () => clearInterval(interval);
   }, [generations, selectedSessionId]);
 
@@ -91,6 +134,30 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
     () => sessions.find((s) => s.id === selectedSessionId) ?? null,
     [selectedSessionId, sessions],
   );
+
+  const generationsVisible = useMemo(
+    () => generations.filter((g) => !dismissedGenerationIds.has(g.id)),
+    [generations, dismissedGenerationIds],
+  );
+
+  function handleDismissGeneration(generationId: string) {
+    setDismissedGenerationIds((prev) => new Set(prev).add(generationId));
+  }
+
+  function handleConvertToVideo(imageUrl: string) {
+    setReferenceImageUrl(imageUrl);
+    setGenerationType("video");
+  }
+
+  useEffect(() => {
+    if (activeSession) {
+      lastActiveSessionByType.current[activeSession.type as GenerationType] = activeSession.id;
+    }
+  }, [activeSession]);
+
+  useEffect(() => {
+    setDismissedGenerationIds(() => new Set());
+  }, [selectedSessionId]);
 
   const compatibleModels = useMemo(() => {
     if (!activeSession) return models;
@@ -116,10 +183,11 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
           type,
         }),
       });
-      const data = await response.json();
+      const data = (await response.json()) as { session?: SessionItem; error?: string };
       if (!response.ok) throw new Error(data.error ?? "Failed to create session");
-      const created = data.session as SessionItem;
+      const created = data.session!;
       setSessions((prev) => [created, ...prev]);
+      setGenerationType(type);
       setSelectedSessionId(created.id);
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Failed to create session");
@@ -133,6 +201,14 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
     setBusy(true);
     setMessage(null);
     try {
+      const parameters: Record<string, unknown> = {
+        aspectRatio,
+        resolution: Number(resolution),
+        numOutputs: Number(numOutputs),
+        duration: Number(duration),
+      };
+      if (referenceImageUrl.trim()) parameters.referenceImageUrl = referenceImageUrl.trim();
+
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -140,17 +216,17 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
           sessionId: selectedSessionId,
           modelId,
           prompt: prompt.trim(),
-          parameters: referenceImageUrl.trim()
-            ? { referenceImageUrl: referenceImageUrl.trim(), aspectRatio, resolution: Number(resolution), numOutputs: Number(numOutputs), duration: Number(duration) }
-            : { aspectRatio, resolution: Number(resolution), numOutputs: Number(numOutputs), duration: Number(duration) },
+          parameters,
         }),
       });
-      const data = await response.json();
+      const data = (await response.json()) as { generation?: { id: string }; error?: string };
       if (!response.ok) throw new Error(data.error ?? "Failed to submit generation");
       setPrompt("");
       setReferenceImageUrl("");
-      setMessage(`Generation queued: ${data.generation.id}`);
-      const refresh = await fetch(`/api/generations?sessionId=${selectedSessionId}`, { cache: "no-store" });
+      setMessage(data.generation ? `Generation queued: ${data.generation.id}` : "Generation queued.");
+      const refresh = await fetch(`/api/generations?sessionId=${selectedSessionId}`, {
+        cache: "no-store",
+      });
       if (refresh.ok) {
         const refreshed = (await refresh.json()) as { generations: GenerationItem[] };
         setGenerations(refreshed.generations);
@@ -170,9 +246,13 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
       const response = await fetch("/api/prompts/enhance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: prompt.trim(), modelId, referenceImageUrl: referenceImageUrl.trim() || undefined }),
+        body: JSON.stringify({
+          prompt: prompt.trim(),
+          modelId,
+          referenceImageUrl: referenceImageUrl.trim() || undefined,
+        }),
       });
-      const data = await response.json().catch(() => ({}));
+      const data = (await response.json().catch(() => ({}))) as { enhancedPrompt?: string; error?: string };
       if (!response.ok) throw new Error(data.error ?? "Failed to enhance prompt");
       if (typeof data.enhancedPrompt === "string" && data.enhancedPrompt.trim()) {
         setPrompt(data.enhancedPrompt.trim());
@@ -190,11 +270,13 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
     setMessage(null);
     try {
       const response = await fetch(`/api/generations/${generationId}/retry`, { method: "POST" });
-      const data = await response.json().catch(() => ({}));
+      const data = (await response.json().catch(() => ({}))) as { error?: string };
       if (!response.ok) throw new Error(data.error ?? "Failed to retry generation");
       setMessage(`Retry queued: ${generationId}`);
       if (!selectedSessionId) return;
-      const refresh = await fetch(`/api/generations?sessionId=${selectedSessionId}`, { cache: "no-store" });
+      const refresh = await fetch(`/api/generations?sessionId=${selectedSessionId}`, {
+        cache: "no-store",
+      });
       if (!refresh.ok) return;
       const refreshed = (await refresh.json()) as { generations: GenerationItem[] };
       setGenerations(refreshed.generations);
@@ -212,10 +294,12 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isApproved }),
       });
-      const data = await response.json().catch(() => ({}));
+      const data = (await response.json().catch(() => ({}))) as { error?: string };
       if (!response.ok) throw new Error(data.error ?? "Failed to update output");
       if (!selectedSessionId) return;
-      const refresh = await fetch(`/api/generations?sessionId=${selectedSessionId}`, { cache: "no-store" });
+      const refresh = await fetch(`/api/generations?sessionId=${selectedSessionId}`, {
+        cache: "no-store",
+      });
       if (!refresh.ok) return;
       const refreshed = (await refresh.json()) as { generations: GenerationItem[] };
       setGenerations(refreshed.generations);
@@ -227,10 +311,12 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   async function deleteOutput(outputId: string) {
     try {
       const response = await fetch(`/api/outputs/${outputId}`, { method: "DELETE" });
-      const data = await response.json().catch(() => ({}));
+      const data = (await response.json().catch(() => ({}))) as { error?: string };
       if (!response.ok) throw new Error(data.error ?? "Failed to delete output");
       if (!selectedSessionId) return;
-      const refresh = await fetch(`/api/generations?sessionId=${selectedSessionId}`, { cache: "no-store" });
+      const refresh = await fetch(`/api/generations?sessionId=${selectedSessionId}`, {
+        cache: "no-store",
+      });
       if (!refresh.ok) return;
       const refreshed = (await refresh.json()) as { generations: GenerationItem[] };
       setGenerations(refreshed.generations);
@@ -244,31 +330,14 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
     setModelId(generation.modelId);
     const params = generation.parameters ?? {};
     if (typeof params.aspectRatio === "string") setAspectRatio(params.aspectRatio);
-    if (typeof params.resolution === "number" || typeof params.resolution === "string") setResolution(String(params.resolution));
-    if (typeof params.numOutputs === "number" || typeof params.numOutputs === "string") setNumOutputs(String(params.numOutputs));
-    if (typeof params.duration === "number" || typeof params.duration === "string") setDuration(String(params.duration));
+    if (typeof params.resolution === "number" || typeof params.resolution === "string")
+      setResolution(String(params.resolution));
+    if (typeof params.numOutputs === "number" || typeof params.numOutputs === "string")
+      setNumOutputs(String(params.numOutputs));
+    if (typeof params.duration === "number" || typeof params.duration === "string")
+      setDuration(String(params.duration));
     if (typeof params.referenceImageUrl === "string") setReferenceImageUrl(params.referenceImageUrl);
     setMessage("Parameters loaded from previous generation.");
-  }
-
-  async function renameProject() {
-    if (!projectName.trim()) return;
-    setBusy(true);
-    setMessage(null);
-    try {
-      const response = await fetch(`/api/projects/${projectId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: projectName.trim() }),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error ?? "Failed to rename project");
-      setMessage("Project renamed.");
-    } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Failed to rename project");
-    } finally {
-      setBusy(false);
-    }
   }
 
   async function deleteSession(sessionId: string) {
@@ -276,7 +345,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
     setMessage(null);
     try {
       const response = await fetch(`/api/sessions/${sessionId}`, { method: "DELETE" });
-      const data = await response.json().catch(() => ({}));
+      const data = (await response.json().catch(() => ({}))) as { error?: string };
       if (!response.ok) throw new Error(data.error ?? "Failed to delete session");
       const remaining = sessions.filter((s) => s.id !== sessionId);
       setSessions(remaining);
@@ -291,55 +360,86 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   }
 
   return (
-    <div className="workspace-container">
-      <div className="workspace-body">
-        <SessionBar
-          sessions={sessions}
-          activeSessionId={selectedSessionId}
+    <div className={styles.container}>
+      <div className={styles.body}>
+        <ForgeSidebar
+          projectId={projectId}
           projectName={projectName}
-          onProjectNameChange={setProjectName}
+          sessions={sessionsFiltered}
+          activeSessionId={selectedSessionId}
           onSessionSelect={setSelectedSessionId}
           onSessionCreate={createSession}
           onSessionDelete={deleteSession}
-          onProjectRename={renameProject}
+          generationType={generationType}
           busy={busy}
         />
-        <div className="workspace-main">
-          <GenerationGallery
-            generations={generations}
+        <div className={styles.main}>
+          <ForgeCostTicker />
+          <div className={styles.topBar}>
+            <button
+              type="button"
+              className={`${styles.brainstormToggle} ${brainstormOpen ? styles.brainstormToggleActive : ""}`}
+              onClick={() => setBrainstormOpen((v) => !v)}
+              aria-label={brainstormOpen ? "Close brainstorm" : "Open brainstorm"}
+            >
+              Brainstorm
+            </button>
+          </div>
+          <ForgeGallery
+            generations={generationsVisible}
             onRetry={retryGeneration}
             onReuse={reuseGeneration}
+            onRerun={retryGeneration}
+            onConvertToVideo={handleConvertToVideo}
+            onDismiss={handleDismissGeneration}
             onApprove={toggleApproveOutput}
             onDeleteOutput={deleteOutput}
             busy={busy}
           />
-          <PromptBar
-            prompt={prompt}
-            onPromptChange={setPrompt}
-            referenceImageUrl={referenceImageUrl}
-            onReferenceImageUrlChange={setReferenceImageUrl}
-            modelId={modelId}
-            onModelChange={setModelId}
-            models={compatibleModels}
-            aspectRatio={aspectRatio}
-            onAspectRatioChange={setAspectRatio}
-            resolution={resolution}
-            onResolutionChange={setResolution}
-            numOutputs={numOutputs}
-            onNumOutputsChange={setNumOutputs}
-            duration={duration}
-            onDurationChange={setDuration}
-            activeSessionName={activeSession?.name}
-            hasSession={!!selectedSessionId}
-            onSubmit={submitGeneration}
-            onEnhance={enhancePrompt}
-            busy={busy}
-            enhancing={enhancing}
-            message={message}
-          />
         </div>
+        {brainstormOpen && !isNarrow && (
+          <BrainstormPanel
+            projectId={projectId}
+            onSendPrompt={setPrompt}
+            onClose={() => setBrainstormOpen(false)}
+            variant="docked"
+          />
+        )}
       </div>
-      <BrainstormPanel projectId={projectId} />
+      <ForgePromptBar
+        generationType={generationType}
+        onGenerationTypeChange={setGenerationType}
+        prompt={prompt}
+        onPromptChange={setPrompt}
+        referenceImageUrl={referenceImageUrl}
+        onReferenceImageUrlChange={setReferenceImageUrl}
+        modelId={modelId}
+        onModelChange={setModelId}
+        models={compatibleModels}
+        aspectRatio={aspectRatio}
+        onAspectRatioChange={setAspectRatio}
+        resolution={resolution}
+        onResolutionChange={setResolution}
+        numOutputs={numOutputs}
+        onNumOutputsChange={setNumOutputs}
+        duration={duration}
+        onDurationChange={setDuration}
+        activeSessionName={activeSession?.name}
+        hasSession={!!selectedSessionId}
+        onSubmit={submitGeneration}
+        onEnhance={enhancePrompt}
+        busy={busy}
+        enhancing={enhancing}
+        message={message}
+      />
+      {brainstormOpen && isNarrow && (
+        <BrainstormPanel
+          projectId={projectId}
+          onSendPrompt={setPrompt}
+          onClose={() => setBrainstormOpen(false)}
+          variant="floating"
+        />
+      )}
     </div>
   );
 }

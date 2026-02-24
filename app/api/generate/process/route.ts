@@ -6,10 +6,55 @@ import { getModel, getModelConfig } from "@/lib/models/registry";
 import { routeModel } from "@/lib/models/routing";
 import { calculateGenerationCost } from "@/lib/cost/calculator";
 import { uploadProviderOutput } from "@/lib/supabase/storage";
+import { broadcastGenerationUpdate } from "@/lib/supabase/realtime";
 
 const processRequestSchema = z.object({
   generationId: z.string().uuid(),
 });
+
+async function broadcastUpdatedGeneration(sessionId: string, generationId: string): Promise<void> {
+  try {
+    const gen = await prisma.generation.findUnique({
+      where: { id: generationId },
+      select: {
+        id: true,
+        prompt: true,
+        negativePrompt: true,
+        parameters: true,
+        status: true,
+        modelId: true,
+        createdAt: true,
+        outputs: {
+          select: {
+            id: true,
+            fileUrl: true,
+            fileType: true,
+            isApproved: true,
+            width: true,
+            height: true,
+            duration: true,
+          },
+        },
+      },
+    });
+    if (!gen) return;
+    broadcastGenerationUpdate({
+      sessionId,
+      generation: {
+        id: gen.id,
+        prompt: gen.prompt,
+        negativePrompt: gen.negativePrompt,
+        parameters: gen.parameters as Record<string, unknown>,
+        status: gen.status,
+        modelId: gen.modelId,
+        createdAt: gen.createdAt.toISOString(),
+        outputs: gen.outputs,
+      },
+    });
+  } catch {
+    // ignore
+  }
+}
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
@@ -22,6 +67,7 @@ export async function POST(request: Request) {
     where: { id: parsed.data.generationId },
     select: {
       id: true,
+      sessionId: true,
       modelId: true,
       prompt: true,
       negativePrompt: true,
@@ -55,6 +101,7 @@ export async function POST(request: Request) {
       where: { id: generation.id },
       data: { status: "failed" },
     });
+    void broadcastUpdatedGeneration(generation.sessionId, generation.id);
     return NextResponse.json({ error: `Unknown model: ${routed.modelId}` }, { status: 400 });
   }
 
@@ -69,6 +116,7 @@ export async function POST(request: Request) {
       where: { id: generation.id },
       data: { status: "failed" },
     });
+    void broadcastUpdatedGeneration(generation.sessionId, generation.id);
 
     return NextResponse.json({
       id: generation.id,
@@ -128,6 +176,8 @@ export async function POST(request: Request) {
       })),
     });
   });
+
+  void broadcastUpdatedGeneration(generation.sessionId, generation.id);
 
   return NextResponse.json({
     id: generation.id,

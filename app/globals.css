@@ -50,6 +50,17 @@
   --duration-fast: 150ms;
   --duration-base: 300ms;
   --duration-slow: 500ms;
+
+  /* Z-index hierarchy (one primary nav + one context anchor per viewport; cap fixed elements) */
+  --z-base: 0;
+  --z-dock: 10;
+  --z-sticky: 20;
+  --z-overlay: 30;
+  --z-modal: 40;
+  --z-nav: 50;
+
+  /* Overlay (token-only; no hardcoded color) */
+  --overlay-bg: rgba(5, 4, 3, 0.75);
 }
 
 /* Light mode — Thoughtform Color System (warm parchment / ink) */
@@ -73,6 +84,7 @@
   --gold-20: rgba(154, 122, 46, 0.2);
   --gold-15: rgba(154, 122, 46, 0.15);
   --gold-10: rgba(154, 122, 46, 0.1);
+  --overlay-bg: rgba(17, 15, 9, 0.5);
 }
 
 @theme inline {
@@ -163,7 +175,7 @@ body {
   width: 24px;
   height: 24px;
   pointer-events: none;
-  z-index: 40;
+  z-index: var(--z-modal);
 }
 
 .hud-corner::before,
@@ -420,15 +432,12 @@ body {
 .sigil-dialog-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 50;
-  background: rgba(5, 4, 3, 0.7);
+  z-index: var(--z-nav);
+  background: var(--overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
   animation: fadeIn 0.2s var(--ease-out) both;
-}
-:root.light .sigil-dialog-backdrop {
-  background: rgba(17, 15, 9, 0.5);
 }
 .sigil-dialog-panel {
   width: 100%;
@@ -515,71 +524,6 @@ body {
   font-size: 13px;
   color: var(--dawn-30);
   max-width: 360px;
-}
-
-/* ─── WORKSPACE LAYOUT (project detail) ─── */
-
-.workspace-container {
-  display: flex;
-  flex-direction: column;
-  min-height: calc(100vh - 220px);
-  max-width: 1400px;
-  margin-left: auto;
-  margin-right: auto;
-  width: 100%;
-}
-
-.workspace-body {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  gap: var(--space-lg);
-}
-
-.workspace-main {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
-}
-
-/* ─── SESSION BAR ─── */
-
-.sigil-session-bar {
-  width: 260px;
-  flex-shrink: 0;
-}
-
-.sigil-session-card {
-  font-family: var(--font-mono);
-}
-
-/* ─── GALLERY & GENERATION CARDS ─── */
-
-.sigil-gallery {
-  flex: 1;
-  min-height: 0;
-}
-
-.sigil-gen-card {
-  font-family: var(--font-mono);
-  transition: border-color var(--duration-fast);
-}
-.sigil-gen-card:hover {
-  border-color: var(--dawn-15);
-}
-
-.sigil-status-badge {
-  font-family: var(--font-mono);
-}
-
-/* ─── PROMPT BAR ─── */
-
-.sigil-prompt-bar {
-  flex-shrink: 0;
-  border-top-width: 2px;
-  border-top-color: var(--gold);
 }
 
 /* ─── SELECT (Sigil tokens) ─── */

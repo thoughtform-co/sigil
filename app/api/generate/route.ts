@@ -3,6 +3,7 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { broadcastGenerationUpdate } from "@/lib/supabase/realtime";
 
 const generateRequestSchema = z.object({
   sessionId: z.string().uuid(),
@@ -60,6 +61,19 @@ export async function POST(request: Request) {
       status: true,
       modelId: true,
       createdAt: true,
+    },
+  });
+
+  broadcastGenerationUpdate({
+    sessionId,
+    generation: {
+      id: generation.id,
+      prompt,
+      negativePrompt: negativePrompt ?? null,
+      parameters: parameters as Record<string, unknown>,
+      status: generation.status,
+      modelId,
+      createdAt: generation.createdAt.toISOString(),
     },
   });
 
