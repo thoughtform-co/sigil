@@ -4,7 +4,6 @@ import { AdminHealthPanel } from "@/components/admin/AdminHealthPanel";
 import { AllowedEmailsAdmin } from "@/components/admin/AllowedEmailsAdmin";
 import { PromptEnhancementAdmin } from "@/components/admin/PromptEnhancementAdmin";
 import { FailedGenerationsPanel } from "@/components/admin/FailedGenerationsPanel";
-import { HudPanel, HudPanelHeader } from "@/components/ui/hud";
 
 export default function AdminPage() {
   return (
@@ -12,21 +11,21 @@ export default function AdminPage() {
       <NavigationFrame title="SIGIL" modeLabel="admin" showNavPanel>
         <section
           className="w-full max-w-[960px] animate-fade-in-up"
-          style={{ paddingTop: "var(--space-2xl)" }}
+          style={{ paddingTop: "var(--space-2xl)", paddingBottom: "var(--space-3xl)" }}
         >
-          <HudPanel>
-            <HudPanelHeader title="system settings" />
+          <h1
+            className="sigil-section-label"
+            style={{ marginBottom: "var(--space-xl)", fontSize: "11px" }}
+          >
+            System Settings
+          </h1>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-xl)" }}>
             <AdminHealthPanel />
-            <div style={{ marginTop: "var(--space-xl)" }}>
-              <AllowedEmailsAdmin />
-            </div>
-            <div style={{ marginTop: "var(--space-xl)" }}>
-              <PromptEnhancementAdmin />
-            </div>
-            <div style={{ marginTop: "var(--space-xl)" }}>
-              <FailedGenerationsPanel />
-            </div>
-          </HudPanel>
+            <AllowedEmailsAdmin />
+            <PromptEnhancementAdmin />
+            <FailedGenerationsPanel />
+          </div>
         </section>
       </NavigationFrame>
     </RequireAdmin>

@@ -572,6 +572,129 @@ body {
   max-width: 360px;
 }
 
+/* ─── ADMIN PANELS ─── */
+
+.admin-section {
+  border: 1px solid var(--dawn-08);
+  background: var(--surface-0);
+}
+
+.admin-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px var(--space-lg);
+  background: var(--gold-08);
+  border-bottom: 1px solid var(--dawn-08);
+  border-left: 2px solid var(--gold);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.admin-section-body {
+  padding: var(--space-lg);
+}
+
+.admin-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dawn-40);
+  margin-bottom: 6px;
+}
+
+.admin-input {
+  width: 100%;
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--dawn);
+  background: var(--dawn-04);
+  border: 1px solid var(--dawn-08);
+  outline: none;
+  transition: border-color var(--duration-fast);
+}
+.admin-input:focus {
+  border-color: var(--gold-30);
+}
+.admin-input::placeholder {
+  color: var(--dawn-30);
+}
+
+.admin-table {
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  border-collapse: collapse;
+}
+.admin-table th {
+  font-weight: 400;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dawn-40);
+  padding: 10px 16px 10px 0;
+  border-bottom: 1px solid var(--dawn-15);
+}
+.admin-table td {
+  padding: 12px 16px 12px 0;
+  color: var(--dawn-70);
+  border-bottom: 1px solid var(--dawn-08);
+}
+
+.admin-stat-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dawn-40);
+}
+.admin-stat-value {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--dawn);
+}
+
+.admin-btn {
+  padding: 7px 14px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border: 1px solid var(--dawn-15);
+  background: transparent;
+  color: var(--dawn-50);
+  transition: border-color var(--duration-fast), color var(--duration-fast), background var(--duration-fast);
+}
+.admin-btn:hover {
+  border-color: var(--dawn-30);
+  color: var(--dawn);
+}
+.admin-btn--gold {
+  border-color: var(--gold-30);
+  background: var(--gold-08);
+  color: var(--gold);
+}
+.admin-btn--gold:hover {
+  background: var(--gold-15);
+  border-color: var(--gold);
+}
+.admin-btn--danger:hover {
+  border-color: var(--status-error);
+  color: var(--status-error);
+}
+.admin-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 /* ─── SELECT (Sigil tokens) ─── */
 
 .sigil-select {

@@ -25,38 +25,64 @@ export function AdminHealthPanel() {
   }, []);
 
   if (error) {
-    return <div className="border border-red-400/40 bg-[var(--surface-0)] p-4 text-red-300">{error}</div>;
+    return (
+      <div className="admin-section" style={{ borderColor: "var(--status-error)" }}>
+        <div className="admin-section-body" style={{ color: "var(--status-error)" }}>{error}</div>
+      </div>
+    );
   }
 
   if (!data) {
-    return <div className="border border-[var(--dawn-08)] bg-[var(--surface-0)] p-4 text-[var(--dawn-50)]">Loading health...</div>;
+    return (
+      <div className="admin-section">
+        <div className="admin-section-body" style={{ color: "var(--dawn-30)" }}>Loading health data…</div>
+      </div>
+    );
   }
 
+  const stats = [
+    { label: "Projects", value: data.stats.projects },
+    { label: "Sessions", value: data.stats.sessions },
+    { label: "Generations", value: data.stats.generations },
+    { label: "Outputs", value: data.stats.outputs },
+  ];
+
   return (
-    <div className="grid gap-4 md:grid-cols-2">
-      <div className="border border-[var(--dawn-08)] bg-[var(--surface-0)] p-4">
-        <h2 className="sigil-section-label" style={{ fontSize: "10px", letterSpacing: "0.08em", marginBottom: "var(--space-sm)" }}>
-          platform stats
-        </h2>
-        <ul className="mt-3 space-y-2 text-sm text-[var(--dawn)]">
-          <li>Projects: {data.stats.projects}</li>
-          <li>Sessions: {data.stats.sessions}</li>
-          <li>Generations: {data.stats.generations}</li>
-          <li>Outputs: {data.stats.outputs}</li>
-        </ul>
-      </div>
-      <div className="border border-[var(--dawn-08)] bg-[var(--surface-0)] p-4">
-        <h2 className="sigil-section-label" style={{ fontSize: "10px", letterSpacing: "0.08em", marginBottom: "var(--space-sm)" }}>
-          provider readiness
-        </h2>
-        <ul className="mt-3 space-y-2 text-sm text-[var(--dawn)]">
-          {Object.entries(data.env).map(([key, enabled]) => (
-            <li key={key} className="flex items-center justify-between">
-              <span>{key}</span>
-              <span className={enabled ? "text-emerald-300" : "text-[var(--dawn-30)]"}>{enabled ? "ready" : "missing"}</span>
-            </li>
+    <div className="grid gap-0 md:grid-cols-2">
+      {/* Platform stats */}
+      <div className="admin-section" style={{ borderRight: "none" }}>
+        <div className="admin-section-title">Platform Stats</div>
+        <div className="admin-section-body" style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
+          {stats.map((s) => (
+            <div key={s.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <span className="admin-stat-label">{s.label}</span>
+              <span className="admin-stat-value">{s.value}</span>
+            </div>
           ))}
-        </ul>
+        </div>
+      </div>
+
+      {/* Provider readiness */}
+      <div className="admin-section">
+        <div className="admin-section-title">Provider Readiness</div>
+        <div className="admin-section-body" style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
+          {Object.entries(data.env).map(([key, enabled]) => (
+            <div key={key} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <span className="admin-stat-label">{key}</span>
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "10px",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: enabled ? "var(--atreides-light)" : "var(--dawn-30)",
+                }}
+              >
+                {enabled ? "ready" : "missing"}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useEffect, useMemo, useState } from "react";
+import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -200,6 +200,22 @@ export function NavigationFrame({
     }
   }
 
+  const [isScrolling, setIsScrolling] = useState(false);
+  const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleScroll = useCallback(() => {
+    setIsScrolling(true);
+    if (scrollTimer.current) clearTimeout(scrollTimer.current);
+    scrollTimer.current = setTimeout(() => setIsScrolling(false), 800);
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (scrollTimer.current) clearTimeout(scrollTimer.current);
+    };
+  }, [handleScroll]);
+
   const bookmarkPx = useMemo(() => bookmarkPixels(), []);
   const settingsPx = useMemo(() => settingsPixels(), []);
   const themePx = useMemo(() => themePixels(isLight), [isLight]);
@@ -233,30 +249,34 @@ export function NavigationFrame({
           }}
         />
         <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-between">
-          {Array.from({ length: TICK_COUNT + 1 }).map((_, i) => (
-            <div key={i} className="relative">
-              <div
-                style={{
-                  height: 1,
-                  width: i % 5 === 0 ? 20 : 10,
-                  background: i % 5 === 0 ? "var(--gold)" : "var(--gold-30)",
-                }}
-              />
-              {TICK_LABELS[i] && (
-                <span
-                  className="absolute text-[9px]"
+          {Array.from({ length: TICK_COUNT + 1 }).map((_, i) => {
+            const isCorner = i === 0 || i === TICK_COUNT;
+            const isMajor = i % 5 === 0 && !isCorner;
+            return (
+              <div key={i} className="relative">
+                <div
                   style={{
-                    top: -4,
-                    left: 28,
-                    color: "var(--dawn-30)",
-                    fontFamily: "var(--font-mono)",
+                    height: 1,
+                    width: isMajor ? 20 : 10,
+                    background: isMajor ? "var(--gold)" : "var(--gold-30)",
                   }}
-                >
-                  {TICK_LABELS[i]}
-                </span>
-              )}
-            </div>
-          ))}
+                />
+                {TICK_LABELS[i] && !isCorner && (
+                  <span
+                    className="absolute text-[9px]"
+                    style={{
+                      top: -4,
+                      left: 28,
+                      color: "var(--dawn-30)",
+                      fontFamily: "var(--font-mono)",
+                    }}
+                  >
+                    {TICK_LABELS[i]}
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
       </aside>
 
@@ -278,16 +298,22 @@ export function NavigationFrame({
           }}
         />
         <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-between items-end">
-          {Array.from({ length: TICK_COUNT + 1 }).map((_, i) => (
-            <div
-              key={i}
-              style={{
-                height: 1,
-                width: i % 5 === 0 ? 20 : 10,
-                background: i % 5 === 0 ? "var(--gold)" : "var(--gold-30)",
-              }}
-            />
-          ))}
+          {Array.from({ length: TICK_COUNT + 1 }).map((_, i) => {
+            const isCorner = i === 0 || i === TICK_COUNT;
+            const isMajor = i % 5 === 0 && !isCorner;
+            return (
+              <div
+                key={i}
+                style={{
+                  height: 1,
+                  width: isMajor ? 20 : 10,
+                  background: isMajor ? "var(--gold)" : "var(--gold-30)",
+                  opacity: isMajor ? (isScrolling ? 1 : 0) : 1,
+                  transition: isMajor ? "opacity 400ms ease" : undefined,
+                }}
+              />
+            );
+          })}
         </div>
       </aside>
 

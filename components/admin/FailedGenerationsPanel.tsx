@@ -57,45 +57,55 @@ export function FailedGenerationsPanel() {
   }
 
   return (
-    <section className="border border-[var(--dawn-08)] bg-[var(--surface-0)] p-4">
-      <h2 className="sigil-section-label mb-3" style={{ fontSize: "10px", letterSpacing: "0.08em" }}>
-        failed generations
-      </h2>
+    <div className="admin-section">
+      <div className="admin-section-title">Failed Generations</div>
+      <div className="admin-section-body">
+        {error && (
+          <p style={{ marginBottom: "var(--space-md)", fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--status-error)" }} role="alert">
+            {error}
+          </p>
+        )}
 
-      {error ? (
-        <p className="mb-2 text-xs" style={{ color: "var(--status-error)" }} role="alert">
-          {error}
-        </p>
-      ) : null}
-      {items.length === 0 ? (
-        <div className="hud-panel-empty" style={{ borderTop: "none", paddingTop: 0 }}>
-          <p className="hud-panel-empty-body">No failed generations right now.</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {items.map((item) => (
-            <div key={item.id} className="border border-[var(--dawn-08)] p-2">
-              <div className="flex items-center justify-between gap-2">
-                <div className="text-[10px] uppercase tracking-[0.08em] text-[var(--dawn-50)]">
-                  {item.session.project.name} / {item.session.name}
+        {items.length === 0 ? (
+          <div style={{ padding: "var(--space-lg) 0", textAlign: "center" }}>
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: "12px", color: "var(--dawn-30)" }}>
+              No failed generations right now.
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
+            {items.map((item) => (
+              <div
+                key={item.id}
+                style={{
+                  border: "1px solid var(--dawn-08)",
+                  padding: "var(--space-md)",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-md)", marginBottom: "var(--space-sm)" }}>
+                  <span className="admin-stat-label">
+                    {item.session.project.name} / {item.session.name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void retry(item.id)}
+                    disabled={busyId === item.id}
+                    className="admin-btn admin-btn--gold"
+                  >
+                    {busyId === item.id ? "Retrying…" : "Retry"}
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => void retry(item.id)}
-                  disabled={busyId === item.id}
-                  className="sigil-btn-secondary"
-                >
-                  {busyId === item.id ? "retrying..." : "retry"}
-                </button>
+                <p style={{ fontFamily: "var(--font-mono)", fontSize: "12px", color: "var(--dawn)", marginBottom: "var(--space-xs)" }}>
+                  {item.prompt}
+                </p>
+                <div className="admin-stat-label" style={{ color: "var(--dawn-30)" }}>
+                  Model: {item.modelId} &middot; User: {item.user.displayName || item.user.username || item.user.id.slice(0, 8)}
+                </div>
               </div>
-              <p className="mt-1 text-xs text-[var(--dawn)]">{item.prompt}</p>
-              <div className="mt-1 text-[10px] uppercase tracking-[0.08em] text-[var(--dawn-30)]">
-                model: {item.modelId} | user: {item.user.displayName || item.user.username || item.user.id.slice(0, 8)}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

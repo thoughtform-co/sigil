@@ -98,135 +98,113 @@ export function PromptEnhancementAdmin() {
   }
 
   return (
-    <div className="border border-[var(--dawn-08)] bg-[var(--surface-0)] p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 style={{ fontFamily: "var(--font-mono)", fontSize: "10px", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--dawn-50)" }}>
-          prompt enhancement templates
-        </h2>
+    <div className="admin-section">
+      <div className="admin-section-title">
+        <span>Prompt Enhancement Templates</span>
         <button
           type="button"
-          onClick={() => {
-            void createPrompt();
-          }}
-          className="border border-[var(--gold)] px-2 py-1 text-[10px] uppercase tracking-[0.08em] text-[var(--gold)]"
-          style={{ fontFamily: "var(--font-mono)" }}
+          onClick={() => { void createPrompt(); }}
+          className="admin-btn admin-btn--gold"
           disabled={creating}
         >
-          {creating ? "creating..." : "new template"}
+          {creating ? "Creating…" : "New Template"}
         </button>
       </div>
+      <div className="admin-section-body">
+        {message && (
+          <p style={{ marginBottom: "var(--space-md)", fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--dawn-50)" }}>
+            {message}
+          </p>
+        )}
 
-      {message ? <p className="mb-3 text-xs text-[var(--dawn-50)]">{message}</p> : null}
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
+          {prompts.map((prompt) => {
+            const isEditing = editingId === prompt.id;
+            const modelIds = (isEditing ? draft.modelIds : prompt.modelIds) ?? [];
+            return (
+              <div
+                key={prompt.id}
+                style={{
+                  border: "1px solid var(--dawn-08)",
+                  background: isEditing ? "var(--dawn-04)" : "transparent",
+                  padding: "var(--space-md)",
+                  transition: "background 100ms ease",
+                }}
+              >
+                {/* Name row */}
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--space-sm)", marginBottom: "var(--space-md)" }}>
+                  <input
+                    value={String(isEditing ? draft.name ?? "" : prompt.name)}
+                    onChange={(e) => setDraft((prev) => ({ ...prev, name: e.target.value }))}
+                    disabled={!isEditing}
+                    className="admin-input"
+                    style={{ flex: 1, opacity: isEditing ? 1 : 0.7 }}
+                  />
+                  <div style={{ display: "flex", gap: "var(--space-xs)" }}>
+                    {isEditing ? (
+                      <>
+                        <button type="button" onClick={() => { void saveEdit(); }} className="admin-btn admin-btn--gold">Save</button>
+                        <button type="button" onClick={() => { setEditingId(null); setDraft({}); }} className="admin-btn">Cancel</button>
+                      </>
+                    ) : (
+                      <>
+                        <button type="button" onClick={() => { setEditingId(prompt.id); setDraft(prompt); }} className="admin-btn">Edit</button>
+                        <button type="button" onClick={() => { void deletePrompt(prompt.id); }} className="admin-btn admin-btn--danger">Delete</button>
+                      </>
+                    )}
+                  </div>
+                </div>
 
-      <div className="space-y-3">
-        {prompts.map((prompt) => {
-          const isEditing = editingId === prompt.id;
-          const modelIds = (isEditing ? draft.modelIds : prompt.modelIds) ?? [];
-          return (
-            <div key={prompt.id} className="border border-[var(--dawn-08)] p-3">
-              <div className="mb-2 flex items-center justify-between">
-                <input
-                  value={String(isEditing ? draft.name ?? "" : prompt.name)}
-                  onChange={(e) => setDraft((prev) => ({ ...prev, name: e.target.value }))}
+                {/* System prompt */}
+                <textarea
+                  value={String(isEditing ? draft.systemPrompt ?? "" : prompt.systemPrompt)}
+                  onChange={(e) => setDraft((prev) => ({ ...prev, systemPrompt: e.target.value }))}
                   disabled={!isEditing}
-                  className="w-full border border-[var(--dawn-15)] bg-[var(--void)] px-2 py-1 text-xs text-[var(--dawn)] outline-none disabled:opacity-70"
+                  rows={5}
+                  className="admin-input"
+                  style={{
+                    resize: "vertical",
+                    marginBottom: "var(--space-md)",
+                    opacity: isEditing ? 1 : 0.7,
+                  }}
                 />
-                <div className="ml-2 flex gap-2">
-                  {isEditing ? (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          void saveEdit();
-                        }}
-                        className="border border-[var(--gold)] px-2 py-1 text-[10px] uppercase tracking-[0.08em] text-[var(--gold)]"
-                        style={{ fontFamily: "var(--font-mono)" }}
-                      >
-                        save
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingId(null);
-                          setDraft({});
-                        }}
-                        className="border border-[var(--dawn-15)] px-2 py-1 text-[10px] uppercase tracking-[0.08em] text-[var(--dawn-50)]"
-                        style={{ fontFamily: "var(--font-mono)" }}
-                      >
-                        cancel
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingId(prompt.id);
-                          setDraft(prompt);
-                        }}
-                        className="border border-[var(--dawn-15)] px-2 py-1 text-[10px] uppercase tracking-[0.08em] text-[var(--dawn-50)]"
-                        style={{ fontFamily: "var(--font-mono)" }}
-                      >
-                        edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          void deletePrompt(prompt.id);
-                        }}
-                        className="border border-[var(--dawn-15)] px-2 py-1 text-[10px] uppercase tracking-[0.08em] text-[var(--dawn-50)] hover:text-red-300"
-                        style={{ fontFamily: "var(--font-mono)" }}
-                      >
-                        delete
-                      </button>
-                    </>
-                  )}
+
+                {/* Models + Active */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-md)" }}>
+                  <div>
+                    <label className="admin-label">Models (comma-separated)</label>
+                    <input
+                      value={Array.isArray(modelIds) ? modelIds.join(", ") : ""}
+                      onChange={(e) =>
+                        setDraft((prev) => ({
+                          ...prev,
+                          modelIds: e.target.value.split(",").map((item) => item.trim()).filter(Boolean),
+                        }))
+                      }
+                      disabled={!isEditing}
+                      className="admin-input"
+                      style={{ opacity: isEditing ? 1 : 0.7 }}
+                      placeholder={defaultModels.join(", ")}
+                    />
+                  </div>
+                  <div>
+                    <label className="admin-label">Active</label>
+                    <select
+                      value={String(isEditing ? draft.isActive ?? true : prompt.isActive)}
+                      onChange={(e) => setDraft((prev) => ({ ...prev, isActive: e.target.value === "true" }))}
+                      disabled={!isEditing}
+                      className="admin-input"
+                      style={{ opacity: isEditing ? 1 : 0.7 }}
+                    >
+                      <option value="true">true</option>
+                      <option value="false">false</option>
+                    </select>
+                  </div>
                 </div>
               </div>
-
-              <textarea
-                value={String(isEditing ? draft.systemPrompt ?? "" : prompt.systemPrompt)}
-                onChange={(e) => setDraft((prev) => ({ ...prev, systemPrompt: e.target.value }))}
-                disabled={!isEditing}
-                rows={6}
-                className="mb-2 w-full border border-[var(--dawn-15)] bg-[var(--void)] px-2 py-2 text-xs text-[var(--dawn)] outline-none disabled:opacity-70"
-              />
-
-              <div className="grid gap-2 md:grid-cols-2">
-                <label className="text-xs text-[var(--dawn-50)]">
-                  Models (comma-separated)
-                  <input
-                    value={Array.isArray(modelIds) ? modelIds.join(", ") : ""}
-                    onChange={(e) =>
-                      setDraft((prev) => ({
-                        ...prev,
-                        modelIds: e.target.value
-                          .split(",")
-                          .map((item) => item.trim())
-                          .filter(Boolean),
-                      }))
-                    }
-                    disabled={!isEditing}
-                    className="mt-1 w-full border border-[var(--dawn-15)] bg-[var(--void)] px-2 py-1 text-xs text-[var(--dawn)] outline-none disabled:opacity-70"
-                    placeholder={defaultModels.join(", ")}
-                  />
-                </label>
-                <label className="text-xs text-[var(--dawn-50)]">
-                  Active
-                  <select
-                    value={String(isEditing ? draft.isActive ?? true : prompt.isActive)}
-                    onChange={(e) => setDraft((prev) => ({ ...prev, isActive: e.target.value === "true" }))}
-                    disabled={!isEditing}
-                    className="mt-1 w-full border border-[var(--dawn-15)] bg-[var(--void)] px-2 py-1 text-xs text-[var(--dawn)] outline-none disabled:opacity-70"
-                  >
-                    <option value="true">true</option>
-                    <option value="false">false</option>
-                  </select>
-                </label>
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );
