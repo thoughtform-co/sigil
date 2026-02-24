@@ -8,28 +8,30 @@ import styles from "./ForgePromptBar.module.css";
 type ForgePromptBarProps = {
   projectId: string;
   generationType: GenerationType;
-  prompt: string;
-  onPromptChange: (value: string) => void;
-  referenceImageUrl: string;
-  onReferenceImageUrlChange: (value: string) => void;
-  modelId: string;
-  onModelChange: (value: string) => void;
-  models: ModelItem[];
-  aspectRatio: string;
-  onAspectRatioChange: (value: string) => void;
-  resolution: string;
-  onResolutionChange: (value: string) => void;
-  numOutputs: string;
-  onNumOutputsChange: (value: string) => void;
-  duration: string;
-  onDurationChange: (value: string) => void;
-  activeSessionName: string | null | undefined;
-  hasSession: boolean;
-  onSubmit: () => void;
-  onEnhance: () => void;
-  busy: boolean;
-  enhancing: boolean;
-  message: string | null;
+  /** When true, only the mode strip (Image/Video/Canvas/Brainstorm) is shown; used in canvas mode */
+  minimal?: boolean;
+  prompt?: string;
+  onPromptChange?: (value: string) => void;
+  referenceImageUrl?: string;
+  onReferenceImageUrlChange?: (value: string) => void;
+  modelId?: string;
+  onModelChange?: (value: string) => void;
+  models?: ModelItem[];
+  aspectRatio?: string;
+  onAspectRatioChange?: (value: string) => void;
+  resolution?: string;
+  onResolutionChange?: (value: string) => void;
+  numOutputs?: string;
+  onNumOutputsChange?: (value: string) => void;
+  duration?: string;
+  onDurationChange?: (value: string) => void;
+  activeSessionName?: string | null;
+  hasSession?: boolean;
+  onSubmit?: () => void;
+  onEnhance?: () => void;
+  busy?: boolean;
+  enhancing?: boolean;
+  message?: string | null;
   brainstormOpen?: boolean;
   onBrainstormToggle?: () => void;
 };
@@ -37,28 +39,29 @@ type ForgePromptBarProps = {
 export function ForgePromptBar({
   projectId,
   generationType,
-  prompt,
-  onPromptChange,
-  referenceImageUrl,
-  onReferenceImageUrlChange,
-  modelId,
-  onModelChange,
-  models,
-  aspectRatio,
-  onAspectRatioChange,
-  resolution,
-  onResolutionChange,
-  numOutputs,
-  onNumOutputsChange,
-  duration,
-  onDurationChange,
+  minimal = false,
+  prompt = "",
+  onPromptChange = () => {},
+  referenceImageUrl = "",
+  onReferenceImageUrlChange = () => {},
+  modelId = "",
+  onModelChange = () => {},
+  models = [],
+  aspectRatio = "1:1",
+  onAspectRatioChange = () => {},
+  resolution = "4096",
+  onResolutionChange = () => {},
+  numOutputs = "1",
+  onNumOutputsChange = () => {},
+  duration = "5",
+  onDurationChange = () => {},
   activeSessionName,
-  hasSession,
-  onSubmit,
-  onEnhance,
-  busy,
-  enhancing,
-  message,
+  hasSession = false,
+  onSubmit = () => {},
+  onEnhance = () => {},
+  busy = false,
+  enhancing = false,
+  message = null,
   brainstormOpen,
   onBrainstormToggle,
 }: ForgePromptBarProps) {
@@ -149,6 +152,62 @@ export function ForgePromptBar({
   };
 
   const canSubmit = modelId && prompt.trim() && !busy;
+
+  if (minimal) {
+    return (
+      <div className={styles.promptBarContainer}>
+        <div className={styles.promptBarRow}>
+          <div className={styles.sideStrip}>
+            <div className={styles.modeBar}>
+              <Link
+                href={`/projects/${projectId}/image`}
+                className={`${styles.modeButton} ${generationType === "image" ? styles.modeButtonActive : ""}`}
+                title="Image mode"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <rect x="3" y="3" width="18" height="18" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <path d="M21 15l-5-5L5 21" />
+                </svg>
+              </Link>
+              <Link
+                href={`/projects/${projectId}/video`}
+                className={`${styles.modeButton} ${generationType === "video" ? styles.modeButtonActive : ""}`}
+                title="Video mode"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </Link>
+              <Link
+                href={`/projects/${projectId}/canvas`}
+                className={`${styles.modeButton} ${generationType === "canvas" ? styles.modeButtonActive : ""}`}
+                title="Canvas workflow"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <circle cx="8" cy="8" r="2.5" />
+                  <circle cx="16" cy="16" r="2.5" />
+                  <path d="M10.5 8l3 3M14 10.5l3 3" />
+                </svg>
+              </Link>
+            </div>
+            {onBrainstormToggle && (
+              <button
+                type="button"
+                className={`${styles.brainstormButton} ${brainstormOpen ? styles.brainstormButtonActive : ""}`}
+                onClick={onBrainstormToggle}
+                title={brainstormOpen ? "Close brainstorm" : "Open brainstorm"}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.promptBarContainer}>
@@ -368,6 +427,17 @@ export function ForgePromptBar({
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </Link>
+            <Link
+              href={`/projects/${projectId}/canvas`}
+              className={`${styles.modeButton} ${generationType === "canvas" ? styles.modeButtonActive : ""}`}
+              title="Canvas workflow"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <circle cx="8" cy="8" r="2.5" />
+                <circle cx="16" cy="16" r="2.5" />
+                <path d="M10.5 8l3 3M14 10.5l3 3" />
               </svg>
             </Link>
           </div>

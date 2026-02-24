@@ -161,6 +161,11 @@ export function ForgeGenerationCard({
             <span className={styles.readoutLabel}>STATUS</span>
             <span className={styles.readoutValue}>{statusLabel}</span>
           </span>
+          {generation.source === "workflow" && (
+            <span className={styles.readout} title="Created from canvas workflow">
+              <span className={styles.canvasBadge}>CANVAS</span>
+            </span>
+          )}
         </div>
 
         <div className={styles.promptActions}>

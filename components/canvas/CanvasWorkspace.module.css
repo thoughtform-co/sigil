@@ -1,0 +1,140 @@
+/* CanvasWorkspace — full viewport behind HUD, dotted background */
+
+.wrapper {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  /* Same dotted pattern as dot-grid-bg (globals.css) */
+  background-image: radial-gradient(circle at center, var(--dawn-08) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: 0 0;
+  background-color: var(--void);
+}
+
+.toolbar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: var(--surface-0);
+  border: 1px solid var(--dawn-15);
+  border-radius: 2px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--dawn-50);
+}
+
+.controlsMinimapRow {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+/* So Controls and MiniMap sit in the row instead of absolute */
+.controlsMinimapRow :global(.react-flow__controls),
+.controlsMinimapRow :global(.react-flow__minimap) {
+  position: relative;
+  inset: auto;
+}
+
+.toolbarSeparator {
+  width: 1px;
+  height: 14px;
+  background: var(--dawn-15);
+  flex-shrink: 0;
+}
+
+.toolbarTitle {
+  color: var(--dawn-70);
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.addNodeBtn {
+  padding: 4px 10px;
+  background: transparent;
+  border: 1px solid var(--dawn-15);
+  color: var(--dawn-50);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: all 150ms ease;
+}
+
+.addNodeBtn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.addNodeBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.runWorkflowBtn {
+  padding: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--void);
+  background: var(--gold);
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: opacity 150ms ease;
+}
+
+.runWorkflowBtn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.runWorkflowBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.addNodeGroup {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* React Flow overrides for dark theme */
+.wrapper :global(.react-flow__background) {
+  background: transparent;
+}
+
+.wrapper :global(.react-flow__controls) {
+  box-shadow: none;
+  border: 1px solid var(--dawn-15);
+  border-radius: 2px;
+}
+
+.wrapper :global(.react-flow__controls-button) {
+  background: var(--surface-0);
+  border-color: var(--dawn-08);
+  color: var(--dawn-50);
+}
+
+.wrapper :global(.react-flow__controls-button:hover) {
+  background: var(--dawn-04);
+  color: var(--dawn-70);
+}
+
+.wrapper :global(.react-flow__minimap) {
+  background: var(--surface-0);
+  border: 1px solid var(--dawn-15);
+  border-radius: 2px;
+}

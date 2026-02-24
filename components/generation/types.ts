@@ -1,6 +1,6 @@
 /** Shared types for generation UI and API contracts. */
 
-export type GenerationType = "image" | "video";
+export type GenerationType = "image" | "video" | "canvas";
 
 export type SessionItem = {
   id: string;
@@ -29,6 +29,8 @@ export type GenerationItem = {
   modelId: string;
   createdAt: string;
   outputs: OutputItem[];
+  source?: string;
+  workflowExecutionId?: string | null;
 };
 
 export type ModelItem = {

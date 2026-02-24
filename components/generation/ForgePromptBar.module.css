@@ -523,10 +523,10 @@
   background: rgba(202, 165, 84, 0.08);
 }
 
-/* Brainstorm button stretches to fill remaining height */
+/* Brainstorm button (same size as mode buttons for equal strip layout) */
 .brainstormButton {
-  flex: 1;
   width: 36px;
+  height: 36px;
   min-height: 36px;
   display: flex;
   align-items: center;
@@ -537,6 +537,7 @@
   cursor: pointer;
   transition: all 150ms ease;
   padding: 0;
+  flex-shrink: 0;
 }
 
 .brainstormButton:hover {

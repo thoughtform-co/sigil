@@ -12,6 +12,8 @@ const generateRequestSchema = z.object({
   prompt: z.string().min(1),
   negativePrompt: z.string().optional(),
   parameters: z.record(z.string(), z.unknown()).default({}),
+  source: z.enum(["session", "workflow"]).optional(),
+  workflowExecutionId: z.string().uuid().optional(),
 });
 
 export async function POST(request: Request) {
@@ -26,7 +28,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { modelId, negativePrompt, parameters, prompt, sessionId } = parsed.data;
+  const { modelId, negativePrompt, parameters, prompt, sessionId, source, workflowExecutionId } = parsed.data;
 
   const session = await prisma.session.findFirst({
     where: {
@@ -62,6 +64,7 @@ export async function POST(request: Request) {
       negativePrompt,
       parameters: parameters as Prisma.InputJsonValue,
       status: "processing",
+      ...(source === "workflow" && { source: "workflow", workflowExecutionId: workflowExecutionId ?? undefined }),
     },
     select: {
       id: true,

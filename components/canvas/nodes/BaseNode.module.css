@@ -1,0 +1,62 @@
+/* BaseNode — HUD-styled shell for canvas nodes */
+
+.wrapper {
+  min-width: 200px;
+  max-width: 360px;
+  background: var(--surface-0);
+  border: 1px solid var(--dawn-15);
+  border-radius: 2px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.wrapper.selected {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px var(--gold-30);
+}
+
+.header {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--dawn-08);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dawn-50);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.statusDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.statusDot.idle {
+  background: var(--dawn-15);
+}
+
+.statusDot.processing {
+  background: var(--gold);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.statusDot.completed {
+  background: var(--status-success);
+}
+
+.statusDot.failed {
+  background: var(--status-error);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.body {
+  padding: 10px;
+}

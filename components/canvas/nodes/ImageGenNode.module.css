@@ -1,0 +1,152 @@
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.promptInput {
+  width: 100%;
+  min-height: 48px;
+  padding: 6px 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--dawn-70);
+  background: var(--surface-1);
+  border: 1px solid var(--dawn-08);
+  resize: vertical;
+  border-radius: 2px;
+}
+
+.promptInput::placeholder {
+  color: var(--dawn-30);
+}
+
+.refRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.refLabel {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dawn-40);
+}
+
+.refInput {
+  width: 100%;
+  padding: 4px 8px;
+  font-size: 10px;
+  color: var(--dawn-70);
+  background: var(--surface-1);
+  border: 1px solid var(--dawn-08);
+  border-radius: 2px;
+}
+
+.paramsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.select {
+  padding: 4px 6px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--dawn-70);
+  background: var(--surface-1);
+  border: 1px solid var(--dawn-08);
+  border-radius: 2px;
+  min-width: 0;
+}
+
+.generateBtn {
+  padding: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--void);
+  background: var(--gold);
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: opacity 150ms ease;
+}
+
+.generateBtn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.generateBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.preview {
+  margin-top: 8px;
+  border: 1px solid var(--dawn-08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.previewImg {
+  width: 100%;
+  height: auto;
+  max-height: 160px;
+  object-fit: contain;
+  display: block;
+}
+
+.error {
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--status-error);
+}
+
+.handle {
+  width: 10px;
+  height: 10px;
+  background: var(--gold);
+  border: 1px solid var(--dawn-30);
+}
+
+.contextMenuBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+
+.contextMenu {
+  position: fixed;
+  z-index: 1001;
+  min-width: 180px;
+  padding: 4px 0;
+  background: var(--surface-0);
+  border: 1px solid var(--dawn-15);
+  border-radius: 2px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.contextMenuItem {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: var(--dawn-70);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.contextMenuItem:hover {
+  background: var(--dawn-08);
+  color: var(--gold);
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { GenerationItem, GenerationType, ModelItem, SessionItem } from "@/components/generation/types";
 import { useGenerationsRealtime } from "@/hooks/useGenerationsRealtime";
@@ -10,6 +10,10 @@ import { ForgePromptBar } from "@/components/generation/ForgePromptBar";
 import { ForgeCostTicker } from "@/components/generation/ForgeCostTicker";
 import { BrainstormPanel } from "@/components/generation/BrainstormPanel";
 import { ConvertToVideoModal } from "@/components/generation/ConvertToVideoModal";
+import { CanvasSidebar } from "@/components/canvas/CanvasSidebar";
+import { CanvasWorkspace } from "@/components/canvas/CanvasWorkspace";
+import type { WorkflowItem } from "@/components/canvas/types";
+import type { Node, Edge, Viewport } from "@xyflow/react";
 import styles from "./ProjectWorkspace.module.css";
 
 export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode: GenerationType }) {
@@ -34,6 +38,11 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
   const [convertModalOpen, setConvertModalOpen] = useState(false);
   const [convertOutputId, setConvertOutputId] = useState<string | null>(null);
   const [convertImageUrl, setConvertImageUrl] = useState<string | null>(null);
+
+  const [workflows, setWorkflows] = useState<WorkflowItem[]>([]);
+  const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
+  const [selectedWorkflow, setSelectedWorkflow] = useState<WorkflowItem | null>(null);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)");
@@ -85,6 +94,26 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
     }
     void loadSessions();
   }, [projectId]);
+
+  useEffect(() => {
+    if (mode !== "canvas") return;
+    async function loadWorkflows() {
+      const response = await fetch(`/api/workflows?projectId=${projectId}`, { cache: "no-store" });
+      if (!response.ok) return;
+      const data = (await response.json()) as { workflows: WorkflowItem[] };
+      setWorkflows(data.workflows);
+    }
+    void loadWorkflows();
+  }, [projectId, mode]);
+
+  useEffect(() => {
+    if (mode !== "canvas" || !selectedWorkflowId) {
+      setSelectedWorkflow(null);
+      return;
+    }
+    const w = workflows.find((wf) => wf.id === selectedWorkflowId);
+    setSelectedWorkflow(w ?? null);
+  }, [mode, selectedWorkflowId, workflows]);
 
   useEffect(() => {
     const filtered = sessions.filter((s) => s.type === mode);
@@ -443,6 +472,129 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
     } finally {
       setBusy(false);
     }
+  }
+
+  async function createWorkflow() {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const response = await fetch("/api/workflows", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId }),
+      });
+      const data = (await response.json()) as { workflow?: WorkflowItem; error?: string };
+      if (!response.ok) throw new Error(data.error ?? "Failed to create workflow");
+      const created = data.workflow!;
+      setWorkflows((prev) => [created, ...prev]);
+      setSelectedWorkflowId(created.id);
+      setSelectedWorkflow(created);
+      setMessage("Workflow created.");
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Failed to create workflow");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function deleteWorkflow(workflowId: string) {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const response = await fetch(`/api/workflows/${workflowId}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Failed to delete workflow");
+      const remaining = workflows.filter((w) => w.id !== workflowId);
+      setWorkflows(remaining);
+      setSelectedWorkflowId(remaining[0]?.id ?? null);
+      setSelectedWorkflow(remaining[0] ?? null);
+      setMessage("Workflow deleted.");
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Failed to delete workflow");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const handleCanvasGraphChange = useCallback(
+    (nodes: Node[], edges: Edge[], viewport: Viewport) => {
+      if (!selectedWorkflowId) return;
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = setTimeout(() => {
+        saveTimeoutRef.current = null;
+        void fetch(`/api/workflows/${selectedWorkflowId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            graphData: { nodes, edges, viewport },
+          }),
+        });
+      }, 800);
+    },
+    [selectedWorkflowId],
+  );
+
+  const canvasInitialNodes = useMemo((): Node[] => {
+    const g = selectedWorkflow?.graphData;
+    if (!g || !Array.isArray(g.nodes)) return [];
+    return g.nodes as Node[];
+  }, [selectedWorkflow?.graphData]);
+
+  const canvasInitialEdges = useMemo((): Edge[] => {
+    const g = selectedWorkflow?.graphData;
+    if (!g || !Array.isArray(g.edges)) return [];
+    return g.edges as Edge[];
+  }, [selectedWorkflow?.graphData]);
+
+  const canvasInitialViewport = useMemo((): Viewport | undefined => {
+    const g = selectedWorkflow?.graphData as { viewport?: Viewport } | undefined;
+    return g?.viewport;
+  }, [selectedWorkflow?.graphData]);
+
+  if (mode === "canvas") {
+    return (
+      <div className={`${styles.container} ${styles.containerCanvas}`}>
+        <div className={styles.body}>
+          <CanvasSidebar
+            projectId={projectId}
+            projectName={projectName}
+            workflows={workflows}
+            activeWorkflowId={selectedWorkflowId}
+            onWorkflowSelect={setSelectedWorkflowId}
+            onWorkflowCreate={createWorkflow}
+            onWorkflowDelete={deleteWorkflow}
+            busy={busy}
+          />
+          <div className={styles.main}>
+            <ForgeCostTicker />
+            <CanvasWorkspace
+              projectId={projectId}
+              workflowId={selectedWorkflowId}
+              workflowName={selectedWorkflow?.name ?? ""}
+              initialNodes={canvasInitialNodes}
+              initialEdges={canvasInitialEdges}
+              initialViewport={canvasInitialViewport}
+              onGraphChange={handleCanvasGraphChange}
+            />
+          </div>
+        </div>
+        <div className={styles.canvasPromptBarWrap}>
+          <ForgePromptBar
+            projectId={projectId}
+            generationType="canvas"
+            minimal
+            brainstormOpen={brainstormOpen}
+            onBrainstormToggle={() => setBrainstormOpen((v) => !v)}
+          />
+        </div>
+        {brainstormOpen && (
+          <BrainstormPanel
+            projectId={projectId}
+            onSendPrompt={setPrompt}
+            onClose={() => setBrainstormOpen(false)}
+          />
+        )}
+      </div>
+    );
   }
 
   return (

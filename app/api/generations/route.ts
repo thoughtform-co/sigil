@@ -39,6 +39,8 @@ export async function GET(request: Request) {
       status: true,
       modelId: true,
       createdAt: true,
+      source: true,
+      workflowExecutionId: true,
       outputs: {
         select: {
           id: true,

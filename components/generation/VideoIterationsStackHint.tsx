@@ -26,25 +26,24 @@ export function VideoIterationsStackHint({ outputId, onClick }: VideoIterationsS
           {Array.from({ length: STACK_LAYERS }).map((_, index) => {
             const layerIndex = STACK_LAYERS - index - 1;
             const offset = (layerIndex + 1) * 8;
-            const verticalOffset = offset * 0.3;
+            const vInset = (layerIndex + 1) * 3;
             const baseOpacity = hasProcessing ? 0.2 : 0.15;
             const opacity = baseOpacity - layerIndex * 0.03;
-            const scale = 1 - layerIndex * 0.02;
             return (
               <div
                 key={`stack-${layerIndex}`}
                 className={styles.stackLayer}
                 style={{
-                  top: `${verticalOffset}px`,
-                  left: `${offset}px`,
+                  top: `${vInset}px`,
+                  left: 0,
                   right: `${-offset}px`,
-                  bottom: `${-verticalOffset}px`,
+                  bottom: `${vInset}px`,
                   zIndex: -10 - layerIndex,
-                  transform: `scale(${scale})`,
                   background: `linear-gradient(to left, rgba(${GLOW_COLOR}, ${opacity * 0.35}) 0%, rgba(${GLOW_COLOR}, ${opacity * 0.18}) 45%, transparent 85%)`,
                   border: `1.5px solid rgba(${GLOW_COLOR}, ${opacity * 0.8})`,
                   borderTopLeftRadius: 0,
                   borderBottomLeftRadius: 0,
+                  borderLeft: 0,
                   boxShadow: `${offset}px 0 ${offset * 2}px -${offset * 0.65}px rgba(${GLOW_COLOR}, ${opacity * 0.55}), inset 10px 0 ${12 + layerIndex * 2}px rgba(${GLOW_COLOR}, ${opacity * 0.25})`,
                 }}
               />

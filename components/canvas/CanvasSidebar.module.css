@@ -1,0 +1,207 @@
+/* CanvasSidebar — workflow list, same layout as ForgeSidebar */
+
+.sidebar {
+  position: fixed;
+  top: 52%;
+  left: calc(var(--hud-padding) + 60px);
+  transform: translateY(-50%);
+  z-index: 20;
+  width: 72px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: calc(100vh - (var(--hud-padding) * 2));
+  max-height: 760px;
+  min-height: 420px;
+  padding: 0 4px;
+  gap: 8px;
+}
+
+.projectRow {
+  flex-shrink: 0;
+  width: 64px;
+  text-align: center;
+}
+
+.projectLink {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dawn-30);
+  text-decoration: none;
+  display: block;
+  padding: 6px 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 150ms ease;
+}
+
+.projectLink:hover {
+  color: var(--gold);
+}
+
+.newButton {
+  width: 64px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--dawn-15);
+  cursor: pointer;
+  transition: all 150ms ease;
+  flex-shrink: 0;
+}
+
+.newButton:hover:not(:disabled) {
+  border-color: var(--gold);
+  background: rgba(202, 165, 84, 0.1);
+}
+
+.newButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.newIcon {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  color: var(--dawn-50);
+  transition: color 150ms ease;
+}
+
+.newButton:hover:not(:disabled) .newIcon {
+  color: var(--gold);
+}
+
+.workflowList {
+  flex: 0 1 auto;
+  max-height: clamp(180px, 46vh, 520px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.empty {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--dawn-30);
+  text-align: center;
+  padding: 8px 4px;
+}
+
+.emptyText {
+  display: block;
+}
+
+.workflowItemWrapper {
+  position: relative;
+  width: 64px;
+  flex-shrink: 0;
+}
+
+.workflowItem {
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  border: 1px solid var(--dawn-15);
+  background: var(--surface-0);
+  cursor: pointer;
+  display: block;
+  transition: all 150ms ease;
+}
+
+.workflowItem:hover {
+  border-color: var(--dawn-30);
+}
+
+.workflowActive {
+  border-color: var(--gold);
+  background: rgba(202, 165, 84, 0.08);
+}
+
+.thumbnail {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.thumbnailImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumbnailPlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--dawn-04);
+}
+
+.thumbnailPlaceholderIcon {
+  font-size: 18px;
+  color: var(--dawn-15);
+}
+
+.actionOverlay {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.workflowItemWrapper:hover .actionOverlay {
+  opacity: 1;
+}
+
+.actionBtn {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: var(--surface-0);
+  color: var(--dawn-50);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.actionBtn:hover:not(:disabled) {
+  color: var(--red, #c44);
+}
+
+.actionBtnDelete {
+  border: 1px solid var(--dawn-15);
+}
+
+.workflowInfo {
+  text-align: center;
+  padding: 2px 0;
+}
+
+.workflowName {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.05em;
+  color: var(--dawn-40);
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
