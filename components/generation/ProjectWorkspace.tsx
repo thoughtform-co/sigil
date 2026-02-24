@@ -213,9 +213,17 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
     }
   }
 
-  function handleConvertToVideo(outputId: string, imageUrl: string) {
+  const [convertGenMeta, setConvertGenMeta] = useState<{
+    generationId: string;
+    modelId: string;
+    createdAt: string;
+    status: string;
+  } | null>(null);
+
+  function handleConvertToVideo(outputId: string, imageUrl: string, genMeta?: { generationId: string; modelId: string; createdAt: string; status: string }) {
     setConvertOutputId(outputId);
     setConvertImageUrl(imageUrl);
+    setConvertGenMeta(genMeta ?? null);
     setConvertModalOpen(true);
   }
 
@@ -670,6 +678,10 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
           onSuccess={() => {
             closeConvertModal();
           }}
+          sourceGenerationId={convertGenMeta?.generationId}
+          sourceModelId={convertGenMeta?.modelId}
+          sourceCreatedAt={convertGenMeta?.createdAt}
+          sourceStatus={convertGenMeta?.status}
         />
       )}
     </div>

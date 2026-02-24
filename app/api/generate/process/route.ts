@@ -117,6 +117,7 @@ export async function POST(request: Request) {
       prompt: generation.prompt,
       negativePrompt: generation.negativePrompt ?? undefined,
       ...params,
+      parameters: params,
       referenceImage: referenceImageUrl,
       referenceImageUrl: referenceImageUrl,
       referenceImages: referenceImageUrl ? [referenceImageUrl] : undefined,
@@ -152,6 +153,10 @@ export async function POST(request: Request) {
     const persistedOutputs = await Promise.all(
       outputs.map(async (output, index) => {
         const fileType = output.duration ? "video" : "image";
+        const fetchHeaders =
+          output.url.startsWith("gs://") && process.env.GEMINI_API_KEY
+            ? { "x-goog-api-key": process.env.GEMINI_API_KEY }
+            : undefined;
         try {
           const platformUrl = await uploadProviderOutput({
             sourceUrl: output.url,
@@ -159,6 +164,7 @@ export async function POST(request: Request) {
             generationId: generation.id,
             outputIndex: index,
             fileType,
+            fetchHeaders,
           });
           return { ...output, url: platformUrl };
         } catch {

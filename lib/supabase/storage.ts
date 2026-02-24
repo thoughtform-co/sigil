@@ -97,13 +97,25 @@ export async function uploadProviderOutput(params: {
   generationId: string;
   outputIndex: number;
   fileType: "image" | "video";
+  /** Optional fetch headers (e.g. for Veo gs:// or authenticated URLs) */
+  fetchHeaders?: Record<string, string>;
 }): Promise<string> {
-  const { sourceUrl, userId, generationId, outputIndex, fileType } = params;
+  const { sourceUrl, userId, generationId, outputIndex, fileType, fetchHeaders } = params;
   const admin = createAdminClient();
   outputsBucketReady ??= ensureOutputsBucketExists(admin);
   await outputsBucketReady;
 
-  const response = await fetch(sourceUrl);
+  let fetchUrl = sourceUrl;
+  if (sourceUrl.startsWith("gs://")) {
+    const gsPath = sourceUrl.replace("gs://", "");
+    const [bucketName, ...pathParts] = gsPath.split("/");
+    const filePath = pathParts.join("/");
+    fetchUrl = `https://storage.googleapis.com/${bucketName}/${filePath}`;
+  }
+
+  const response = await fetch(fetchUrl, {
+    headers: { "User-Agent": "Mozilla/5.0", ...fetchHeaders },
+  });
   if (!response.ok) {
     throw new Error(`Failed downloading provider output: ${response.status} ${response.statusText}`);
   }

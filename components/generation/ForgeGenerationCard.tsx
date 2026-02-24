@@ -31,7 +31,7 @@ type ForgeGenerationCardProps = {
   onReuse: (generation: GenerationItem) => void;
   onRerun?: (generationId: string) => void;
   onDismiss?: (generationId: string) => void;
-  onConvertToVideo?: (outputId: string, imageUrl: string) => void;
+  onConvertToVideo?: (outputId: string, imageUrl: string, genMeta?: { generationId: string; modelId: string; createdAt: string; status: string }) => void;
   onUseAsReference?: (imageUrl: string) => void;
   onApprove: (outputId: string, isApproved: boolean) => void;
   onLightboxOpen?: (url: string) => void;
@@ -227,7 +227,7 @@ export function ForgeGenerationCard({
                   {output.fileType !== "video" && onConvertToVideo && (
                     <VideoIterationsStackHint
                       outputId={output.id}
-                      onClick={() => onConvertToVideo(output.id, output.fileUrl)}
+                      onClick={() => onConvertToVideo(output.id, output.fileUrl, { generationId: generation.id, modelId: generation.modelId, createdAt: generation.createdAt, status: generation.status })}
                     />
                   )}
                   <div className={styles.energyFlow} aria-hidden />

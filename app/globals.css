@@ -328,11 +328,6 @@ body {
     display: none !important;
   }
 
-  /* When panel hides, revert shell padding to standard */
-  .hud-shell--with-panel {
-    padding-left: calc(var(--hud-padding) + 60px);
-  }
-
   /* Show header nav links as fallback */
   .sigil-header-nav-fallback {
     display: inline;
@@ -366,14 +361,6 @@ body {
   min-height: 100vh;
   padding-top: calc(var(--hud-padding) + 80px);
   padding-bottom: calc(var(--hud-padding) + 40px);
-  padding-left: calc(var(--hud-padding) + 60px);
-  padding-right: calc(var(--hud-padding) + 60px);
-}
-
-/* Shell with left nav panel: clear the panel, content pushed right */
-.hud-shell--with-panel {
-  padding-left: calc(var(--hud-padding) + 48px + 180px + 8px);
-  padding-right: calc(var(--hud-padding) + 20px);
   display: flex;
   flex-direction: column;
   align-items: center;

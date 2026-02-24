@@ -39,15 +39,6 @@ export function ForgeSidebar({
           {projectName || "Project"}
         </Link>
       </div>
-      <button
-        type="button"
-        className={styles.newButton}
-        onClick={() => onSessionCreate(mode)}
-        disabled={busy}
-        aria-label="New session"
-      >
-        <span className={styles.newIcon}>+</span>
-      </button>
       <div className={styles.sessionList}>
         {sessions.length === 0 ? (
           <p className={styles.empty}>
@@ -113,6 +104,15 @@ export function ForgeSidebar({
           })
         )}
       </div>
+      <button
+        type="button"
+        className={styles.newButton}
+        onClick={() => onSessionCreate(mode)}
+        disabled={busy}
+        aria-label="New session"
+      >
+        <span className={styles.newIcon}>+</span>
+      </button>
     </aside>
   );
 }

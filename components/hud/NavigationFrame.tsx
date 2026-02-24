@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const THEME_KEY = "sigil-theme";
+const NAV_COLLAPSED_KEY = "sigil-nav-collapsed";
 const GRID = 3;
 const ICON_SIZE = 18;
 
@@ -24,12 +25,6 @@ const TICK_LABELS: Record<number, string> = {
   15: "7",
   20: "10",
 };
-
-const NAV_LEFT: { href: string; label: string }[] = [
-  { href: "/projects", label: "projects" },
-  { href: "/briefings", label: "briefings" },
-  { href: "/analytics", label: "analytics" },
-];
 
 const NAV_PANEL_WIDTH = 180;
 const SIDEBAR_ITEMS: { href: string; label: string; separator?: boolean }[] = [
@@ -145,10 +140,6 @@ function ParticleIcon({ pixels, active = false, light = false }: { pixels: Pixel
           width={GRID - 1}
           height={GRID - 1}
           fill={`rgba(${rgb}, ${px.alpha})`}
-          style={{
-            animation: "sigilParticlePulse 2.4s ease-in-out infinite",
-            animationDelay: `${((px.x + px.y) / (GRID * 10)).toFixed(2)}s`,
-          }}
         />
       ))}
     </svg>
@@ -158,11 +149,12 @@ function ParticleIcon({ pixels, active = false, light = false }: { pixels: Pixel
 export function NavigationFrame({
   children,
   title = "SIGIL",
-  modeLabel,
   showNavPanel = true,
 }: NavigationFrameProps) {
   const pathname = usePathname();
   const [isLight, setIsLight] = useState(false);
+  const [navCollapsed, setNavCollapsed] = useState(false);
+  const isWorkspace = !showNavPanel;
 
   useEffect(() => {
     try {
@@ -171,6 +163,12 @@ export function NavigationFrame({
       setIsLight(wantLight);
       if (wantLight) document.documentElement.classList.add("light");
       else document.documentElement.classList.remove("light");
+    } catch {
+      // ignore
+    }
+    try {
+      const collapsed = localStorage.getItem(NAV_COLLAPSED_KEY);
+      if (collapsed === "true") setNavCollapsed(true);
     } catch {
       // ignore
     }
@@ -192,12 +190,24 @@ export function NavigationFrame({
     }
   }
 
+  function toggleNav() {
+    const next = !navCollapsed;
+    setNavCollapsed(next);
+    try {
+      localStorage.setItem(NAV_COLLAPSED_KEY, String(next));
+    } catch {
+      // ignore
+    }
+  }
+
   const bookmarkPx = useMemo(() => bookmarkPixels(), []);
   const settingsPx = useMemo(() => settingsPixels(), []);
   const themePx = useMemo(() => themePixels(isLight), [isLight]);
 
   const isBookmarksActive = pathname === "/bookmarks" || pathname.startsWith("/bookmarks/");
   const isSettingsActive = pathname === "/admin" || pathname.startsWith("/admin/");
+
+  const panelVisible = !navCollapsed;
 
   return (
     <div className="relative min-h-screen bg-void text-dawn dot-grid-bg">
@@ -281,22 +291,24 @@ export function NavigationFrame({
         </div>
       </aside>
 
-      {/* Left nav panel (dashboard pages only) */}
-      {showNavPanel && (
-        <nav
-          className="sigil-nav-panel fixed z-30 pointer-events-auto"
-          style={{
-            top: "calc(var(--hud-padding) + 32px)",
-            bottom: "calc(var(--hud-padding) + 32px)",
-            left: `calc(var(--hud-padding) + ${RAIL_WIDTH}px + 4px)`,
-            width: NAV_PANEL_WIDTH,
-            display: "flex",
-            flexDirection: "column",
-            background: "transparent",
-          }}
-        >
-          <div
+      {/* Unified left nav panel -- SIGIL badge always visible, items collapse vertically */}
+      <nav
+        className="sigil-nav-panel fixed z-30 pointer-events-auto"
+        style={{
+          top: "var(--hud-padding)",
+          left: `calc(var(--hud-padding) + ${RAIL_WIDTH}px + 4px)`,
+          width: NAV_PANEL_WIDTH,
+          display: "flex",
+          flexDirection: "column",
+          background: "transparent",
+        }}
+      >
+        {/* SIGIL badge — always visible, links to /projects, toggle on right */}
+        <div style={{ display: "flex", alignItems: "stretch" }}>
+          <Link
+            href="/projects"
             style={{
+              flex: 1,
               background: "var(--gold)",
               color: "var(--void)",
               fontFamily: "var(--font-mono)",
@@ -305,19 +317,55 @@ export function NavigationFrame({
               letterSpacing: "0.12em",
               textTransform: "uppercase",
               padding: "8px 12px",
+              textDecoration: "none",
               clipPath: "polygon(0% 0%, calc(100% - 12px) 0%, 100% 12px, 100% 100%, 0% 100%)",
             }}
           >
             {title}
-          </div>
+          </Link>
+          <button
+            type="button"
+            onClick={toggleNav}
+            style={{
+              width: 24,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "transparent",
+              border: "none",
+              color: "var(--dawn-30)",
+              cursor: "pointer",
+              fontFamily: "var(--font-mono)",
+              fontSize: "9px",
+              padding: 0,
+              transition: "color 100ms ease",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = "var(--gold)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = "var(--dawn-30)"; }}
+            title={panelVisible ? "Collapse nav" : "Expand nav"}
+            aria-label={panelVisible ? "Collapse navigation" : "Expand navigation"}
+          >
+            {panelVisible ? "▴" : "▾"}
+          </button>
+        </div>
 
+        {/* Collapsible nav items — vertical slide */}
+        <div
+          style={{
+            overflow: "hidden",
+            maxHeight: panelVisible ? "600px" : "0px",
+            opacity: panelVisible ? 1 : 0,
+            transition: "max-height 120ms cubic-bezier(0.16, 1, 0.3, 1), opacity 100ms ease",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
           <div
             style={{
               display: "flex",
               flexDirection: "column",
               gap: 0,
-              paddingTop: "40px",
-              flex: 1,
+              paddingTop: "24px",
             }}
           >
             {SIDEBAR_ITEMS.map((item) => {
@@ -343,6 +391,7 @@ export function NavigationFrame({
                       textDecoration: "none",
                       position: "relative",
                       transitionDuration: "var(--duration-fast)",
+                      whiteSpace: "nowrap",
                     }}
                     onMouseEnter={(e) => {
                       if (!isActive) {
@@ -380,142 +429,65 @@ export function NavigationFrame({
             })}
           </div>
 
-          <div
-            style={{
-              padding: "12px 12px 16px",
-              borderTop: "1px solid var(--dawn-08)",
-              marginTop: "auto",
-            }}
-          >
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="flex items-center gap-2 transition-all w-full"
-              style={{
-                padding: "8px 12px",
-                fontFamily: "var(--font-mono)",
-                fontSize: "9px",
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-                color: "var(--dawn-40)",
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                transitionDuration: "var(--duration-fast)",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "var(--dawn-70)";
-                e.currentTarget.style.background = "var(--dawn-04)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "var(--dawn-40)";
-                e.currentTarget.style.background = "transparent";
-              }}
-            >
-              {isLight ? <MoonIcon /> : <SunIcon />}
-              {isLight ? "dark" : "light"}
-            </button>
-          </div>
-        </nav>
-      )}
+        </div>
+      </nav>
 
-      {/* Rail-aligned nav (workspace pages only) */}
-      {!showNavPanel && (
-        <>
-          <nav
-            className="fixed z-40 pointer-events-auto"
-            style={{
-              top: "14px",
-              left: "var(--hud-padding)",
-              display: "flex",
-              gap: "16px",
-              alignItems: "center",
-              height: "20px",
-            }}
-          >
-            {NAV_LEFT.map((item) => {
-              const isActive =
-                item.href === "/"
-                  ? pathname === "/"
-                  : pathname === item.href || pathname.startsWith(item.href + "/");
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="transition-all"
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "10px",
-                    letterSpacing: "0.12em",
-                    textTransform: "uppercase",
-                    color: isActive ? "var(--gold)" : "var(--dawn-40)",
-                    textDecoration: "none",
-                    transitionDuration: "var(--duration-fast)",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isActive) e.currentTarget.style.color = "var(--dawn-70)";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive) e.currentTarget.style.color = "var(--dawn-40)";
-                  }}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
+      {/* Top-right utility icons — bookmarks, settings, theme */}
+      <nav
+        className="fixed z-40 pointer-events-auto"
+        style={{
+          top: "var(--hud-padding)",
+          right: `calc(var(--hud-padding) + ${RAIL_WIDTH}px + 4px)`,
+          display: "flex",
+          gap: "12px",
+          alignItems: "center",
+          height: "33px",
+        }}
+      >
+        <Link
+          href="/bookmarks"
+          style={{ textDecoration: "none", opacity: isBookmarksActive ? 1 : 0.7 }}
+          className="transition-opacity hover:opacity-100"
+          title="Bookmarks"
+        >
+          <ParticleIcon pixels={bookmarkPx} active={isBookmarksActive} light={isLight} />
+        </Link>
 
-          <nav
-            className="fixed z-40 pointer-events-auto"
-            style={{
-              top: "14px",
-              right: "var(--hud-padding)",
-              display: "flex",
-              gap: "12px",
-              alignItems: "center",
-              height: "20px",
-            }}
-          >
-            <Link
-              href="/bookmarks"
-              style={{ textDecoration: "none", opacity: isBookmarksActive ? 1 : 0.7 }}
-              className="transition-opacity hover:opacity-100"
-              title="Bookmarks"
-            >
-              <ParticleIcon pixels={bookmarkPx} active={isBookmarksActive} light={isLight} />
-            </Link>
+        <Link
+          href="/admin"
+          style={{ textDecoration: "none", opacity: isSettingsActive ? 1 : 0.7 }}
+          className="transition-opacity hover:opacity-100"
+          title="Settings"
+        >
+          <ParticleIcon pixels={settingsPx} active={isSettingsActive} light={isLight} />
+        </Link>
 
-            <Link
-              href="/admin"
-              style={{ textDecoration: "none", opacity: isSettingsActive ? 1 : 0.7 }}
-              className="transition-opacity hover:opacity-100"
-              title="Settings"
-            >
-              <ParticleIcon pixels={settingsPx} active={isSettingsActive} light={isLight} />
-            </Link>
-
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="transition-opacity hover:opacity-100"
-              style={{
-                background: "none",
-                border: "none",
-                padding: 0,
-                cursor: "pointer",
-                opacity: 0.7,
-              }}
-              title={isLight ? "Switch to dark" : "Switch to light"}
-            >
-              <ParticleIcon pixels={themePx} light={isLight} />
-            </button>
-          </nav>
-        </>
-      )}
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="transition-opacity hover:opacity-100"
+          style={{
+            background: "none",
+            border: "none",
+            padding: 0,
+            cursor: "pointer",
+            opacity: 0.7,
+          }}
+          title={isLight ? "Switch to dark" : "Switch to light"}
+        >
+          <ParticleIcon pixels={themePx} light={isLight} />
+        </button>
+      </nav>
 
       <main
-        className={`hud-shell ${showNavPanel ? "hud-shell--with-panel" : "hud-shell--workspace"}`}
-        style={showNavPanel ? undefined : { paddingTop: "48px" }}
+        className={`hud-shell ${isWorkspace ? "hud-shell--workspace" : ""}`}
+        style={{
+          paddingLeft: isWorkspace
+            ? `calc(var(--hud-padding) + ${RAIL_WIDTH}px + 8px)`
+            : `calc(var(--hud-padding) + ${RAIL_WIDTH}px + ${NAV_PANEL_WIDTH}px + 8px)`,
+          paddingRight: `calc(var(--hud-padding) + 20px)`,
+          ...(isWorkspace ? { paddingTop: 0 } : {}),
+        }}
       >
         {children}
       </main>

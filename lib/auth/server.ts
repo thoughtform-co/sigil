@@ -10,8 +10,8 @@ const AUTH_BYPASS =
   process.env.NODE_ENV === "development" &&
   (process.env.SIGIL_AUTH_BYPASS === "true" ||
     process.env.NEXT_PUBLIC_SIGIL_AUTH_BYPASS === "true");
-const BYPASS_USER_ID = "00000000-0000-4000-8000-000000000001";
-const BYPASS_USER_EMAIL = "sigil-local@thoughtform.dev";
+const BYPASS_USER_ID = "dcd1da5c-773c-4029-910c-e360fa415fd0";
+const BYPASS_USER_EMAIL = "vince@thoughtform.co";
 
 export async function getAuthedUser(): Promise<AuthedUser | null> {
   if (AUTH_BYPASS) {

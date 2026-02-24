@@ -1,20 +1,16 @@
-/* ForgeSidebar — 72px thumbnail strip, aligned with left HUD rail */
+/* ForgeSidebar — bottom-left anchored, grows upward, aligned with left rail */
 
 .sidebar {
   position: fixed;
-  top: 52%;
+  bottom: clamp(24px, 4vw, 48px);
   left: calc(var(--hud-padding) + 60px);
-  transform: translateY(-50%);
   z-index: 20;
   width: 72px;
   flex-shrink: 0;
   display: flex;
-  flex-direction: column;
+  flex-direction: column-reverse;
   align-items: center;
-  justify-content: center;
-  height: calc(100vh - (var(--hud-padding) * 2));
-  max-height: 760px;
-  min-height: 420px;
+  max-height: calc(100vh - clamp(24px, 4vw, 48px) - 80px);
   padding: 0 4px;
   gap: 8px;
 }
@@ -23,6 +19,7 @@
   flex-shrink: 0;
   width: 64px;
   text-align: center;
+  order: 0;
 }
 
 .projectLink {
@@ -44,7 +41,7 @@
   color: var(--gold);
 }
 
-/* New session button — 64x64 */
+/* New session button — 64x48, appears above project row at the bottom */
 .newButton {
   width: 64px;
   height: 48px;
@@ -85,9 +82,8 @@
   overflow-y: auto;
   overflow-x: hidden;
   display: flex;
-  flex-direction: column;
+  flex-direction: column-reverse;
   align-items: center;
-  justify-content: center;
   gap: 6px;
 }
 
@@ -265,13 +261,10 @@
 @media (max-width: 980px) {
   .sidebar {
     position: static;
-    top: auto;
+    bottom: auto;
     left: auto;
-    transform: none;
+    flex-direction: column;
     z-index: auto;
-    height: auto;
     max-height: none;
-    min-height: 0;
-    justify-content: flex-start;
   }
 }

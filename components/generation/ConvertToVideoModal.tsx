@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import type { SessionItem } from "@/components/generation/types";
 import type { ModelItem } from "@/components/generation/types";
@@ -11,9 +11,20 @@ type VideoModelSpec = {
   aspectRatios: string[];
   resolutions: { value: string; label: string }[];
   durations: string[];
+  supportsEndFrame?: boolean;
 };
 
 const VIDEO_MODEL_SPECS: Record<string, VideoModelSpec> = {
+  "gemini-veo-3.1": {
+    aspectRatios: ["16:9", "9:16"],
+    resolutions: [
+      { value: "720p", label: "720p" },
+      { value: "1080p", label: "1080p" },
+      { value: "4k", label: "4K" },
+    ],
+    durations: ["4", "6", "8"],
+    supportsEndFrame: true,
+  },
   "veo-3.1": {
     aspectRatios: ["16:9", "9:16"],
     resolutions: [
@@ -22,16 +33,25 @@ const VIDEO_MODEL_SPECS: Record<string, VideoModelSpec> = {
       { value: "4k", label: "4K" },
     ],
     durations: ["4", "6", "8"],
+    supportsEndFrame: true,
   },
   "kling-2.6": {
     aspectRatios: ["16:9", "9:16", "1:1"],
     resolutions: [{ value: "1080p", label: "1080p" }],
     durations: ["5", "10"],
+    supportsEndFrame: false,
   },
   "kling-official": {
     aspectRatios: ["16:9", "9:16", "1:1"],
     resolutions: [{ value: "1080p", label: "1080p" }],
     durations: ["5", "10"],
+    supportsEndFrame: true,
+  },
+  "replicate-kling-2.6": {
+    aspectRatios: ["16:9", "9:16", "1:1"],
+    resolutions: [{ value: "1080p", label: "1080p" }],
+    durations: ["5", "10"],
+    supportsEndFrame: false,
   },
 };
 
@@ -48,6 +68,10 @@ type ConvertToVideoModalProps = {
   open: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  sourceGenerationId?: string;
+  sourceModelId?: string;
+  sourceCreatedAt?: string;
+  sourceStatus?: string;
 };
 
 function iterationStatusLabel(status: string): string {
@@ -70,13 +94,18 @@ export function ConvertToVideoModal({
   imageUrl,
   open,
   onClose,
+  sourceGenerationId,
+  sourceModelId,
+  sourceCreatedAt,
+  sourceStatus,
 }: ConvertToVideoModalProps) {
   const [prompt, setPrompt] = useState("");
   const [modelId, setModelId] = useState("");
   const [aspectRatio, setAspectRatio] = useState("16:9");
   const [resolution, setResolution] = useState("720p");
   const [duration, setDuration] = useState("5");
-  const [sessionId, setSessionId] = useState<string>("new");
+  const [sessionMode, setSessionMode] = useState<"existing" | "new">("existing");
+  const [sessionId, setSessionId] = useState<string>("");
   const [sessionName, setSessionName] = useState("");
   const [sessions, setSessions] = useState<SessionItem[]>([]);
   const [models, setModels] = useState<ModelItem[]>([]);
@@ -84,6 +113,10 @@ export function ConvertToVideoModal({
   const [message, setMessage] = useState<string | null>(null);
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [modelsLoading, setModelsLoading] = useState(true);
+  const [endFrameUrl, setEndFrameUrl] = useState<string | null>(null);
+  const [endFrameFile, setEndFrameFile] = useState<File | null>(null);
+  const [detectedAspectRatio, setDetectedAspectRatio] = useState<string | null>(null);
+  const endFrameInputRef = useRef<HTMLInputElement>(null);
 
   const spec = useMemo(() => VIDEO_MODEL_SPECS[modelId] ?? DEFAULT_SPEC, [modelId]);
 
@@ -92,6 +125,10 @@ export function ConvertToVideoModal({
     if (!spec.resolutions.some((r) => r.value === resolution)) setResolution(spec.resolutions[0].value);
     if (!spec.durations.includes(duration)) setDuration(spec.durations[0]);
   }, [spec, aspectRatio, resolution, duration]);
+
+  useEffect(() => {
+    if (!spec.supportsEndFrame) setEndFrameUrl(null);
+  }, [spec.supportsEndFrame]);
 
   const { iterations, loading: iterationsLoading, refetch } = useVideoIterations(open ? outputId : null);
 
@@ -102,9 +139,15 @@ export function ConvertToVideoModal({
       .then((res) => res.json())
       .then((data: { sessions?: SessionItem[] }) => {
         const list = data.sessions ?? [];
-        setSessions(list.filter((s) => s.type === "video"));
-        const firstVideo = list.find((s) => s.type === "video");
-        if (firstVideo) setSessionId((prev) => (prev === "new" ? firstVideo.id : prev));
+        const videoSessions = list.filter((s) => s.type === "video");
+        setSessions(videoSessions);
+        if (videoSessions.length > 0) {
+          setSessionMode("existing");
+          setSessionId((prev) => prev || videoSessions[0].id);
+        } else {
+          setSessionMode("new");
+          setSessionId("");
+        }
       })
       .catch(() => setSessions([]))
       .finally(() => setSessionsLoading(false));
@@ -118,11 +161,76 @@ export function ConvertToVideoModal({
       .then((data: { models?: ModelItem[] }) => {
         const list = data.models ?? [];
         setModels(list);
-        setModelId((prev) => (prev ? prev : list[0]?.id ?? ""));
+        setModelId((prev) => {
+          if (!prev) return list[0]?.id ?? "";
+          return list.some((m) => m.id === prev) ? prev : list[0]?.id ?? "";
+        });
       })
       .catch(() => setModels([]))
       .finally(() => setModelsLoading(false));
   }, [open]);
+
+  // Detect start-frame aspect ratio for Kling auto behavior.
+  useEffect(() => {
+    if (!open || !modelId.includes("kling")) {
+      setDetectedAspectRatio(null);
+      return;
+    }
+    const img = new Image();
+    img.onload = () => {
+      const ratio = img.naturalWidth / img.naturalHeight;
+      const known = [
+        { label: "16:9", value: 16 / 9 },
+        { label: "9:16", value: 9 / 16 },
+        { label: "1:1", value: 1 },
+        { label: "4:3", value: 4 / 3 },
+        { label: "3:4", value: 3 / 4 },
+      ];
+      let closest = known[0];
+      let minDiff = Math.abs(ratio - closest.value);
+      for (const r of known) {
+        const diff = Math.abs(ratio - r.value);
+        if (diff < minDiff) {
+          closest = r;
+          minDiff = diff;
+        }
+      }
+      setDetectedAspectRatio(closest.label);
+    };
+    img.onerror = () => setDetectedAspectRatio(null);
+    img.src = imageUrl;
+  }, [open, modelId, imageUrl]);
+
+  const handleEndFrameUpload = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const blobUrl = URL.createObjectURL(file);
+      setEndFrameUrl(blobUrl);
+      setEndFrameFile(file);
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        if (projectId) formData.append("projectId", projectId);
+        const res = await fetch("/api/upload/reference-image", {
+          method: "POST",
+          body: formData,
+        });
+        const data = (await res.json()) as { referenceImageUrl?: string; url?: string; error?: string };
+        if (!res.ok) throw new Error(data.error ?? "Upload failed");
+        const stableUrl = data.referenceImageUrl ?? data.url;
+        if (stableUrl) {
+          URL.revokeObjectURL(blobUrl);
+          setEndFrameUrl(stableUrl);
+          setEndFrameFile(null);
+        }
+      } catch {
+        setMessage("End frame upload failed; will send as data when generating.");
+      }
+      if (e.target) e.target.value = "";
+    },
+    [projectId]
+  );
 
   const handleSubmit = useCallback(async () => {
     if (!prompt.trim() || !modelId) {
@@ -133,7 +241,7 @@ export function ConvertToVideoModal({
     setMessage(null);
     try {
       let targetSessionId = sessionId;
-      if (sessionId === "new") {
+      if (sessionMode === "new") {
         const name = sessionName.trim() || `Video Session ${sessions.length + 1}`;
         const sessionRes = await fetch("/api/sessions", {
           method: "POST",
@@ -143,6 +251,8 @@ export function ConvertToVideoModal({
         const sessionData = (await sessionRes.json()) as { session?: SessionItem; error?: string };
         if (!sessionRes.ok) throw new Error(sessionData.error ?? "Failed to create session");
         targetSessionId = sessionData.session!.id;
+      } else if (!targetSessionId) {
+        throw new Error("Please select a target video session.");
       }
 
       const parameters: Record<string, unknown> = {
@@ -153,6 +263,18 @@ export function ConvertToVideoModal({
         sourceOutputId: outputId,
         referenceImageId: outputId,
       };
+
+      if (endFrameUrl && endFrameUrl.startsWith("http")) {
+        parameters.endFrameImageUrl = endFrameUrl;
+      } else if (endFrameFile) {
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => reject(new Error("Failed to read end frame"));
+          reader.readAsDataURL(endFrameFile);
+        });
+        parameters.endFrameImageUrl = dataUrl;
+      }
 
       const res = await fetch("/api/generate", {
         method: "POST",
@@ -186,6 +308,9 @@ export function ConvertToVideoModal({
     imageUrl,
     outputId,
     projectId,
+    sessionMode,
+    endFrameUrl,
+    endFrameFile,
     refetch,
   ]);
 
@@ -223,10 +348,34 @@ export function ConvertToVideoModal({
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
-        <header className={styles.header}>
-          <h2 id="convert-modal-title" className={styles.title}>
-            Convert to video
-          </h2>
+        {/* Telemetry bar */}
+        <header className={styles.telemetryBar} id="convert-modal-title">
+          <span className={styles.telemetryBrand}>SIGIL FORGE</span>
+          <span className={styles.telemetryLabel}>
+            MODE: <span className={styles.telemetryValue}>IMG→VID</span>
+          </span>
+          {sourceGenerationId && (
+            <span className={styles.telemetryLabel}>
+              ID: <span className={styles.telemetryValue}>{sourceGenerationId.slice(0, 8).toUpperCase()}</span>
+            </span>
+          )}
+          {sourceModelId && (
+            <span className={styles.telemetryLabel}>
+              SRC: <span className={styles.telemetryValue}>{sourceModelId.toUpperCase()}</span>
+            </span>
+          )}
+          {sourceCreatedAt && (
+            <span className={styles.telemetryLabel}>
+              DATE: <span className={styles.telemetryValue}>
+                {new Date(sourceCreatedAt).toLocaleDateString(undefined, { month: "short", day: "2-digit", year: "numeric" }).toUpperCase()}
+              </span>
+            </span>
+          )}
+          {sourceStatus && (
+            <span className={styles.telemetryLabel}>
+              SIG: <span className={styles.telemetryValue}>{sourceStatus.toUpperCase()}</span>
+            </span>
+          )}
           <button
             type="button"
             className={styles.closeBtn}
@@ -238,37 +387,96 @@ export function ConvertToVideoModal({
         </header>
 
         <div className={styles.body}>
+          {/* Left: start + end frames side-by-side, then session, prompt, params */}
           <div className={styles.formSection}>
-            <div className={styles.previewWrap}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imageUrl} alt="Source" className={styles.previewImg} />
+            {/* Start and End frames — equal side-by-side */}
+            <div className={styles.framesRow}>
+              <div className={styles.frameCard}>
+                <span className={styles.frameLabel}>START FRAME</span>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={imageUrl} alt="Start frame" className={styles.frameImg} />
+              </div>
+              {spec.supportsEndFrame && (
+                !endFrameUrl ? (
+                  <div className={`${styles.endFrameCard} ${styles.endFrameCardEmpty}`}>
+                    <button
+                      type="button"
+                      className={styles.endFrameAddBtn}
+                      onClick={() => endFrameInputRef.current?.click()}
+                      disabled={busy}
+                    >
+                      + End frame
+                    </button>
+                  </div>
+                ) : (
+                  <div className={styles.endFrameCard}>
+                    <span className={styles.endFrameLabel}>END FRAME</span>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={endFrameUrl} alt="End frame" className={styles.endFrameThumb} />
+                    <button
+                      type="button"
+                      className={styles.endFrameRemove}
+                      onClick={() => {
+                        setEndFrameUrl(null);
+                        setEndFrameFile(null);
+                      }}
+                      aria-label="Remove end frame"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )
+              )}
             </div>
-            <label className={styles.label}>Prompt</label>
-            <textarea
-              className="sigil-textarea"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Describe the motion…"
-              rows={2}
-              disabled={busy}
+            <input
+              ref={endFrameInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleEndFrameUpload}
+              style={{ display: "none" }}
             />
-            <label className={styles.label}>Video session</label>
+
+            {/* Session — before prompt, like Vesper (label + toggle inline) */}
+            <div className={styles.sessionHeader}>
+              <label className={styles.label}>Target video session</label>
+              <div className={styles.sessionModeRow}>
+                <button
+                  type="button"
+                  className={`${styles.sessionModeBtn} ${sessionMode === "existing" ? styles.sessionModeActive : ""}`}
+                  onClick={() => setSessionMode("existing")}
+                  disabled={sessions.length === 0}
+                >
+                  Existing
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.sessionModeBtn} ${sessionMode === "new" ? styles.sessionModeActive : ""}`}
+                  onClick={() => setSessionMode("new")}
+                >
+                  + New
+                </button>
+              </div>
+            </div>
             <div className={styles.sessionRow}>
-              <select
-                className="sigil-select"
-                value={sessionId}
-                onChange={(e) => setSessionId(e.target.value)}
-                disabled={busy || sessionsLoading}
-                aria-label="Session"
-              >
-                <option value="new">Create new session</option>
-                {sessions.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-              {sessionId === "new" && (
+              {sessionMode === "existing" ? (
+                <select
+                  className="sigil-select"
+                  value={sessionId}
+                  onChange={(e) => setSessionId(e.target.value)}
+                  disabled={busy || sessionsLoading || sessions.length === 0}
+                  aria-label="Session"
+                >
+                  {sessions.length === 0 ? (
+                    <option value="">No video sessions</option>
+                  ) : (
+                    sessions.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))
+                  )}
+                </select>
+              ) : (
                 <input
                   type="text"
                   className="sigil-input"
@@ -280,32 +488,66 @@ export function ConvertToVideoModal({
                 />
               )}
             </div>
-            <label className={styles.label}>Model</label>
-            <select
-              className="sigil-select"
-              value={modelId}
-              onChange={(e) => setModelId(e.target.value)}
-              disabled={busy || modelsLoading}
-              aria-label="Model"
-            >
-              {models.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name} {m.provider ? `(${m.provider})` : ""}
-                </option>
-              ))}
-            </select>
+
+            {/* Generation settings label */}
+            <label className={styles.label}>Generation settings</label>
+
+            {/* Prompt + generate button row */}
+            <div className={styles.promptRow}>
+              <textarea
+                className="sigil-textarea"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="Describe the motion…"
+                rows={2}
+                disabled={busy}
+              />
+              <button
+                type="button"
+                className={styles.generateBtn}
+                onClick={() => void handleSubmit()}
+                disabled={busy || !prompt.trim() || !modelId}
+              >
+                {busy ? "…" : "Generate"}
+              </button>
+            </div>
+
+            {/* Model + aspect + duration — single compact row */}
             <div className={styles.paramsRow}>
               <select
                 className={styles.paramSelect}
-                value={aspectRatio}
-                onChange={(e) => setAspectRatio(e.target.value)}
-                disabled={busy}
-                aria-label="Aspect ratio"
+                value={modelId}
+                onChange={(e) => setModelId(e.target.value)}
+                disabled={busy || modelsLoading}
+                aria-label="Model"
               >
-                {spec.aspectRatios.map((ar) => (
-                  <option key={ar} value={ar}>{ar}</option>
-                ))}
+                {models.length === 0 ? (
+                  <option value="">No video models</option>
+                ) : (
+                  models.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name} {m.provider ? `(${m.provider})` : ""}
+                    </option>
+                  ))
+                )}
               </select>
+              {modelId.includes("kling") && detectedAspectRatio ? (
+                <div className={styles.paramBadge} title="Kling follows the start frame aspect ratio">
+                  Auto ({detectedAspectRatio})
+                </div>
+              ) : (
+                <select
+                  className={styles.paramSelect}
+                  value={aspectRatio}
+                  onChange={(e) => setAspectRatio(e.target.value)}
+                  disabled={busy}
+                  aria-label="Aspect ratio"
+                >
+                  {spec.aspectRatios.map((ar) => (
+                    <option key={ar} value={ar}>{ar}</option>
+                  ))}
+                </select>
+              )}
               {spec.resolutions.length > 1 && (
                 <select
                   className={styles.paramSelect}
@@ -340,12 +582,18 @@ export function ConvertToVideoModal({
             )}
           </div>
 
+          {/* Right: iterations */}
           <div className={styles.iterationsSection}>
-            <h3 className={styles.iterationsTitle}>Video iterations</h3>
+            <h3 className={styles.iterationsTitle}>
+              Iterations
+              {iterations.length > 0 && (
+                <span className={styles.iterationsCount}>{iterations.length}</span>
+              )}
+            </h3>
             {iterationsLoading ? (
               <p className={styles.iterationsEmpty}>Loading…</p>
             ) : iterations.length === 0 ? (
-              <p className={styles.iterationsEmpty}>No video iterations yet. Submit to create one.</p>
+              <p className={styles.iterationsEmpty}>No iterations yet. Generate to create one.</p>
             ) : (
               <ul className={styles.iterationsList}>
                 {iterations.map((it) => (
@@ -388,20 +636,6 @@ export function ConvertToVideoModal({
             )}
           </div>
         </div>
-
-        <footer className={styles.footer}>
-          <button type="button" className={styles.secondaryBtn} onClick={onClose}>
-            Close
-          </button>
-          <button
-            type="button"
-            className={styles.primaryBtn}
-            onClick={() => void handleSubmit()}
-            disabled={busy || !prompt.trim() || !modelId}
-          >
-            {busy ? "Submitting…" : "Generate video"}
-          </button>
-        </footer>
       </div>
     </div>
   );

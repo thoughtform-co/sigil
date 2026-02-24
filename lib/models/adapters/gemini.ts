@@ -88,6 +88,19 @@ function isQuotaExhaustedError(err: unknown): boolean {
   return false;
 }
 
+function redactLargeStrings(value: unknown, maxLen = 256): unknown {
+  if (typeof value === "string") {
+    return value.length > maxLen ? `<redacted:${value.length}>` : value;
+  }
+  if (value === null || typeof value !== "object") return value;
+  if (Array.isArray(value)) return value.map((v) => redactLargeStrings(v, maxLen));
+  const out: Record<string, unknown> = {};
+  for (const [k, val] of Object.entries(value as Record<string, unknown>)) {
+    out[k] = k === "data" && typeof val === "string" && val.length > maxLen ? `<redacted:${val.length}>` : redactLargeStrings(val, maxLen);
+  }
+  return out;
+}
+
 export class GeminiAdapter extends BaseModelAdapter {
   private apiKey = process.env.GEMINI_API_KEY || "";
   private replicateKey = process.env.REPLICATE_API_TOKEN || process.env.REPLICATE_API_KEY || "";
@@ -385,18 +398,177 @@ export class GeminiAdapter extends BaseModelAdapter {
     return [];
   }
 
-  // ── Video (delegates to Replicate Kling as before) ─────────────────
+  // ── Video: Veo 3.1 when API key present, else Replicate Kling ───────
 
   private async generateVideo(request: GenerationRequest): Promise<GenerationResponse> {
-    const { KLING_2_6_CONFIG, ReplicateAdapter } = await import("@/lib/models/adapters/replicate");
-    const delegate = new ReplicateAdapter(KLING_2_6_CONFIG);
-    const result = await delegate.generate(request);
-    if (result.status === "completed") {
+    if (!this.apiKey) {
+      const { KLING_2_6_CONFIG, ReplicateAdapter } = await import("@/lib/models/adapters/replicate");
+      const delegate = new ReplicateAdapter(KLING_2_6_CONFIG);
+      const result = await delegate.generate(request);
+      if (result.status === "completed") {
+        return {
+          ...result,
+          metadata: { ...result.metadata, routedFrom: this.config.id, routedTo: KLING_2_6_CONFIG.id },
+        };
+      }
+      return { ...result, error: result.error || "Video generation failed" };
+    }
+    return this.generateVideoVeo(request);
+  }
+
+  private async generateVideoVeo(request: GenerationRequest): Promise<GenerationResponse> {
+    const parameters = (request as { parameters?: Record<string, unknown> }).parameters ?? {};
+    const aspectRatio = (parameters.aspectRatio as string) ?? request.aspectRatio ?? "16:9";
+    const resolutionRaw = parameters.resolution ?? request.resolution ?? 720;
+    const resolution =
+      typeof resolutionRaw === "number"
+        ? resolutionRaw
+        : String(resolutionRaw).toLowerCase() === "4k"
+          ? 2160
+          : String(resolutionRaw).toLowerCase() === "1080p"
+            ? 1080
+            : 720;
+    let duration = Math.min(8, Math.max(4, Number(parameters.duration ?? request.duration ?? 8)));
+    if (resolution === 1080 || resolution === 2160) duration = 8;
+
+    const getDimensions = (ar: string, res: number) => {
+      if (ar === "16:9") {
+        if (res === 2160) return { width: 3840, height: 2160 };
+        if (res === 1080) return { width: 1920, height: 1080 };
+        return { width: 1280, height: 720 };
+      }
+      if (ar === "9:16") {
+        if (res === 2160) return { width: 2160, height: 3840 };
+        if (res === 1080) return { width: 1080, height: 1920 };
+        return { width: 720, height: 1280 };
+      }
+      return { width: 1280, height: 720 };
+    };
+    const { width, height } = getDimensions(aspectRatio, resolution);
+
+    const modelId = "veo-3.1-generate-preview";
+    const endpoint = `${GEMINI_BASE_URL}/models/${modelId}:predictLongRunning`;
+
+    const parseImageInput = async (
+      dataUrl: string | undefined,
+      httpUrl: string | undefined
+    ): Promise<{ bytes: Buffer; contentType: string } | null> => {
+      if (dataUrl && typeof dataUrl === "string" && dataUrl.startsWith("data:")) {
+        const commaIndex = dataUrl.indexOf(",");
+        if (commaIndex === -1) return null;
+        const meta = dataUrl.slice(5, commaIndex);
+        const base64 = dataUrl.slice(commaIndex + 1);
+        const mime = meta.match(/^([^;]+)/)?.[1] ?? "image/jpeg";
+        return { bytes: Buffer.from(base64, "base64"), contentType: mime };
+      }
+      if (httpUrl && typeof httpUrl === "string" && httpUrl.startsWith("http")) {
+        const imageResponse = await fetch(httpUrl);
+        if (!imageResponse.ok) return null;
+        const buf = await imageResponse.arrayBuffer();
+        const contentType = imageResponse.headers.get("content-type") || "image/jpeg";
+        return { bytes: Buffer.from(buf), contentType };
+      }
+      return null;
+    };
+
+    const startFrame = await parseImageInput(
+      request.referenceImage as string | undefined,
+      request.referenceImageUrl as string | undefined
+    );
+    const endFrame = await parseImageInput(
+      parameters.endFrameImage as string | undefined,
+      parameters.endFrameImageUrl as string | undefined
+    );
+
+    type ImageSchema = "bytesBase64Encoded" | "inlineData";
+    const buildImageObject = (base64: string, mime: string, schema: ImageSchema) =>
+      schema === "bytesBase64Encoded"
+        ? { bytesBase64Encoded: base64, mimeType: mime }
+        : { inlineData: { mimeType: mime, data: base64 } };
+
+    const buildPayload = (schema: ImageSchema) => {
+      const instance: Record<string, unknown> = { prompt: request.prompt };
+      if (startFrame) {
+        instance.image = buildImageObject(
+          startFrame.bytes.toString("base64"),
+          startFrame.contentType,
+          schema
+        );
+      }
+      const payload: Record<string, unknown> = {
+        instances: [instance],
+        parameters: {
+          aspectRatio,
+          resolution: resolution === 2160 ? "4k" : resolution === 1080 ? "1080p" : "720p",
+          durationSeconds: duration,
+        },
+      };
+      if (endFrame) {
+        (payload.parameters as Record<string, unknown>).lastFrame = buildImageObject(
+          endFrame.bytes.toString("base64"),
+          endFrame.contentType,
+          schema
+        );
+      }
+      return payload;
+    };
+
+    const makeRequest = async (payload: Record<string, unknown>) =>
+      fetch(endpoint, {
+        method: "POST",
+        headers: { "x-goog-api-key": this.apiKey, "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+    const isSchemaError = (msg: string): ImageSchema | null => {
+      const m = msg.toLowerCase();
+      if (m.includes("inlinedata") && (m.includes("isn't supported") || m.includes("not supported"))) return "bytesBase64Encoded";
+      if (m.includes("bytesbase64encoded") && (m.includes("isn't supported") || m.includes("not supported"))) return "inlineData";
+      return null;
+    };
+
+    let schema: ImageSchema = "bytesBase64Encoded";
+    let response = await makeRequest(buildPayload(schema));
+    if (!response.ok) {
+      const errData = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
+      const errMsg = errData?.error?.message ?? "Video generation request failed";
+      const alt = isSchemaError(errMsg);
+      if (alt && alt !== schema) {
+        schema = alt;
+        response = await makeRequest(buildPayload(schema));
+      }
+      if (!response.ok) {
+        const retryErr = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
+        throw new Error(retryErr?.error?.message ?? errMsg);
+      }
+    }
+
+    const operation = (await response.json()) as { name?: string };
+    const operationName = operation.name;
+    if (!operationName) throw new Error("No operation name in Veo response");
+
+    const maxAttempts = 30;
+    for (let attempts = 0; attempts < maxAttempts; attempts++) {
+      await new Promise((r) => setTimeout(r, 10000));
+      const statusRes = await fetch(`${GEMINI_BASE_URL}/${operationName}`, {
+        headers: { "x-goog-api-key": this.apiKey },
+      });
+      if (!statusRes.ok) throw new Error("Failed to check operation status");
+      const status = (await statusRes.json()) as {
+        done?: boolean;
+        response?: { generateVideoResponse?: { generatedSamples?: Array<{ video?: { uri?: string } }> } };
+      };
+      if (!status.done) continue;
+      const generatedVideo = status.response?.generateVideoResponse?.generatedSamples?.[0];
+      if (!generatedVideo?.video?.uri) throw new Error("No video in response");
+      const videoUri = generatedVideo.video.uri;
       return {
-        ...result,
-        metadata: { ...result.metadata, routedFrom: this.config.id, routedTo: KLING_2_6_CONFIG.id },
+        id: `gen-${Date.now()}`,
+        status: "completed",
+        outputs: [{ url: videoUri, width, height, duration }],
+        metadata: { model: this.config.id, operationName },
       };
     }
-    return { ...result, error: result.error || "Video generation failed" };
+    throw new Error("Video generation timeout");
   }
 }

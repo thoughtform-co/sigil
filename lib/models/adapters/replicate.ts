@@ -259,6 +259,9 @@ export class ReplicateAdapter extends BaseModelAdapter {
               ? parameters.referenceImageUrl
               : undefined;
 
+    const endFrameImageUrl =
+      typeof parameters.endFrameImageUrl === "string" ? parameters.endFrameImageUrl : undefined;
+
     const input: Record<string, unknown> = {
       prompt: request.prompt,
       duration,
@@ -267,6 +270,9 @@ export class ReplicateAdapter extends BaseModelAdapter {
     };
     if (referenceImageUrl) {
       input.start_image = referenceImageUrl;
+    }
+    if (endFrameImageUrl) {
+      input.end_image = endFrameImageUrl;
     }
 
     const prediction = await this.createPrediction(version, input);
