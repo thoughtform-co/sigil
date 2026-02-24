@@ -93,6 +93,24 @@ export default function LoginPage() {
     }
   };
 
+  const cornerStyle = (
+    pos: "tl" | "tr" | "bl" | "br"
+  ): React.CSSProperties => ({
+    position: "absolute",
+    width: "16px",
+    height: "16px",
+    ...(pos.includes("t") ? { top: "-1px" } : { bottom: "-1px" }),
+    ...(pos.includes("l") ? { left: "-1px" } : { right: "-1px" }),
+    borderColor: "var(--gold)",
+    borderStyle: "solid",
+    borderWidth: 0,
+    ...(pos.includes("t") && { borderTopWidth: "1px" }),
+    ...(pos.includes("b") && { borderBottomWidth: "1px" }),
+    ...(pos.includes("l") && { borderLeftWidth: "1px" }),
+    ...(pos.includes("r") && { borderRightWidth: "1px" }),
+    opacity: 0.5,
+  });
+
   return (
     <div className="relative min-h-screen overflow-hidden">
       <RunicRain />
@@ -106,88 +124,61 @@ export default function LoginPage() {
       />
 
       <div
-        className={`relative z-10 flex items-center justify-center min-h-screen px-4 transition-all duration-700 ${
+        className={`relative z-10 flex items-center justify-center min-h-screen transition-all duration-700 ${
           mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
         }`}
+        style={{ padding: "clamp(16px, 4vw, 32px)" }}
       >
-        <div className="w-full max-w-sm">
+        <div style={{ width: "100%", maxWidth: "420px" }}>
           <div
-            className="rounded-xl border p-8 shadow-2xl relative"
+            className="relative"
             style={{
-              background: "rgba(10, 9, 8, 0.75)",
-              borderColor: "var(--dawn-15)",
-              backdropFilter: "blur(20px)",
-              WebkitBackdropFilter: "blur(20px)",
+              background: "rgba(10, 9, 8, 0.8)",
+              border: "1px solid var(--dawn-08)",
+              backdropFilter: "blur(24px)",
+              WebkitBackdropFilter: "blur(24px)",
+              padding: "clamp(32px, 5vw, 48px)",
             }}
           >
-            <div
-              style={{
-                position: "absolute",
-                top: "-1px",
-                left: "-1px",
-                width: "14px",
-                height: "14px",
-                borderTop: "1px solid var(--gold)",
-                borderLeft: "1px solid var(--gold)",
-                opacity: 0.6,
-              }}
-            />
-            <div
-              style={{
-                position: "absolute",
-                top: "-1px",
-                right: "-1px",
-                width: "14px",
-                height: "14px",
-                borderTop: "1px solid var(--gold)",
-                borderRight: "1px solid var(--gold)",
-                opacity: 0.6,
-              }}
-            />
-            <div
-              style={{
-                position: "absolute",
-                bottom: "-1px",
-                left: "-1px",
-                width: "14px",
-                height: "14px",
-                borderBottom: "1px solid var(--gold)",
-                borderLeft: "1px solid var(--gold)",
-                opacity: 0.6,
-              }}
-            />
-            <div
-              style={{
-                position: "absolute",
-                bottom: "-1px",
-                right: "-1px",
-                width: "14px",
-                height: "14px",
-                borderBottom: "1px solid var(--gold)",
-                borderRight: "1px solid var(--gold)",
-                opacity: 0.6,
-              }}
-            />
+            <div style={cornerStyle("tl")} />
+            <div style={cornerStyle("tr")} />
+            <div style={cornerStyle("bl")} />
+            <div style={cornerStyle("br")} />
 
-            <div className="text-center mb-8">
+            <div className="text-center" style={{ marginBottom: "40px" }}>
               <span
-                className="block text-4xl mb-3 select-none"
-                style={{ color: "var(--gold)", fontFamily: "var(--font-mono)" }}
+                className="block select-none"
+                style={{
+                  color: "var(--gold)",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "32px",
+                  lineHeight: 1,
+                  marginBottom: "16px",
+                }}
                 aria-hidden="true"
               >
                 ᛭
               </span>
               <h1
-                className="text-2xl font-bold tracking-tight"
-                style={{ color: "var(--dawn)", fontFamily: "var(--font-mono)" }}
+                style={{
+                  color: "var(--dawn)",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "20px",
+                  fontWeight: 600,
+                  letterSpacing: "0.08em",
+                  lineHeight: 1,
+                }}
               >
                 SIGIL
               </h1>
               <p
-                className="mt-1.5 text-sm font-light tracking-wide"
                 style={{
                   color: "var(--dawn-40)",
                   fontFamily: "var(--font-sans)",
+                  fontSize: "13px",
+                  fontWeight: 300,
+                  letterSpacing: "0.04em",
+                  marginTop: "8px",
                 }}
               >
                 Generation Platform
@@ -195,14 +186,19 @@ export default function LoginPage() {
             </div>
 
             {(view === "form" || view === "error") && (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
+              <form onSubmit={handleSubmit}>
+                <div style={{ marginBottom: "24px" }}>
                   <label
                     htmlFor="email"
-                    className="block text-xs font-medium mb-1.5 tracking-wide uppercase"
                     style={{
+                      display: "block",
                       color: "var(--dawn-40)",
                       fontFamily: "var(--font-mono)",
+                      fontSize: "10px",
+                      fontWeight: 500,
+                      letterSpacing: "0.1em",
+                      textTransform: "uppercase",
+                      marginBottom: "8px",
                     }}
                   >
                     Email
@@ -219,30 +215,43 @@ export default function LoginPage() {
                       setEmail(e.target.value);
                       if (view === "error") setView("form");
                     }}
-                    className="w-full rounded-lg px-3.5 py-2.5 text-sm outline-none transition-colors focus:ring-2 focus:ring-[var(--gold-30)]"
+                    className="w-full outline-none transition-colors"
                     style={{
                       color: "var(--dawn)",
                       background: "var(--dawn-04)",
                       border: "1px solid var(--dawn-08)",
                       fontFamily: "var(--font-mono)",
+                      fontSize: "14px",
+                      padding: "12px 16px",
+                      borderRadius: 0,
                     }}
                   />
                 </div>
 
                 {IS_DEV && (
-                  <div>
+                  <div style={{ marginBottom: "24px" }}>
                     <label
                       htmlFor="password"
-                      className="block text-xs font-medium mb-1.5 tracking-wide uppercase"
                       style={{
+                        display: "block",
                         color: "var(--dawn-40)",
                         fontFamily: "var(--font-mono)",
+                        fontSize: "10px",
+                        fontWeight: 500,
+                        letterSpacing: "0.1em",
+                        textTransform: "uppercase",
+                        marginBottom: "8px",
                       }}
                     >
                       Password
                       <span
-                        className="ml-2 normal-case tracking-normal"
-                        style={{ color: "var(--dawn-30)", fontSize: "9px" }}
+                        style={{
+                          marginLeft: "8px",
+                          color: "var(--dawn-30)",
+                          fontSize: "9px",
+                          textTransform: "none",
+                          letterSpacing: "normal",
+                        }}
                       >
                         dev only — leave empty for magic link
                       </span>
@@ -257,12 +266,15 @@ export default function LoginPage() {
                         setPassword(e.target.value);
                         if (view === "error") setView("form");
                       }}
-                      className="w-full rounded-lg px-3.5 py-2.5 text-sm outline-none transition-colors focus:ring-2 focus:ring-[var(--gold-30)]"
+                      className="w-full outline-none transition-colors"
                       style={{
                         color: "var(--dawn)",
                         background: "var(--dawn-04)",
                         border: "1px solid var(--dawn-08)",
                         fontFamily: "var(--font-mono)",
+                        fontSize: "14px",
+                        padding: "12px 16px",
+                        borderRadius: 0,
                       }}
                     />
                   </div>
@@ -270,10 +282,11 @@ export default function LoginPage() {
 
                 {view === "error" && errorMsg && (
                   <p
-                    className="text-xs"
                     style={{
                       color: "var(--status-error)",
                       fontFamily: "var(--font-mono)",
+                      fontSize: "12px",
+                      marginBottom: "16px",
                     }}
                     role="alert"
                   >
@@ -284,11 +297,18 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={loading || !email.trim()}
-                  className="w-full rounded-lg px-4 py-2.5 text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed outline-none focus:ring-2 focus:ring-[var(--gold-30)] focus:ring-offset-2 focus:ring-offset-[var(--void)]"
+                  className="w-full transition-all disabled:opacity-40 disabled:cursor-not-allowed outline-none"
                   style={{
                     color: "var(--void)",
                     background: "var(--gold)",
                     fontFamily: "var(--font-mono)",
+                    fontSize: "13px",
+                    fontWeight: 500,
+                    letterSpacing: "0.04em",
+                    padding: "14px 16px",
+                    borderRadius: 0,
+                    border: "none",
+                    cursor: loading || !email.trim() ? "not-allowed" : "pointer",
                   }}
                 >
                   {loading ? (
@@ -322,14 +342,19 @@ export default function LoginPage() {
             )}
 
             {view === "sent" && (
-              <div className="text-center space-y-4 py-2">
+              <div className="text-center" style={{ padding: "8px 0" }}>
                 <div
-                  className="mx-auto flex h-12 w-12 items-center justify-center rounded-full"
-                  style={{ background: "var(--gold-10)" }}
+                  className="mx-auto flex items-center justify-center"
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                    background: "var(--gold-10)",
+                    border: "1px solid var(--gold-15)",
+                    marginBottom: "24px",
+                  }}
                 >
                   <svg
-                    className="h-6 w-6"
-                    style={{ color: "var(--gold)" }}
+                    style={{ width: "24px", height: "24px", color: "var(--gold)" }}
                     fill="none"
                     viewBox="0 0 24 24"
                     strokeWidth={1.5}
@@ -342,39 +367,46 @@ export default function LoginPage() {
                     />
                   </svg>
                 </div>
-                <div>
-                  <p
-                    className="text-sm font-medium"
-                    style={{
-                      color: "var(--dawn)",
-                      fontFamily: "var(--font-mono)",
-                    }}
-                  >
-                    Check your email
-                  </p>
-                  <p
-                    className="mt-1 text-xs"
-                    style={{
-                      color: "var(--dawn-40)",
-                      fontFamily: "var(--font-sans)",
-                    }}
-                  >
-                    We sent a magic link to{" "}
-                    <span className="font-medium" style={{ color: "var(--dawn-70)" }}>
-                      {email}
-                    </span>
-                  </p>
-                </div>
+                <p
+                  style={{
+                    color: "var(--dawn)",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "14px",
+                    fontWeight: 500,
+                  }}
+                >
+                  Check your email
+                </p>
+                <p
+                  style={{
+                    color: "var(--dawn-40)",
+                    fontFamily: "var(--font-sans)",
+                    fontSize: "13px",
+                    marginTop: "8px",
+                  }}
+                >
+                  We sent a magic link to{" "}
+                  <span style={{ color: "var(--dawn-70)", fontWeight: 500 }}>
+                    {email}
+                  </span>
+                </p>
                 <button
                   type="button"
                   onClick={() => {
                     setView("form");
                     setEmail("");
                   }}
-                  className="text-xs underline underline-offset-2 transition-colors"
                   style={{
                     color: "var(--dawn-40)",
                     fontFamily: "var(--font-mono)",
+                    fontSize: "12px",
+                    textDecoration: "underline",
+                    textUnderlineOffset: "3px",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    marginTop: "24px",
+                    padding: 0,
                   }}
                 >
                   Use a different email
