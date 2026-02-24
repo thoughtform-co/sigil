@@ -3,9 +3,9 @@
 .card {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(320px, 360px) minmax(0, 1fr);
+  grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
   width: 100%;
-  max-width: 1240px;
+  max-width: 960px;
   border: 1px solid var(--dawn-08);
   background: var(--surface-0);
   overflow: hidden;
@@ -58,10 +58,10 @@
 .promptPanel {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px;
+  gap: 10px;
+  padding: 12px;
   border-right: 1px solid var(--dawn-08);
-  min-height: 320px;
+  min-height: 260px;
   background:
     linear-gradient(180deg, rgba(202, 165, 84, 0.05) 0%, rgba(202, 165, 84, 0) 100%),
     var(--surface-0);
@@ -70,7 +70,7 @@
 .promptBlock {
   position: relative;
   width: 100%;
-  padding: 10px 12px;
+  padding: 8px 10px;
   border: 1px solid var(--dawn-08);
   background: rgba(10, 9, 8, 0.55);
   color: inherit;
@@ -92,12 +92,12 @@
 .promptText {
   display: block;
   font-family: var(--font-body);
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: 12px;
+  line-height: 1.45;
   color: var(--dawn-70);
   white-space: pre-wrap;
   word-break: break-word;
-  max-height: 210px;
+  max-height: 160px;
   overflow: auto;
 }
 
@@ -116,16 +116,16 @@
 
 .metaReadouts {
   display: grid;
-  gap: 6px;
-  padding: 10px 12px;
+  gap: 4px;
+  padding: 8px 10px;
   border: 1px solid var(--dawn-08);
   background: var(--void);
 }
 
 .readout {
   font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.08em;
+  font-size: 8px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--dawn-50);
   overflow: hidden;
@@ -149,8 +149,8 @@
   background: transparent;
   color: var(--dawn-70);
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.08em;
+  font-size: 9px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
   transition: color 120ms ease, border-color 120ms ease, opacity 120ms ease;
@@ -172,8 +172,8 @@
 }
 
 .mediaPanel {
-  min-height: 300px;
-  padding: 14px;
+  min-height: 240px;
+  padding: 12px;
   background: var(--void);
   display: flex;
 }
@@ -181,7 +181,7 @@
 .mediaGrid {
   width: 100%;
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .mediaGridSingle {
@@ -195,7 +195,7 @@
 .outputCard {
   border: 1px solid var(--dawn-08);
   background: var(--surface-0);
-  min-height: 120px;
+  min-height: 100px;
   position: relative;
   overflow: hidden;
 }
@@ -203,7 +203,7 @@
 .mediaFrame {
   position: relative;
   width: 100%;
-  min-height: 140px;
+  min-height: 120px;
   background: #000;
   overflow: hidden;
 }
@@ -238,6 +238,7 @@
 
 .actionsTopLeft,
 .actionsTopRight,
+.actionsBottomLeft,
 .actionsBottomRight {
   position: absolute;
   display: flex;
@@ -260,9 +261,14 @@
   right: 8px;
 }
 
+.actionsBottomLeft {
+  bottom: 8px;
+  left: 8px;
+}
+
 .actionButton {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border: 1px solid var(--dawn-15);
   background: rgba(10, 9, 8, 0.82);
   color: var(--dawn-70);
@@ -290,20 +296,20 @@
 }
 
 .actionIcon {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
 }
 
 .mediaState {
   width: 100%;
-  min-height: 260px;
+  min-height: 220px;
   border: 1px solid var(--dawn-08);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 18px;
+  gap: 8px;
+  padding: 14px;
   text-align: center;
   background: radial-gradient(circle at center, rgba(202, 165, 84, 0.07) 0%, rgba(5, 4, 3, 0) 70%);
 }

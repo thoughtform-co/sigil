@@ -11,9 +11,9 @@ type ForgeGalleryProps = {
   onReuse: (generation: GenerationItem) => void;
   onRerun?: (generationId: string) => void;
   onConvertToVideo?: (imageUrl: string) => void;
+  onUseAsReference?: (imageUrl: string) => void;
   onDismiss?: (generationId: string) => void;
   onApprove: (outputId: string, isApproved: boolean) => void;
-  onDeleteOutput: (outputId: string) => void;
   busy: boolean;
 };
 
@@ -23,9 +23,9 @@ export function ForgeGallery({
   onReuse,
   onRerun,
   onConvertToVideo,
+  onUseAsReference,
   onDismiss,
   onApprove,
-  onDeleteOutput,
   busy,
 }: ForgeGalleryProps) {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
@@ -60,8 +60,8 @@ export function ForgeGallery({
               onRerun={onRerun}
               onDismiss={onDismiss}
               onConvertToVideo={onConvertToVideo}
+              onUseAsReference={onUseAsReference}
               onApprove={onApprove}
-              onDeleteOutput={onDeleteOutput}
               onLightboxOpen={setLightboxUrl}
               busy={busy}
             />

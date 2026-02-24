@@ -415,9 +415,9 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
             onReuse={reuseGeneration}
             onRerun={retryGeneration}
             onConvertToVideo={handleConvertToVideo}
+            onUseAsReference={setReferenceImageUrl}
             onDismiss={handleDismissGeneration}
             onApprove={toggleApproveOutput}
-            onDeleteOutput={deleteOutput}
             busy={busy}
           />
         </div>

@@ -30,8 +30,8 @@ type ForgeGenerationCardProps = {
   onRerun?: (generationId: string) => void;
   onDismiss?: (generationId: string) => void;
   onConvertToVideo?: (imageUrl: string) => void;
+  onUseAsReference?: (imageUrl: string) => void;
   onApprove: (outputId: string, isApproved: boolean) => void;
-  onDeleteOutput: (outputId: string) => void;
   onLightboxOpen?: (url: string) => void;
   busy: boolean;
 };
@@ -74,8 +74,8 @@ export function ForgeGenerationCard({
   onRerun,
   onDismiss,
   onConvertToVideo,
+  onUseAsReference,
   onApprove,
-  onDeleteOutput,
   onLightboxOpen,
   busy,
 }: ForgeGenerationCardProps) {
@@ -202,17 +202,6 @@ export function ForgeGenerationCard({
                           <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
                         </svg>
                       </button>
-                      <button
-                        type="button"
-                        className={styles.actionButton}
-                        onClick={() => onReuse(generation)}
-                        disabled={busy}
-                        title="Reuse"
-                      >
-                        <svg className={styles.actionIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                      </button>
                     </div>
 
                     <div className={styles.actionsTopRight}>
@@ -227,32 +216,51 @@ export function ForgeGenerationCard({
                           <path d="M20 6L9 17l-5-5" />
                         </svg>
                       </button>
+                    </div>
+
+                    <div className={styles.actionsBottomLeft}>
                       <button
                         type="button"
                         className={styles.actionButton}
-                        onClick={() => onDeleteOutput(output.id)}
+                        onClick={() => onReuse(generation)}
                         disabled={busy}
-                        title="Delete output"
+                        title="Reuse parameters"
                       >
                         <svg className={styles.actionIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
                       </button>
                     </div>
 
-                    {output.fileType !== "video" && onConvertToVideo && (
+                    {output.fileType !== "video" && (
                       <div className={styles.actionsBottomRight}>
-                        <button
-                          type="button"
-                          className={styles.actionButton}
-                          onClick={() => onConvertToVideo(output.fileUrl)}
-                          disabled={busy}
-                          title="Convert to video"
-                        >
-                          <svg className={styles.actionIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                          </svg>
-                        </button>
+                        {onUseAsReference && (
+                          <button
+                            type="button"
+                            className={styles.actionButton}
+                            onClick={() => onUseAsReference(output.fileUrl)}
+                            disabled={busy}
+                            title="Use as reference"
+                          >
+                            <svg className={styles.actionIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M17 7H7v10" />
+                              <path d="M17 7L7 17" />
+                            </svg>
+                          </button>
+                        )}
+                        {onConvertToVideo && (
+                          <button
+                            type="button"
+                            className={styles.actionButton}
+                            onClick={() => onConvertToVideo(output.fileUrl)}
+                            disabled={busy}
+                            title="Convert to video"
+                          >
+                            <svg className={styles.actionIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
