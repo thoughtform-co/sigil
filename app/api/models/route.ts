@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthedUser } from "@/lib/auth/server";
 import { getAllModels, getModelsByType } from "@/lib/models/registry";
+import { withCacheHeaders } from "@/lib/api/cache-headers";
 
 export async function GET(request: Request) {
   const user = await getAuthedUser();
@@ -9,9 +10,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const type = searchParams.get("type");
 
-  if (type === "image" || type === "video") {
-    return NextResponse.json({ models: getModelsByType(type) });
-  }
+  const models = type === "image" || type === "video" ? getModelsByType(type) : getAllModels();
 
-  return NextResponse.json({ models: getAllModels() });
+  return withCacheHeaders(NextResponse.json({ models }), "stable");
 }

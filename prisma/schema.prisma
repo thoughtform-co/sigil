@@ -19,38 +19,71 @@ model Profile {
   displayName String?  @map("display_name")
   avatarUrl   String?  @map("avatar_url")
   role        UserRole @default(user)
+  isDisabled  Boolean  @default(false) @map("is_disabled")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  projects          Project[]
-  generations       Generation[]
-  projectMembers    ProjectMember[]
-  modelPins         UserModelPin[]
-  projectChats      ProjectChat[]
-  projectChatMessages ProjectChatMessage[]
-  workflowExecutions WorkflowExecution[]
+  projects               Project[]
+  generations            Generation[]
+  projectMembers         ProjectMember[]
+  modelPins              UserModelPin[]
+  projectChats           ProjectChat[]
+  projectChatMessages    ProjectChatMessage[]
+  workflowExecutions     WorkflowExecution[]
+  workspaceProjectMembers WorkspaceProjectMember[]
 
   @@map("profiles")
 }
 
-model Project {
-  id            String   @id @default(uuid()) @db.Uuid
-  name          String
-  description   String?
-  coverImageUrl String?  @map("cover_image_url")
-  ownerId       String   @map("owner_id") @db.Uuid
-  isShared      Boolean  @default(true) @map("is_shared")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+model WorkspaceProject {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
-  owner     Profile         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  sessions  Session[]
-  members   ProjectMember[]
-  chats     ProjectChat[]
-  workflows Workflow[]
+  members   WorkspaceProjectMember[]
+  briefings Project[]
+
+  @@index([updatedAt(sort: Desc), id(sort: Desc)])
+  @@map("workspace_projects")
+}
+
+model WorkspaceProjectMember {
+  workspaceProjectId String   @map("workspace_project_id") @db.Uuid
+  userId             String   @map("user_id") @db.Uuid
+  role               String   @default("member")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  workspaceProject WorkspaceProject @relation(fields: [workspaceProjectId], references: [id], onDelete: Cascade)
+  user             Profile          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([workspaceProjectId, userId])
+  @@index([userId])
+  @@map("workspace_project_members")
+}
+
+model Project {
+  id                  String   @id @default(uuid()) @db.Uuid
+  name                String
+  description         String?
+  coverImageUrl       String?  @map("cover_image_url")
+  ownerId             String   @map("owner_id") @db.Uuid
+  isShared            Boolean  @default(true) @map("is_shared")
+  workspaceProjectId  String?  @map("workspace_project_id") @db.Uuid
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  owner            Profile           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  workspaceProject WorkspaceProject? @relation(fields: [workspaceProjectId], references: [id], onDelete: SetNull)
+  sessions         Session[]
+  members          ProjectMember[]
+  chats            ProjectChat[]
+  workflows        Workflow[]
 
   @@index([ownerId])
   @@index([isShared, ownerId])
+  @@index([workspaceProjectId])
   @@index([updatedAt(sort: Desc), id(sort: Desc)])
   @@map("projects")
 }

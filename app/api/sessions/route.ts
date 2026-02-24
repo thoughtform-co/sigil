@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getAuthedUser } from "@/lib/auth/server";
+import { projectAccessFilter } from "@/lib/auth/project-access";
 
 const createSessionSchema = z.object({
   projectId: z.string().uuid(),
@@ -21,11 +22,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "projectId is required" }, { status: 400 });
   }
 
+  const accessFilter = await projectAccessFilter(user.id);
   const project = await prisma.project.findFirst({
-    where: {
-      id: projectId,
-      OR: [{ ownerId: user.id }, { members: { some: { userId: user.id } } }],
-    },
+    where: { id: projectId, ...accessFilter },
     select: { id: true },
   });
   if (!project) {
@@ -80,11 +79,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
+  const postAccessFilter = await projectAccessFilter(user.id);
   const project = await prisma.project.findFirst({
-    where: {
-      id: parsed.data.projectId,
-      OR: [{ ownerId: user.id }, { members: { some: { userId: user.id } } }],
-    },
+    where: { id: parsed.data.projectId, ...postAccessFilter },
     select: { id: true },
   });
   if (!project) {

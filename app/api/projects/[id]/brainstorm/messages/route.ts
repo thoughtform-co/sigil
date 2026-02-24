@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getAuthedUser } from "@/lib/auth/server";
+import { projectAccessFilter } from "@/lib/auth/project-access";
 
 const createMessageSchema = z.object({
   content: z.string().min(1).max(4000),
@@ -12,11 +13,9 @@ type RouteContext = {
 };
 
 async function canAccessProject(projectId: string, userId: string) {
+  const accessFilter = await projectAccessFilter(userId);
   return prisma.project.findFirst({
-    where: {
-      id: projectId,
-      OR: [{ ownerId: userId }, { members: { some: { userId } } }],
-    },
+    where: { id: projectId, ...accessFilter },
     select: { id: true },
   });
 }

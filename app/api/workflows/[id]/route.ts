@@ -3,6 +3,7 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getAuthedUser } from "@/lib/auth/server";
+import { projectAccessFilter } from "@/lib/auth/project-access";
 
 export async function GET(
   request: Request,
@@ -14,13 +15,9 @@ export async function GET(
   }
 
   const { id } = await params;
+  const getAccessFilter = await projectAccessFilter(user.id);
   const workflow = await prisma.workflow.findFirst({
-    where: {
-      id,
-      project: {
-        OR: [{ ownerId: user.id }, { members: { some: { userId: user.id } } }],
-      },
-    },
+    where: { id, project: getAccessFilter },
     select: {
       id: true,
       name: true,
@@ -54,13 +51,9 @@ export async function PATCH(
   }
 
   const { id } = await params;
+  const patchAccessFilter = await projectAccessFilter(user.id);
   const existing = await prisma.workflow.findFirst({
-    where: {
-      id,
-      project: {
-        OR: [{ ownerId: user.id }, { members: { some: { userId: user.id } } }],
-      },
-    },
+    where: { id, project: patchAccessFilter },
     select: { id: true },
   });
 
@@ -105,13 +98,9 @@ export async function DELETE(
   }
 
   const { id } = await params;
+  const delAccessFilter = await projectAccessFilter(user.id);
   const existing = await prisma.workflow.findFirst({
-    where: {
-      id,
-      project: {
-        OR: [{ ownerId: user.id }, { members: { some: { userId: user.id } } }],
-      },
-    },
+    where: { id, project: delAccessFilter },
     select: { id: true },
   });
 

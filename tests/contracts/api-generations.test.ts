@@ -9,7 +9,14 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     session: { findFirst: vi.fn() },
     generation: { findMany: vi.fn() },
+    workspaceProjectMember: { findMany: vi.fn().mockResolvedValue([]) },
   },
+}));
+
+vi.mock("@/lib/auth/project-access", () => ({
+  projectAccessFilter: vi.fn().mockResolvedValue({
+    OR: [{ ownerId: "user-1" }, { members: { some: { userId: "user-1" } } }],
+  }),
 }));
 
 import { getAuthedUser } from "@/lib/auth/server";

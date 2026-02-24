@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthedUser } from "@/lib/auth/server";
+import { projectAccessFilter } from "@/lib/auth/project-access";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -16,17 +17,9 @@ export async function GET(request: Request, context: RouteContext) {
   const { searchParams } = new URL(request.url);
   const limit = Math.min(parseInt(searchParams.get("limit") ?? "50", 10), 50);
 
+  const accessFilter = await projectAccessFilter(user.id);
   const output = await prisma.output.findFirst({
-    where: {
-      id: outputId,
-      generation: {
-        session: {
-          project: {
-            OR: [{ ownerId: user.id }, { members: { some: { userId: user.id } } }],
-          },
-        },
-      },
-    },
+    where: { id: outputId, generation: { session: { project: accessFilter } } },
     select: { id: true, generation: { select: { session: { select: { projectId: true } } } } },
   });
 
@@ -41,9 +34,7 @@ export async function GET(request: Request, context: RouteContext) {
       session: {
         type: "video",
         projectId,
-        project: {
-          OR: [{ ownerId: user.id }, { members: { some: { userId: user.id } } }],
-        },
+        project: accessFilter,
       },
     },
     orderBy: { createdAt: "desc" },

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthedUser } from "@/lib/auth/server";
+import { projectAccessFilter } from "@/lib/auth/project-access";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -18,15 +19,9 @@ export async function DELETE(request: Request, context: RouteContext) {
 
   const { id } = await context.params;
 
+  const accessFilter = await projectAccessFilter(user.id);
   const generation = await prisma.generation.findFirst({
-    where: {
-      id,
-      session: {
-        project: {
-          OR: [{ ownerId: user.id }, { members: { some: { userId: user.id } } }],
-        },
-      },
-    },
+    where: { id, session: { project: accessFilter } },
     select: { id: true, status: true },
   });
 

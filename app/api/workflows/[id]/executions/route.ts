@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthedUser } from "@/lib/auth/server";
+import { projectAccessFilter } from "@/lib/auth/project-access";
 
 export async function POST(
   _request: Request,
@@ -12,13 +13,9 @@ export async function POST(
   }
 
   const { id: workflowId } = await params;
+  const accessFilter = await projectAccessFilter(user.id);
   const workflow = await prisma.workflow.findFirst({
-    where: {
-      id: workflowId,
-      project: {
-        OR: [{ ownerId: user.id }, { members: { some: { userId: user.id } } }],
-      },
-    },
+    where: { id: workflowId, project: accessFilter },
     select: { id: true },
   });
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthedUser } from "@/lib/auth/server";
+import { projectAccessFilter } from "@/lib/auth/project-access";
 
 function daysAgo(count: number) {
   const date = new Date();
@@ -12,20 +13,12 @@ export async function GET() {
   const user = await getAuthedUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const memberships = await prisma.projectMember.findMany({
-    where: { userId: user.id },
-    select: { projectId: true },
-  });
-  const memberProjectIds = memberships.map((membership) => membership.projectId);
+  const accessFilter = await projectAccessFilter(user.id);
 
   const recentGenerations = await prisma.generation.findMany({
     where: {
       createdAt: { gte: daysAgo(30) },
-      session: {
-        project: {
-          OR: [{ ownerId: user.id }, { id: { in: memberProjectIds } }],
-        },
-      },
+      session: { project: accessFilter },
     },
     select: {
       id: true,

@@ -23,6 +23,20 @@ vi.mock("@/lib/supabase/realtime", () => ({
   broadcastGenerationUpdate: vi.fn(),
 }));
 
+vi.mock("@/lib/auth/project-access", () => ({
+  projectAccessFilter: vi.fn().mockResolvedValue({
+    OR: [{ ownerId: "user-1" }, { members: { some: { userId: "user-1" } } }],
+  }),
+}));
+
+vi.mock("@/lib/api/rate-limit", () => ({
+  checkRateLimit: vi.fn().mockReturnValue(null),
+}));
+
+vi.mock("@/lib/models/processor", () => ({
+  getProcessor: vi.fn().mockReturnValue({ enqueue: vi.fn() }),
+}));
+
 import { getAuthedUser } from "@/lib/auth/server";
 import { getModelConfig } from "@/lib/models/registry";
 import { prisma } from "@/lib/prisma";
@@ -111,7 +125,7 @@ describe("POST /api/generate contract", () => {
 
   it("returns 202 and generation payload when authenticated with valid session and model", async () => {
     vi.mocked(getAuthedUser).mockResolvedValue({ id: "user-1", email: "u@t.co" });
-    vi.mocked(prisma.session.findFirst).mockResolvedValue({ id: validSessionId, type: "image" });
+    vi.mocked(prisma.session.findFirst).mockResolvedValue({ id: validSessionId, type: "image" } as never);
     vi.mocked(getModelConfig).mockReturnValue({ type: "image" } as never);
     vi.mocked(prisma.generation.create).mockResolvedValue({
       id: "gen-123",

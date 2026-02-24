@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { persistReferenceImage } from "@/lib/reference-images";
 import { validateImageDataUrl } from "@/lib/security/image-validation";
 import { checkRateLimit } from "@/lib/api/rate-limit";
+import { projectAccessFilter } from "@/lib/auth/project-access";
 
 export const dynamic = "force-dynamic";
 
@@ -31,11 +32,9 @@ export async function POST(request: NextRequest) {
     const file = formData.get("file") as File | null;
     const projectId = formData.get("projectId") as string | null;
     if (projectId) {
+      const accessFilter = await projectAccessFilter(user.id);
       const project = await prisma.project.findFirst({
-        where: {
-          id: projectId,
-          OR: [{ ownerId: user.id }, { members: { some: { userId: user.id } } }],
-        },
+        where: { id: projectId, ...accessFilter },
       });
       if (!project) {
         return NextResponse.json({ error: "Project not found or access denied" }, { status: 403 });
@@ -71,11 +70,9 @@ export async function POST(request: NextRequest) {
     }
     const projectId = body?.projectId;
     if (projectId) {
+      const jsonAccessFilter = await projectAccessFilter(user.id);
       const project = await prisma.project.findFirst({
-        where: {
-          id: projectId,
-          OR: [{ ownerId: user.id }, { members: { some: { userId: user.id } } }],
-        },
+        where: { id: projectId, ...jsonAccessFilter },
       });
       if (!project) {
         return NextResponse.json({ error: "Project not found or access denied" }, { status: 403 });

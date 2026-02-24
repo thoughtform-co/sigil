@@ -9,6 +9,7 @@ import { unauthorized, notFound, badRequest } from "@/lib/api/errors";
 import { json } from "@/lib/api/responses";
 import { checkRateLimit } from "@/lib/api/rate-limit";
 import { getProcessor } from "@/lib/models/processor";
+import { projectAccessFilter } from "@/lib/auth/project-access";
 
 export async function POST(request: Request) {
   const user = await getAuthedUser();
@@ -25,13 +26,9 @@ export async function POST(request: Request) {
 
   const { modelId, negativePrompt, parameters, prompt, sessionId, source, workflowExecutionId } = parsed.data;
 
+  const accessFilter = await projectAccessFilter(user.id);
   const session = await prisma.session.findFirst({
-    where: {
-      id: sessionId,
-      project: {
-        OR: [{ ownerId: user.id }, { members: { some: { userId: user.id } } }],
-      },
-    },
+    where: { id: sessionId, project: accessFilter },
     select: { id: true, type: true },
   });
 

@@ -6,6 +6,7 @@ import { ensureProfile, getAuthedUser } from "@/lib/auth/server";
 const createProjectSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
+  workspaceProjectId: z.string().uuid().optional(),
 });
 
 export async function GET() {
@@ -14,9 +15,19 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const wpMemberships = await prisma.workspaceProjectMember.findMany({
+    where: { userId: user.id },
+    select: { workspaceProjectId: true },
+  });
+  const wpIds = wpMemberships.map((m) => m.workspaceProjectId);
+
   const projects = await prisma.project.findMany({
     where: {
-      OR: [{ ownerId: user.id }, { members: { some: { userId: user.id } } }],
+      OR: [
+        { ownerId: user.id },
+        { members: { some: { userId: user.id } } },
+        ...(wpIds.length > 0 ? [{ workspaceProjectId: { in: wpIds } }] : []),
+      ],
     },
     orderBy: { updatedAt: "desc" },
     select: {
@@ -24,6 +35,7 @@ export async function GET() {
       name: true,
       description: true,
       updatedAt: true,
+      workspaceProjectId: true,
     },
   });
 
@@ -49,8 +61,9 @@ export async function POST(request: Request) {
       name: parsed.data.name,
       description: parsed.data.description,
       ownerId: user.id,
+      workspaceProjectId: parsed.data.workspaceProjectId,
     },
-    select: { id: true, name: true, description: true, updatedAt: true },
+    select: { id: true, name: true, description: true, updatedAt: true, workspaceProjectId: true },
   });
 
   const session = await prisma.session.create({
