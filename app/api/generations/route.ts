@@ -15,11 +15,68 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const sessionId = searchParams.get("sessionId");
-  if (!sessionId) {
-    return NextResponse.json({ error: "sessionId is required" }, { status: 400 });
-  }
+  const projectId = searchParams.get("projectId");
 
   const accessFilter = await projectAccessFilter(user.id);
+
+  if (projectId) {
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, ...accessFilter },
+      select: { id: true },
+    });
+    if (!project) {
+      return NextResponse.json({ error: "Project not found or access denied" }, { status: 404 });
+    }
+
+    const limit = Math.min(Number(searchParams.get("limit")) || DEFAULT_LIMIT, MAX_LIMIT);
+    const cursor = searchParams.get("cursor");
+
+    const generations = await prisma.generation.findMany({
+      where: {
+        session: { projectId },
+      },
+      orderBy: { createdAt: "asc" },
+      take: limit + 1,
+      ...(cursor && { cursor: { id: cursor }, skip: 1 }),
+      select: {
+        id: true,
+        sessionId: true,
+        prompt: true,
+        negativePrompt: true,
+        parameters: true,
+        status: true,
+        modelId: true,
+        createdAt: true,
+        source: true,
+        workflowExecutionId: true,
+        outputs: {
+          select: {
+            id: true,
+            fileUrl: true,
+            fileType: true,
+            isApproved: true,
+            width: true,
+            height: true,
+            duration: true,
+          },
+        },
+      },
+    });
+
+    const hasMore = generations.length > limit;
+    const items = hasMore ? generations.slice(0, limit) : generations;
+    const nextCursor = hasMore ? items[items.length - 1].id : null;
+
+    return withCacheHeaders(
+      NextResponse.json({ generations: items, nextCursor }),
+      "private-short",
+    );
+  }
+
+  if (!sessionId) {
+    return NextResponse.json({ error: "sessionId or projectId is required" }, { status: 400 });
+  }
+
   const session = await prisma.session.findFirst({
     where: {
       id: sessionId,

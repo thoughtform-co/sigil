@@ -118,10 +118,19 @@
   max-width: 220px;
 }
 
+.wrapper.sizeLg .stackContainer {
+  aspect-ratio: 3 / 4;
+  max-width: 260px;
+}
+
 .wrapper.sizeSm .positionIndicator {
   bottom: -18px;
 }
 
 .wrapper.sizeMd .positionIndicator {
   bottom: -22px;
+}
+
+.wrapper.sizeLg .positionIndicator {
+  bottom: -24px;
 }

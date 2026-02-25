@@ -58,13 +58,48 @@ export async function GET(
     waypointCount: b._count.sessions,
   }));
 
+  const briefingIds = journey.briefings.map((b) => b.id);
+  const thumbnailByProjectId = new Map<string, string>();
+  if (briefingIds.length > 0) {
+    const latestOutputs = await prisma.output.findMany({
+      where: {
+        generation: {
+          session: {
+            projectId: { in: briefingIds },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: briefingIds.length * 10,
+      select: {
+        fileUrl: true,
+        generation: {
+          select: {
+            session: { select: { projectId: true } },
+          },
+        },
+      },
+    });
+    for (const o of latestOutputs) {
+      const projectId = o.generation.session.projectId;
+      if (!thumbnailByProjectId.has(projectId)) {
+        thumbnailByProjectId.set(projectId, o.fileUrl);
+      }
+    }
+  }
+
+  const routesWithThumbnails = routes.map((r) => ({
+    ...r,
+    thumbnailUrl: thumbnailByProjectId.get(r.id) ?? null,
+  }));
+
   return NextResponse.json({
     journey: {
       id: journey.id,
       name: journey.name,
       description: journey.description,
       routeCount: journey.briefings.length,
-      routes,
+      routes: routesWithThumbnails,
     },
   });
 }

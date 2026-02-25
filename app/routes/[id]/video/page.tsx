@@ -11,7 +11,7 @@ export default async function RouteVideoPage({ params }: RouteVideoPageProps) {
 
   return (
     <RequireAuth>
-      <NavigationFrame title="SIGIL" modeLabel={`route / ${id} / video`} showNavPanel={false}>
+      <NavigationFrame title="SIGIL" modeLabel={`route / ${id} / video`} workspaceLayout>
         <ProjectWorkspace projectId={id} mode="video" />
       </NavigationFrame>
     </RequireAuth>

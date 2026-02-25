@@ -84,6 +84,8 @@ export function JourneyPanel({
         height: "100%",
         minHeight: 0,
         overflow: "hidden",
+        paddingLeft: "var(--space-md)",
+        paddingRight: "var(--space-md)",
       }}
     >
       <SectionHeader bearing="01" label="JOURNEYS" />
@@ -93,7 +95,7 @@ export function JourneyPanel({
           <p
             style={{
               fontFamily: "var(--font-mono)",
-              fontSize: "11px",
+              fontSize: "12px",
               color: "var(--dawn-30)",
             }}
           >
@@ -111,15 +113,15 @@ export function JourneyPanel({
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 6,
+                    gap: 8,
                     width: "100%",
-                    padding: "var(--space-xs) var(--space-md)",
+                    padding: "var(--space-sm) var(--space-md)",
                     background: isSelected ? "var(--gold-10)" : "transparent",
                     border: "none",
                     borderLeft: "2px solid " + (isSelected ? "var(--gold)" : "transparent"),
                     color: isSelected ? "var(--gold)" : "var(--dawn-50)",
                     fontFamily: "var(--font-mono)",
-                    fontSize: "11px",
+                    fontSize: "12px",
                     letterSpacing: "0.06em",
                     textTransform: "uppercase",
                     textAlign: "left",
@@ -152,7 +154,7 @@ export function JourneyPanel({
                   </span>
                   <span
                     style={{
-                      fontSize: "9px",
+                      fontSize: "10px",
                       color: "var(--dawn-30)",
                       flexShrink: 0,
                     }}
@@ -171,12 +173,12 @@ export function JourneyPanel({
         style={{
           flexShrink: 0,
           borderTop: "1px solid var(--dawn-08)",
-          paddingTop: "var(--space-xs)",
+          paddingTop: "var(--space-sm)",
           paddingLeft: "var(--space-md)",
           paddingRight: "var(--space-md)",
           paddingBottom: "var(--space-md)",
           fontFamily: "var(--font-mono)",
-          fontSize: "9px",
+          fontSize: "10px",
           letterSpacing: "0.06em",
           color: "var(--dawn-30)",
           display: "flex",

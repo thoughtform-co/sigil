@@ -359,13 +359,16 @@ body {
   min-height: 0;
   overflow: hidden;
   padding-top: calc(var(--hud-padding) + 56px);
-  padding-bottom: 0;
+  /* Bottom padding so content ends above the bottom HUD corners (24px); match corner inset so content bottom = corner top */
+  padding-bottom: calc(var(--hud-padding) + 24px);
 }
 
-/* Dashboard three-panel fills workspace height */
+/* Dashboard three-panel fills workspace height and must not overflow past the shell */
 .hud-shell--workspace .dashboard-three-panel {
   flex: 1;
   min-height: 0;
+  overflow: hidden;
+  max-height: 100%;
 }
 
 .dashboard-three-panel {
@@ -375,7 +378,7 @@ body {
 .dashboard-three-panel .dashboard-left-middle {
   grid-column: 1 / span 2;
   display: grid;
-  grid-template-columns: 240px 1fr;
+  grid-template-columns: 260px 1fr;
   min-height: 0;
   overflow: hidden;
   gap: var(--space-xl);
@@ -383,7 +386,7 @@ body {
 
 @media (max-width: 1280px) {
   .dashboard-three-panel {
-    grid-template-columns: 1fr 300px;
+    grid-template-columns: 1fr 320px;
   }
 
   .dashboard-three-panel .dashboard-left-middle {

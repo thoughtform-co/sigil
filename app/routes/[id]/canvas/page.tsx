@@ -11,7 +11,7 @@ export default async function RouteCanvasPage({ params }: RouteCanvasPageProps) 
 
   return (
     <RequireAuth>
-      <NavigationFrame title="SIGIL" modeLabel={`route / ${id} / canvas`} showNavPanel={false}>
+      <NavigationFrame title="SIGIL" modeLabel={`route / ${id} / canvas`} workspaceLayout>
         <ProjectWorkspace projectId={id} mode="canvas" />
       </NavigationFrame>
     </RequireAuth>

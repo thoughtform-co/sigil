@@ -17,7 +17,7 @@ export type ImageDiskStackImage = {
 type ImageDiskStackProps = {
   images: ImageDiskStackImage[];
   aspectRatio?: string;
-  size?: "sm" | "md";
+  size?: "sm" | "md" | "lg";
   /** When true, back layers use larger translateY offset for depth (e.g. in perspective-tilted view). */
   perspective?: boolean;
 };
@@ -57,7 +57,7 @@ export function ImageDiskStack({
   if (n === 0) {
     return (
       <div
-        className={`${styles.wrapper} ${size === "md" ? styles.sizeMd : styles.sizeSm}`}
+        className={`${styles.wrapper} ${size === "lg" ? styles.sizeLg : size === "md" ? styles.sizeMd : styles.sizeSm}`}
         style={{ aspectRatio }}
       >
         <div className={styles.stackContainer} style={{ aspectRatio }}>
@@ -91,7 +91,7 @@ export function ImageDiskStack({
 
   return (
     <div
-      className={`${styles.wrapper} ${size === "md" ? styles.sizeMd : styles.sizeSm}`}
+      className={`${styles.wrapper} ${size === "lg" ? styles.sizeLg : size === "md" ? styles.sizeMd : styles.sizeSm}`}
       style={{ aspectRatio }}
       role="group"
       tabIndex={0}

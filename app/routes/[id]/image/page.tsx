@@ -11,7 +11,7 @@ export default async function RouteImagePage({ params }: RouteImagePageProps) {
 
   return (
     <RequireAuth>
-      <NavigationFrame title="SIGIL" modeLabel={`route / ${id} / image`} showNavPanel={false}>
+      <NavigationFrame title="SIGIL" modeLabel={`route / ${id} / image`} workspaceLayout>
         <ProjectWorkspace projectId={id} mode="image" />
       </NavigationFrame>
     </RequireAuth>

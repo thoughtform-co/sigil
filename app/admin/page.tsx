@@ -8,7 +8,7 @@ import { FailedGenerationsPanel } from "@/components/admin/FailedGenerationsPane
 export default function AdminPage() {
   return (
     <RequireAdmin>
-      <NavigationFrame title="SIGIL" modeLabel="admin" showNavPanel>
+      <NavigationFrame title="SIGIL" modeLabel="admin">
         <section
           className="w-full max-w-[960px] animate-fade-in-up"
           style={{ paddingTop: "var(--space-2xl)", paddingBottom: "var(--space-3xl)" }}

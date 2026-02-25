@@ -3,9 +3,10 @@
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import { SigilParticleLogo } from "./SigilParticleLogo";
 
 const THEME_KEY = "sigil-theme";
-const NAV_COLLAPSED_KEY = "sigil-nav-collapsed";
 const GRID = 3;
 const ICON_SIZE = 18;
 
@@ -13,8 +14,8 @@ type NavigationFrameProps = {
   children: ReactNode;
   title?: string;
   modeLabel?: string;
-  showNavPanel?: boolean;
-  navSize?: "default" | "large";
+  /** When true, main uses hud-shell--workspace (full height, own scroll). */
+  workspaceLayout?: boolean;
 };
 
 const RAIL_WIDTH = 48;
@@ -27,12 +28,13 @@ const TICK_LABELS: Record<number, string> = {
   20: "10",
 };
 
-const NAV_PANEL_WIDTH = 180;
-const SIDEBAR_ITEMS: { href: string; label: string; separator?: boolean }[] = [
-  { href: "/dashboard", label: "journeys" },
-  { href: "/analytics", label: "analytics", separator: true },
+const LEFT_NAV = [
+  { href: "/journeys", label: "journeys" },
+  { href: "/analytics", label: "analytics" },
+];
+const RIGHT_NAV = [
   { href: "/bookmarks", label: "bookmarks" },
-  { href: "/admin", label: "settings" },
+  { href: "/documentation", label: "documentation" },
 ];
 
 type Pixel = { x: number; y: number; alpha: number };
@@ -56,22 +58,6 @@ function MoonIcon({ className }: { className?: string }) {
 
 function snap(v: number): number {
   return Math.round(v / GRID) * GRID;
-}
-
-function bookmarkPixels(): Pixel[] {
-  const c = ICON_SIZE / 2;
-  const r = 5;
-  const pts: Pixel[] = [];
-  for (let i = 0; i < 4; i++) {
-    const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
-    pts.push({ x: snap(c + Math.cos(a) * r), y: snap(c + Math.sin(a) * r), alpha: 0.9 });
-  }
-  for (let i = 0; i < 4; i++) {
-    const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
-    pts.push({ x: snap(c + Math.cos(a) * r * 0.5), y: snap(c + Math.sin(a) * r * 0.5), alpha: 0.65 });
-  }
-  pts.push({ x: snap(c), y: snap(c), alpha: 1 });
-  return pts;
 }
 
 function settingsPixels(): Pixel[] {
@@ -148,14 +134,11 @@ function ParticleIcon({ pixels, active = false, light = false }: { pixels: Pixel
 
 export function NavigationFrame({
   children,
-  title = "SIGIL",
-  showNavPanel = true,
-  navSize = "default",
+  workspaceLayout = false,
 }: NavigationFrameProps) {
   const pathname = usePathname();
+  const { isAdmin } = useAuth();
   const [isLight, setIsLight] = useState(false);
-  const [navCollapsed, setNavCollapsed] = useState(false);
-  const isWorkspace = !showNavPanel;
 
   useEffect(() => {
     try {
@@ -164,12 +147,6 @@ export function NavigationFrame({
       setIsLight(wantLight);
       if (wantLight) document.documentElement.classList.add("light");
       else document.documentElement.classList.remove("light");
-    } catch {
-      // ignore
-    }
-    try {
-      const collapsed = localStorage.getItem(NAV_COLLAPSED_KEY);
-      if (collapsed === "true") setNavCollapsed(true);
     } catch {
       // ignore
     }
@@ -191,16 +168,6 @@ export function NavigationFrame({
     }
   }
 
-  function toggleNav() {
-    const next = !navCollapsed;
-    setNavCollapsed(next);
-    try {
-      localStorage.setItem(NAV_COLLAPSED_KEY, String(next));
-    } catch {
-      // ignore
-    }
-  }
-
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleScroll = useCallback(() => {
@@ -217,14 +184,32 @@ export function NavigationFrame({
     };
   }, [handleScroll]);
 
-  const bookmarkPx = useMemo(() => bookmarkPixels(), []);
   const settingsPx = useMemo(() => settingsPixels(), []);
   const themePx = useMemo(() => themePixels(isLight), [isLight]);
 
-  const isBookmarksActive = pathname === "/bookmarks" || pathname.startsWith("/bookmarks/");
   const isSettingsActive = pathname === "/admin" || pathname.startsWith("/admin/");
 
-  const panelVisible = !navCollapsed;
+  const isNavActive = (href: string) => {
+    return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
+  };
+
+  const navLinkStyle = (href: string) => {
+    const isActive = isNavActive(href);
+    return {
+      display: "inline-flex",
+      flexDirection: "column" as const,
+      alignItems: "center",
+      fontFamily: "var(--font-mono)",
+      fontSize: 13,
+      letterSpacing: "0.1em",
+      textTransform: "uppercase" as const,
+      color: isActive ? "var(--gold)" : "var(--dawn-40)",
+      textDecoration: "none" as const,
+      padding: "6px 12px 4px",
+      position: "relative" as const,
+      transition: "color var(--duration-fast)",
+    };
+  };
 
   return (
     <div className="relative min-h-screen bg-void text-dawn dot-grid-bg">
@@ -318,179 +303,82 @@ export function NavigationFrame({
         </div>
       </aside>
 
-      {/* Unified left nav panel -- SIGIL badge always visible, items collapse vertically */}
+      {/* Centered top bar: left nav | logo | right nav — above the HUD rails */}
       <nav
-        className="sigil-nav-panel fixed z-30 pointer-events-auto"
-        style={{
-          top: "var(--hud-padding)",
-          left: `calc(var(--hud-padding) + ${RAIL_WIDTH}px + 4px)`,
-          width: NAV_PANEL_WIDTH,
-          display: "flex",
-          flexDirection: "column",
-          background: "transparent",
-        }}
+        className="fixed z-50 pointer-events-auto left-0 right-0 flex items-center justify-center"
+        style={{ top: 8, height: "48px" }}
       >
-        {/* SIGIL badge — always visible, links to /projects, toggle on right */}
-        <div style={{ display: "flex", alignItems: "stretch" }}>
-          <Link
-            href="/dashboard"
-            style={{
-              flex: 1,
-              background: "var(--gold)",
-              color: "var(--void)",
-              fontFamily: "var(--font-mono)",
-              fontSize: "11px",
-              fontWeight: 400,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              padding: "8px 12px",
-              textDecoration: "none",
-              clipPath: "polygon(0% 0%, calc(100% - 12px) 0%, 100% 12px, 100% 100%, 0% 100%)",
-            }}
-          >
-            {title}
-          </Link>
-          <button
-            type="button"
-            onClick={toggleNav}
-            style={{
-              width: 24,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: "transparent",
-              border: "none",
-              color: "var(--dawn-30)",
-              cursor: "pointer",
-              fontFamily: "var(--font-mono)",
-              fontSize: "9px",
-              padding: 0,
-              transition: "color 100ms ease",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = "var(--gold)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = "var(--dawn-30)"; }}
-            title={panelVisible ? "Collapse nav" : "Expand nav"}
-            aria-label={panelVisible ? "Collapse navigation" : "Expand navigation"}
-          >
-            {panelVisible ? "▴" : "▾"}
-          </button>
-        </div>
-
-        {/* Collapsible nav items — vertical slide */}
-        <div
-          style={{
-            overflow: "hidden",
-            maxHeight: panelVisible ? "600px" : "0px",
-            opacity: panelVisible ? 1 : 0,
-            transition: "max-height 120ms cubic-bezier(0.16, 1, 0.3, 1), opacity 100ms ease",
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 0,
-              paddingTop: "24px",
-            }}
-          >
-            {SIDEBAR_ITEMS.map((item) => {
-              const isActive =
-                item.href === "/"
-                  ? pathname === "/"
-                  : pathname === item.href ||
-                    pathname.startsWith(item.href + "/") ||
-                    (item.href === "/dashboard" && pathname.startsWith("/journeys/"));
-              return (
-                <div key={item.href}>
-                  <Link
-                    href={item.href}
-                    className="transition-all"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      padding: navSize === "large" ? "14px 12px" : "11px 12px",
-                      fontFamily: "var(--font-mono)",
-                      fontSize: navSize === "large" ? 15 : 13,
-                      letterSpacing: "0.1em",
-                      textTransform: "uppercase",
-                      color: isActive ? "var(--gold)" : "var(--dawn-40)",
-                      textDecoration: "none",
-                      position: "relative",
-                      transitionDuration: "var(--duration-fast)",
-                      whiteSpace: "nowrap",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isActive) {
-                        e.currentTarget.style.color = "var(--dawn-70)";
-                        e.currentTarget.style.background = "var(--dawn-04)";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isActive) {
-                        e.currentTarget.style.color = "var(--dawn-40)";
-                        e.currentTarget.style.background = "transparent";
-                      }
-                    }}
-                  >
-                    {isActive && (
-                      <div
-                        style={{
-                          position: "absolute",
-                          left: -1,
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          width: 2,
-                          height: 16,
-                          background: "var(--gold)",
-                        }}
-                      />
-                    )}
-                    {item.label}
-                  </Link>
-                  {item.separator && (
-                    <div style={{ height: 1, background: "var(--dawn-12)", margin: "6px 0" }} />
-                  )}
-                </div>
-              );
-            })}
+        <div style={{ position: "relative", display: "flex", alignItems: "center", gap: "24px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            {LEFT_NAV.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                style={navLinkStyle(item.href)}
+                onMouseEnter={(e) => {
+                  const style = e.currentTarget.style;
+                  if (style.color !== "var(--gold)") style.color = "var(--dawn-70)";
+                }}
+                onMouseLeave={(e) => {
+                  const isActive = isNavActive(item.href);
+                  e.currentTarget.style.color = isActive ? "var(--gold)" : "var(--dawn-40)";
+                }}
+              >
+                <span>{item.label}</span>
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 16,
+                    height: 2,
+                    marginTop: 4,
+                    background: isNavActive(item.href) ? "var(--gold)" : "transparent",
+                    transition: "background-color var(--duration-fast)",
+                  }}
+                />
+              </Link>
+            ))}
           </div>
-
+          <SigilParticleLogo />
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            {RIGHT_NAV.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                style={navLinkStyle(item.href)}
+                onMouseEnter={(e) => {
+                  const style = e.currentTarget.style;
+                  if (style.color !== "var(--gold)") style.color = "var(--dawn-70)";
+                }}
+                onMouseLeave={(e) => {
+                  const isActive = isNavActive(item.href);
+                  e.currentTarget.style.color = isActive ? "var(--gold)" : "var(--dawn-40)";
+                }}
+              >
+                <span>{item.label}</span>
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 16,
+                    height: 2,
+                    marginTop: 4,
+                    background: isNavActive(item.href) ? "var(--gold)" : "transparent",
+                    transition: "background-color var(--duration-fast)",
+                  }}
+                />
+              </Link>
+            ))}
+          </div>
         </div>
       </nav>
 
-      {/* Top-right utility icons — bookmarks, settings, theme */}
-      <nav
-        className="fixed z-40 pointer-events-auto"
+      {/* Far right: theme toggle + admin settings — inside the HUD grid, below top-right corner */}
+      <div
+        className="fixed z-40 pointer-events-auto flex flex-col items-center gap-3"
         style={{
-          top: "var(--hud-padding)",
-          right: `calc(var(--hud-padding) + ${RAIL_WIDTH}px + 4px)`,
-          display: "flex",
-          gap: "12px",
-          alignItems: "center",
-          height: "33px",
+          top: "calc(var(--hud-padding) + 32px)",
+          right: `calc(var(--hud-padding) + ${RAIL_WIDTH}px + 8px)`,
         }}
       >
-        <Link
-          href="/bookmarks"
-          style={{ textDecoration: "none", opacity: isBookmarksActive ? 1 : 0.7 }}
-          className="transition-opacity hover:opacity-100"
-          title="Bookmarks"
-        >
-          <ParticleIcon pixels={bookmarkPx} active={isBookmarksActive} light={isLight} />
-        </Link>
-
-        <Link
-          href="/admin"
-          style={{ textDecoration: "none", opacity: isSettingsActive ? 1 : 0.7 }}
-          className="transition-opacity hover:opacity-100"
-          title="Settings"
-        >
-          <ParticleIcon pixels={settingsPx} active={isSettingsActive} light={isLight} />
-        </Link>
-
         <button
           type="button"
           onClick={toggleTheme}
@@ -506,16 +394,24 @@ export function NavigationFrame({
         >
           <ParticleIcon pixels={themePx} light={isLight} />
         </button>
-      </nav>
+        {isAdmin && (
+          <Link
+            href="/admin"
+            style={{ textDecoration: "none", opacity: isSettingsActive ? 1 : 0.7 }}
+            className="transition-opacity hover:opacity-100"
+            title="Settings"
+          >
+            <ParticleIcon pixels={settingsPx} active={isSettingsActive} light={isLight} />
+          </Link>
+        )}
+      </div>
 
       <main
-        className={`hud-shell ${isWorkspace ? "hud-shell--workspace" : ""}`}
+        className={`hud-shell ${workspaceLayout ? "hud-shell--workspace" : ""}`}
         style={{
-          paddingLeft: isWorkspace
-            ? `calc(var(--hud-padding) + ${RAIL_WIDTH}px + 8px)`
-            : `calc(var(--hud-padding) + ${RAIL_WIDTH}px + ${NAV_PANEL_WIDTH}px + 8px)`,
+          paddingLeft: `calc(var(--hud-padding) + ${RAIL_WIDTH}px + 8px)`,
           paddingRight: `calc(var(--hud-padding) + 20px)`,
-          ...(isWorkspace ? { paddingTop: 0 } : {}),
+          paddingTop: "calc(var(--hud-padding) + 56px)",
         }}
       >
         {children}

@@ -22,7 +22,7 @@ function SectionHeader({ bearing, label }: { bearing: string; label: string }) {
       style={{
         paddingBottom: "var(--space-sm)",
         borderBottom: "1px solid var(--dawn-08)",
-        marginBottom: "var(--space-md)",
+        marginBottom: "var(--space-lg)",
       }}
     >
       <h2 className="sigil-section-label">
@@ -97,7 +97,7 @@ export function RoutePanel({ routes, selectedRouteId, onSelectRoute }: RoutePane
                   <span
                     style={{
                       fontFamily: "var(--font-sans)",
-                      fontSize: "13px",
+                      fontSize: "14px",
                       fontWeight: 500,
                       color: "var(--dawn)",
                       whiteSpace: "nowrap",
@@ -118,7 +118,7 @@ export function RoutePanel({ routes, selectedRouteId, onSelectRoute }: RoutePane
                     <span
                       style={{
                         fontFamily: "var(--font-mono)",
-                        fontSize: "9px",
+                        fontSize: "10px",
                         letterSpacing: "0.08em",
                         textTransform: "uppercase",
                         color: "var(--dawn-30)",
@@ -129,7 +129,7 @@ export function RoutePanel({ routes, selectedRouteId, onSelectRoute }: RoutePane
                     <span
                       style={{
                         fontFamily: "var(--font-mono)",
-                        fontSize: "9px",
+                        fontSize: "10px",
                         color: "var(--dawn-30)",
                         fontVariantNumeric: "tabular-nums",
                         flexShrink: 0,

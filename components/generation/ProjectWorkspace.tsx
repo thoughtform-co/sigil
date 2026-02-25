@@ -139,8 +139,8 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
 
   useEffect(() => {
     async function loadGenerations() {
-      if (!selectedSessionId) return;
-      const response = await fetch(`/api/generations?sessionId=${selectedSessionId}`, {
+      if (mode === "canvas") return;
+      const response = await fetch(`/api/generations?projectId=${projectId}`, {
         cache: "no-store",
       });
       if (!response.ok) return;
@@ -148,19 +148,19 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
       setGenerations(data.generations);
     }
     void loadGenerations();
-  }, [selectedSessionId]);
+  }, [projectId, mode]);
 
   useGenerationsRealtime(selectedSessionId, setGenerations);
 
   useEffect(() => {
-    if (!selectedSessionId) return;
+    if (mode === "canvas" || !projectId) return;
     const hasProcessing = generations.some(
       (g) => g.status === "processing" || g.status === "processing_locked",
     );
     if (!hasProcessing) return;
     const interval = setInterval(() => {
       void (async () => {
-        const response = await fetch(`/api/generations?sessionId=${selectedSessionId}`, {
+        const response = await fetch(`/api/generations?projectId=${projectId}`, {
           cache: "no-store",
         });
         if (!response.ok) return;
@@ -169,7 +169,7 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
       })();
     }, 10000);
     return () => clearInterval(interval);
-  }, [generations, selectedSessionId]);
+  }, [generations, projectId, mode]);
 
   const activeSession = useMemo(
     () => sessions.find((s) => s.id === selectedSessionId) ?? null,

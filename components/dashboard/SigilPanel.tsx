@@ -14,7 +14,7 @@ function SectionHeader({ bearing, label }: { bearing: string; label: string }) {
       style={{
         paddingBottom: "var(--space-sm)",
         borderBottom: "1px solid var(--dawn-08)",
-        marginBottom: "var(--space-md)",
+        marginBottom: "var(--space-lg)",
       }}
     >
       <h2 className="sigil-section-label">
@@ -34,6 +34,8 @@ export function SigilPanel({ routeName, description, thumbnails }: SigilPanelPro
         height: "100%",
         minHeight: 0,
         overflow: "hidden",
+        paddingLeft: "var(--space-md)",
+        paddingRight: "var(--space-md)",
       }}
     >
       <SectionHeader bearing="03" label="SIGILS" />
@@ -48,13 +50,16 @@ export function SigilPanel({ routeName, description, thumbnails }: SigilPanelPro
           alignItems: "center",
         }}
       >
-        {/* Perspective-tilted stack */}
+        {/* Perspective-tilted stack: min width/height so the card is always visible */}
         <div
           style={{
             perspective: 900,
             display: "flex",
             justifyContent: "center",
             paddingTop: "var(--space-2xl)",
+            paddingBottom: "var(--space-xl)",
+            minWidth: 240,
+            minHeight: 320,
             flexShrink: 0,
           }}
         >
@@ -62,11 +67,15 @@ export function SigilPanel({ routeName, description, thumbnails }: SigilPanelPro
             style={{
               transform: "rotateX(8deg)",
               transformOrigin: "center bottom",
+              width: "100%",
+              maxWidth: 260,
+              display: "flex",
+              justifyContent: "center",
             }}
           >
             <ImageDiskStack
               images={thumbnails}
-              size="md"
+              size="lg"
               perspective
             />
           </div>
@@ -76,13 +85,14 @@ export function SigilPanel({ routeName, description, thumbnails }: SigilPanelPro
           <div
             style={{
               fontFamily: "var(--font-mono)",
-              fontSize: "10px",
+              fontSize: "11px",
               letterSpacing: "0.06em",
               textTransform: "uppercase",
               color: "var(--dawn-30)",
-              marginTop: "var(--space-md)",
+              marginTop: "var(--space-sm)",
               paddingLeft: "var(--space-sm)",
               paddingRight: "var(--space-sm)",
+              textAlign: "center",
             }}
           >
             {routeName}
@@ -93,7 +103,7 @@ export function SigilPanel({ routeName, description, thumbnails }: SigilPanelPro
           <p
             style={{
               fontFamily: "var(--font-sans)",
-              fontSize: "13px",
+              fontSize: "14px",
               color: "var(--dawn-70)",
               lineHeight: 1.5,
               marginTop: "var(--space-sm)",

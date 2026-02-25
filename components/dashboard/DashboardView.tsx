@@ -143,11 +143,11 @@ export function DashboardView() {
       style={{
         width: "100%",
         maxWidth: 1200,
-        margin: "0 auto",
+        margin: "0 0 0 var(--space-2xl)",
         height: "100%",
         minHeight: 0,
         display: "grid",
-        gridTemplateColumns: "240px 1fr 300px",
+        gridTemplateColumns: "260px 1fr 320px",
         gap: "var(--space-xl)",
       }}
     >
