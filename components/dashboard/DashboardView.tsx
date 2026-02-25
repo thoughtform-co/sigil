@@ -122,20 +122,18 @@ export function DashboardView() {
       className="w-full animate-fade-in-up"
       style={{
         paddingTop: "var(--space-2xl)",
-        display: "flex",
-        gap: "var(--space-md)",
-        alignItems: "flex-start",
+        display: "grid",
+        gridTemplateColumns: "1fr 220px",
+        gap: "var(--space-xl)",
+        alignItems: "start",
       }}
     >
-      {/* Spacer: gives the left nav breathing room and centers gallery */}
-      <div style={{ flex: "0 0 96px" }} />
-
-      {/* Center: gallery within a subtle square frame */}
+      {/* Center: gallery within a subtle square frame, centered in its column */}
       <div
         style={{
-          flex: 1,
-          minWidth: 0,
-          maxWidth: "min(100%, 960px)",
+          width: "100%",
+          maxWidth: 960,
+          margin: "0 auto",
           border: "1px solid var(--dawn-08)",
           padding: "var(--space-md)",
           background: "transparent",
@@ -147,12 +145,9 @@ export function DashboardView() {
       {/* Right: journeys + admin stats */}
       <aside
         style={{
-          flex: "0 0 220px",
-          marginLeft: "auto",
-          marginRight: "32px",
           position: "sticky",
           top: "calc(var(--hud-padding) + 80px)",
-          textAlign: "right",
+          paddingRight: "var(--space-xl)",
         }}
       >
         <JourneyList journeys={data.journeys} />
