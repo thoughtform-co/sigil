@@ -23,7 +23,18 @@ const bulkDisableSchema = z.object({
   userIds: z.array(z.string().uuid()).min(1).max(50),
 });
 
-const bulkSchema = z.discriminatedUnion("action", [bulkInviteSchema, bulkRemoveSchema, bulkDisableSchema]);
+const bulkAssignSchema = z.object({
+  action: z.literal("assign"),
+  userIds: z.array(z.string().uuid()).min(1).max(50),
+  workspaceProjectId: z.string().uuid(),
+});
+
+const bulkSchema = z.discriminatedUnion("action", [
+  bulkInviteSchema,
+  bulkRemoveSchema,
+  bulkDisableSchema,
+  bulkAssignSchema,
+]);
 
 export async function POST(request: Request) {
   const result = await requireAdmin();
@@ -42,6 +53,10 @@ export async function POST(request: Request) {
 
   if (data.action === "remove") {
     return handleBulkRemove(data);
+  }
+
+  if (data.action === "assign") {
+    return handleBulkAssign(data);
   }
 
   return handleBulkDisable(data);
@@ -130,6 +145,26 @@ async function handleBulkRemove(data: z.infer<typeof bulkRemoveSchema>) {
   }
 
   return json({ removed });
+}
+
+async function handleBulkAssign(data: z.infer<typeof bulkAssignSchema>) {
+  const assigned: string[] = [];
+
+  for (const userId of data.userIds) {
+    await prisma.workspaceProjectMember.upsert({
+      where: {
+        workspaceProjectId_userId: {
+          workspaceProjectId: data.workspaceProjectId,
+          userId,
+        },
+      },
+      update: {},
+      create: { workspaceProjectId: data.workspaceProjectId, userId },
+    });
+    assigned.push(userId);
+  }
+
+  return json({ assigned });
 }
 
 async function handleBulkDisable(data: z.infer<typeof bulkDisableSchema>) {

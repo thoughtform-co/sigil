@@ -1,7 +1,7 @@
 import { NavigationFrame } from "@/components/hud/NavigationFrame";
 import { RequireAdmin } from "@/components/auth/RequireAdmin";
 import { AdminHealthPanel } from "@/components/admin/AdminHealthPanel";
-import { AllowedEmailsAdmin } from "@/components/admin/AllowedEmailsAdmin";
+import { UserManagementAdmin } from "@/components/admin/UserManagementAdmin";
 import { PromptEnhancementAdmin } from "@/components/admin/PromptEnhancementAdmin";
 import { FailedGenerationsPanel } from "@/components/admin/FailedGenerationsPanel";
 
@@ -22,7 +22,7 @@ export default function AdminPage() {
 
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-xl)" }}>
             <AdminHealthPanel />
-            <AllowedEmailsAdmin />
+            <UserManagementAdmin />
             <PromptEnhancementAdmin />
             <FailedGenerationsPanel />
           </div>
