@@ -1,8 +1,10 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { ImageDiskStack, type ImageDiskStackImage } from "@/components/journeys/ImageDiskStack";
 
 type SigilPanelProps = {
+  routeId: string | null;
   routeName: string;
   description: string | null;
   thumbnails: ImageDiskStackImage[];
@@ -25,7 +27,14 @@ function SectionHeader({ bearing, label }: { bearing: string; label: string }) {
   );
 }
 
-export function SigilPanel({ routeName, description, thumbnails }: SigilPanelProps) {
+export function SigilPanel({ routeId, routeName, description, thumbnails }: SigilPanelProps) {
+  const router = useRouter();
+
+  const handleSigilSelect = (image: ImageDiskStackImage) => {
+    if (!routeId) return;
+    const sessionParam = image.sessionId ? `?session=${encodeURIComponent(image.sessionId)}` : "";
+    router.push(`/routes/${routeId}/image${sessionParam}`);
+  };
   return (
     <div
       style={{
@@ -77,6 +86,7 @@ export function SigilPanel({ routeName, description, thumbnails }: SigilPanelPro
               images={thumbnails}
               size="lg"
               perspective
+              onSelect={routeId ? handleSigilSelect : undefined}
             />
           </div>
         </div>

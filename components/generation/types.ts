@@ -22,6 +22,7 @@ export type OutputItem = {
 
 export type GenerationItem = {
   id: string;
+  sessionId?: string;
   prompt: string;
   negativePrompt?: string | null;
   parameters?: Record<string, unknown>;

@@ -216,9 +216,20 @@ export class GeminiAdapter extends BaseModelAdapter {
     const refImages =
       request.referenceImages ?? (request.referenceImage ? [request.referenceImage] : []);
     for (const img of refImages) {
-      const match = img.match(/^data:([^;]+);base64,(.+)$/);
-      if (match) {
-        parts.push({ inlineData: { mimeType: match[1], data: match[2] } });
+      const dataUrlMatch = img.match(/^data:([^;]+);base64,(.+)$/s);
+      if (dataUrlMatch) {
+        parts.push({ inlineData: { mimeType: dataUrlMatch[1], data: dataUrlMatch[2] } });
+      } else if (img.startsWith("http")) {
+        try {
+          const imgRes = await fetch(img);
+          if (imgRes.ok) {
+            const buf = Buffer.from(await imgRes.arrayBuffer());
+            const ct = imgRes.headers.get("content-type") || "image/jpeg";
+            parts.push({ inlineData: { mimeType: ct, data: buf.toString("base64") } });
+          }
+        } catch (e) {
+          console.error("Failed to fetch reference image for Gemini:", e);
+        }
       }
     }
 

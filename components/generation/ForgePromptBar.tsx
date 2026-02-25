@@ -76,16 +76,67 @@ export function ForgePromptBar({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const modelPickerRef = useRef<HTMLDivElement>(null);
 
+  const [inputHeight, setInputHeight] = useState(52);
+  const [isResizing, setIsResizing] = useState(false);
+  const resizeStartY = useRef(0);
+  const resizeStartHeight = useRef(52);
+  const currentHeightRef = useRef(52);
+  const rafId = useRef<number | null>(null);
+
+  useEffect(() => { currentHeightRef.current = inputHeight; }, [inputHeight]);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
+    resizeStartY.current = clientY;
+    resizeStartHeight.current = currentHeightRef.current;
+    setIsResizing(true);
+  }, []);
+
+  const handleResizeMove = useCallback((e: MouseEvent | TouchEvent) => {
+    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
+    const delta = resizeStartY.current - clientY;
+    const newHeight = Math.min(Math.max(resizeStartHeight.current + delta, 48), 320);
+    if (rafId.current) cancelAnimationFrame(rafId.current);
+    rafId.current = requestAnimationFrame(() => {
+      currentHeightRef.current = newHeight;
+      setInputHeight(newHeight);
+    });
+  }, []);
+
+  const handleResizeEnd = useCallback(() => {
+    if (rafId.current) { cancelAnimationFrame(rafId.current); rafId.current = null; }
+    setIsResizing(false);
+  }, []);
+
+  useEffect(() => {
+    if (!isResizing) return;
+    window.addEventListener("mousemove", handleResizeMove);
+    window.addEventListener("mouseup", handleResizeEnd);
+    window.addEventListener("touchmove", handleResizeMove);
+    window.addEventListener("touchend", handleResizeEnd);
+    return () => {
+      window.removeEventListener("mousemove", handleResizeMove);
+      window.removeEventListener("mouseup", handleResizeEnd);
+      window.removeEventListener("touchmove", handleResizeMove);
+      window.removeEventListener("touchend", handleResizeEnd);
+    };
+  }, [isResizing, handleResizeMove, handleResizeEnd]);
+
   const selectedModel = models.find((m) => m.id === modelId);
   const displayModelName = selectedModel ? selectedModel.name : modelId || "Model";
 
   useEffect(() => {
+    if (isResizing) return;
     const t = textareaRef.current;
     if (!t) return;
     t.style.height = "auto";
-    const h = Math.min(Math.max(t.scrollHeight, 48), 200);
-    t.style.height = `${h}px`;
-  }, [prompt]);
+    const natural = Math.max(t.scrollHeight, 48);
+    if (natural > inputHeight) {
+      const h = Math.min(natural, 320);
+      setInputHeight(h);
+    }
+  }, [prompt, isResizing, inputHeight]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -213,10 +264,24 @@ export function ForgePromptBar({
     <div className={styles.promptBarContainer}>
       <div className={styles.promptBarRow}>
         <div
-          className={styles.unifiedPromptContainer}
+          className={`${styles.unifiedPromptContainer} ${enhancing ? styles.enhancingGlow : ""}`}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
+          style={{ position: "relative" }}
         >
+          {/* Resize handle */}
+          <div
+            className={styles.resizeHandle}
+            onMouseDown={handleResizeStart}
+            onTouchStart={handleResizeStart}
+          >
+            <div className={`${styles.resizeGrip} ${isResizing ? styles.resizeGripActive : ""}`}>
+              <svg width="16" height="4" viewBox="0 0 16 4" fill="currentColor">
+                <rect x="0" y="0" width="16" height="1" rx="0.5" opacity="0.6" />
+                <rect x="0" y="3" width="16" height="1" rx="0.5" opacity="0.4" />
+              </svg>
+            </div>
+          </div>
           <input
             ref={fileInputRef}
             type="file"
@@ -282,7 +347,8 @@ export function ForgePromptBar({
               <textarea
                 ref={textareaRef}
                 id="forge-prompt-bar-prompt"
-                className={styles.promptInput}
+                className={`${styles.promptInput} ${enhancing ? styles.promptEnhancing : ""}`}
+                style={{ height: `${inputHeight}px`, transition: isResizing ? "none" : undefined }}
                 value={prompt}
                 onChange={(e) => onPromptChange(e.target.value)}
                 onKeyDown={handleKeyDown}
@@ -380,11 +446,17 @@ export function ForgePromptBar({
               )}
               <button
                 type="button"
-                className={styles.paramButton}
+                className={`${styles.paramButton} ${enhancing ? styles.enhanceActive : ""}`}
                 disabled={enhancing || !prompt.trim() || !modelId || busy}
                 onClick={() => void onEnhance()}
               >
-                {enhancing ? "…" : "Enhance"}
+                {enhancing ? (
+                  <span className={styles.enhanceSpinner}>
+                    <span className={styles.enhanceDot} />
+                    <span className={styles.enhanceDot} />
+                    <span className={styles.enhanceDot} />
+                  </span>
+                ) : "Enhance"}
               </button>
             </div>
           </div>

@@ -13,7 +13,7 @@ export type DashboardRouteItem = {
   updatedAt: string;
   waypointCount: number;
   generationCount: number;
-  thumbnails: { id: string; fileUrl: string; fileType: string; width: number | null; height: number | null }[];
+  thumbnails: { id: string; fileUrl: string; fileType: string; width: number | null; height: number | null; sessionId?: string }[];
 };
 
 export type DashboardJourneyItem = {
@@ -183,6 +183,7 @@ export function DashboardView() {
 
       <div style={{ minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
         <SigilPanel
+          routeId={selectedRoute?.id ?? null}
           routeName={selectedRoute?.name ?? ""}
           description={selectedRoute?.description ?? null}
           thumbnails={selectedRoute?.thumbnails ?? []}

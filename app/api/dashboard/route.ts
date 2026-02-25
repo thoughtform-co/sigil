@@ -121,6 +121,7 @@ export async function GET() {
             height: true,
             generation: {
               select: {
+                sessionId: true,
                 session: { select: { projectId: true } },
               },
             },
@@ -128,7 +129,10 @@ export async function GET() {
         });
 
   // Group by projectId, keep last 8 per route (outputs are already desc by createdAt)
-  const thumbnailsByProjectId = new Map<string, { id: string; fileUrl: string; fileType: string; width: number | null; height: number | null }[]>();
+  const thumbnailsByProjectId = new Map<
+    string,
+    { id: string; fileUrl: string; fileType: string; width: number | null; height: number | null; sessionId: string }[]
+  >();
   for (const o of routeOutputs) {
     const projectId = o.generation.session.projectId;
     const list = thumbnailsByProjectId.get(projectId) ?? [];
@@ -139,6 +143,7 @@ export async function GET() {
         fileType: o.fileType,
         width: o.width,
         height: o.height,
+        sessionId: o.generation.sessionId,
       });
       thumbnailsByProjectId.set(projectId, list);
     }

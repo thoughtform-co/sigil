@@ -7,6 +7,7 @@ import { checkRateLimit } from "@/lib/api/rate-limit";
 import { projectAccessFilter } from "@/lib/auth/project-access";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 

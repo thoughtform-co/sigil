@@ -121,15 +121,18 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
       setSelectedSessionId(null);
       return;
     }
+    const urlSession = searchParams.get("session");
+    const urlSessionValid = urlSession && filtered.some((s) => s.id === urlSession);
     const storageKey = `sigil:lastSession:${projectId}:${mode}`;
     const stored = typeof window !== "undefined" ? sessionStorage.getItem(storageKey) : null;
     const storedValid = stored && filtered.some((s) => s.id === stored);
     setSelectedSessionId((prev) => {
+      if (urlSessionValid) return urlSession;
       const stillValid = prev && filtered.some((s) => s.id === prev);
       if (stillValid) return prev;
       return storedValid ? stored : filtered[0].id;
     });
-  }, [sessions, mode, projectId]);
+  }, [sessions, mode, projectId, searchParams]);
 
   useEffect(() => {
     if (!selectedSessionId) return;
@@ -176,7 +179,10 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
     [selectedSessionId, sessions],
   );
 
-  const generationsVisible = generations;
+  const generationsVisible = useMemo(() => {
+    const modeSessionIds = new Set(sessionsFiltered.map((s) => s.id));
+    return generations.filter((g) => !g.sessionId || modeSessionIds.has(g.sessionId));
+  }, [generations, sessionsFiltered]);
 
   const sessionThumbnails = useMemo(() => {
     const thumbnails: Record<string, string> = {};
@@ -306,21 +312,23 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
       }
 
       let resolvedReferenceUrl = referenceImageUrl.trim() || undefined;
-      if (resolvedReferenceUrl && resolvedReferenceUrl.startsWith("data:")) {
-        const uploadRes = await fetch("/api/upload/reference-image", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            dataUrl: resolvedReferenceUrl,
-            projectId: projectId || undefined,
-          }),
-        });
-        if (!uploadRes.ok) {
-          const uploadData = (await uploadRes.json().catch(() => ({}))) as { error?: string };
-          throw new Error(uploadData.error ?? "Reference image upload failed");
+      if (resolvedReferenceUrl && (resolvedReferenceUrl.startsWith("data:") || resolvedReferenceUrl.startsWith("blob:"))) {
+        const compressedDataUrl = await compressImage(resolvedReferenceUrl, { maxDim: 2048, maxSizeMB: 4, quality: 0.85 });
+        if (compressedDataUrl) {
+          const uploadRes = await fetch("/api/upload/reference-image", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ dataUrl: compressedDataUrl, projectId: projectId || undefined }),
+          });
+          const ct = uploadRes.headers.get("content-type") ?? "";
+          if (!ct.includes("application/json")) {
+            const text = await uploadRes.text();
+            throw new Error(`Upload returned non-JSON (${uploadRes.status}): ${text.slice(0, 120)}`);
+          }
+          const uploadData = (await uploadRes.json()) as { url?: string; referenceImageUrl?: string; error?: string };
+          if (!uploadRes.ok) throw new Error(uploadData.error ?? "Reference image upload failed");
+          resolvedReferenceUrl = uploadData.referenceImageUrl ?? uploadData.url ?? resolvedReferenceUrl;
         }
-        const uploadData = (await uploadRes.json()) as { url?: string; referenceImageUrl?: string };
-        resolvedReferenceUrl = uploadData.referenceImageUrl ?? uploadData.url ?? resolvedReferenceUrl;
       }
 
       const parameters: Record<string, unknown> = {
@@ -341,6 +349,11 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
           parameters,
         }),
       });
+      const genCt = response.headers.get("content-type") ?? "";
+      if (!genCt.includes("application/json")) {
+        const text = await response.text();
+        throw new Error(`Generate returned non-JSON (${response.status}): ${text.slice(0, 120)}`);
+      }
       const data = (await response.json()) as { generation?: { id: string }; error?: string };
       if (!response.ok) throw new Error(data.error ?? "Failed to submit generation");
       setPrompt("");
@@ -360,31 +373,129 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
     }
   }
 
+  const morphIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (morphIntervalRef.current) clearInterval(morphIntervalRef.current);
+    };
+  }, []);
+
+  async function compressImage(
+    src: string,
+    opts: { maxDim?: number; maxSizeMB?: number; quality?: number } = {},
+  ): Promise<string | undefined> {
+    const { maxDim = 1024, maxSizeMB = 2, quality: initQuality = 0.82 } = opts;
+    if (!src || (!src.startsWith("data:") && !src.startsWith("blob:") && !src.startsWith("http"))) return undefined;
+    try {
+      const res = await fetch(src);
+      if (!res.ok) return undefined;
+      const blob = await res.blob();
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(blob);
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject();
+        img.src = objectUrl;
+      });
+      URL.revokeObjectURL(objectUrl);
+
+      let { width, height } = img;
+      if (width > maxDim || height > maxDim) {
+        const ratio = maxDim / Math.max(width, height);
+        width = Math.floor(width * ratio);
+        height = Math.floor(height * ratio);
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return undefined;
+      ctx.drawImage(img, 0, 0, width, height);
+
+      let quality = initQuality;
+      let dataUrl = canvas.toDataURL("image/jpeg", quality);
+      const approxMB = (s: string) => Math.floor(((s.split(",")[1] || "").length * 3) / 4) / (1024 * 1024);
+      let attempts = 0;
+      while (approxMB(dataUrl) > maxSizeMB && attempts < 4 && quality > 0.5) {
+        quality = Math.max(0.5, quality - 0.1);
+        dataUrl = canvas.toDataURL("image/jpeg", quality);
+        attempts++;
+      }
+      if (approxMB(dataUrl) > maxSizeMB) return undefined;
+      return dataUrl;
+    } catch {
+      return undefined;
+    }
+  }
+
   async function enhancePrompt() {
     if (!prompt.trim() || !modelId) return;
     setEnhancing(true);
     setMessage(null);
+    const originalPrompt = prompt;
     try {
+      const imageData = referenceImageUrl.trim()
+        ? await compressImage(referenceImageUrl.trim(), { maxDim: 1024, maxSizeMB: 2, quality: 0.8 })
+        : undefined;
+
       const response = await fetch("/api/prompts/enhance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: prompt.trim(),
           modelId,
-          referenceImageUrl: referenceImageUrl.trim() || undefined,
+          referenceImageUrl: imageData,
         }),
       });
-      const data = (await response.json().catch(() => ({}))) as { enhancedPrompt?: string; error?: string };
-      if (!response.ok) throw new Error(data.error ?? "Failed to enhance prompt");
+      const data = (await response.json().catch(() => ({}))) as { enhancedPrompt?: string; error?: unknown };
+      if (!response.ok) {
+        const errStr = typeof data.error === "string" ? data.error : JSON.stringify(data.error) || "Failed to enhance prompt";
+        throw new Error(errStr);
+      }
       if (typeof data.enhancedPrompt === "string" && data.enhancedPrompt.trim()) {
-        setPrompt(data.enhancedPrompt.trim());
-        setMessage("Prompt enhanced.");
+        const enhanced = data.enhancedPrompt.trim();
+        const GLITCH = "░▒▓█▄▀■□▪▫●○◆◇";
+        const steps = 45;
+        const duration = 1400;
+        let step = 0;
+
+        if (morphIntervalRef.current) clearInterval(morphIntervalRef.current);
+        morphIntervalRef.current = setInterval(() => {
+          step++;
+          const progress = Math.min(step / steps, 1);
+          const chars = enhanced.split("");
+          const orig = originalPrompt.split("");
+          const maxLen = Math.max(chars.length, orig.length);
+          const result: string[] = [];
+
+          for (let i = 0; i < maxLen; i++) {
+            const ec = chars[i] ?? "";
+            const oc = orig[i] ?? "";
+            const cp = Math.max(0, Math.min(1, progress * 1.5 - (i / maxLen) * 0.5));
+            if (cp < 0.2) result.push(oc);
+            else if (cp < 0.4) result.push(Math.random() < 0.6 ? GLITCH[Math.floor(Math.random() * GLITCH.length)] : oc);
+            else if (cp < 0.7) result.push(Math.random() < 0.7 ? GLITCH[Math.floor(Math.random() * GLITCH.length)] : Math.random() < 0.5 ? ec : oc);
+            else if (cp < 0.9) result.push(Math.random() < 0.25 ? GLITCH[Math.floor(Math.random() * GLITCH.length)] : ec);
+            else result.push(ec);
+          }
+
+          setPrompt(result.join(""));
+
+          if (progress >= 1) {
+            if (morphIntervalRef.current) clearInterval(morphIntervalRef.current);
+            morphIntervalRef.current = null;
+            setPrompt(enhanced);
+            setMessage("Prompt enhanced.");
+            setEnhancing(false);
+          }
+        }, duration / steps);
+        return;
       }
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Failed to enhance prompt");
-    } finally {
-      setEnhancing(false);
     }
+    setEnhancing(false);
   }
 
   async function retryGeneration(generationId: string) {

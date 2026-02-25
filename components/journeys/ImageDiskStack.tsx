@@ -12,6 +12,8 @@ export type ImageDiskStackImage = {
   fileType: string;
   width: number | null;
   height: number | null;
+  /** Session (waypoint) id this output belongs to; used for opening route at waypoint */
+  sessionId?: string;
 };
 
 type ImageDiskStackProps = {
@@ -20,6 +22,8 @@ type ImageDiskStackProps = {
   size?: "sm" | "md" | "lg";
   /** When true, back layers use larger translateY offset for depth (e.g. in perspective-tilted view). */
   perspective?: boolean;
+  /** When set, click on the front card calls this instead of cycling to next image. */
+  onSelect?: (image: ImageDiskStackImage, index: number) => void;
 };
 
 export function ImageDiskStack({
@@ -27,6 +31,7 @@ export function ImageDiskStack({
   aspectRatio = "3/4",
   size = "sm",
   perspective: usePerspectiveOffset = false,
+  onSelect,
 }: ImageDiskStackProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const n = images.length;
@@ -97,10 +102,14 @@ export function ImageDiskStack({
       tabIndex={0}
       onClick={(e) => {
         e.stopPropagation();
-        goNext();
+        if (onSelect) {
+          onSelect(getImageAtIndex(currentIndex), currentIndex);
+        } else {
+          goNext();
+        }
       }}
       onKeyDown={handleKeyDown}
-      aria-label={`Image ${currentIndex + 1} of ${n}. Click or use arrows to cycle.`}
+      aria-label={onSelect ? `Image ${currentIndex + 1} of ${n}. Click to open route.` : `Image ${currentIndex + 1} of ${n}. Click or use arrows to cycle.`}
     >
       <div className={styles.stackContainer} style={{ aspectRatio }}>
         {/* Back layers (furthest to nearest) */}
