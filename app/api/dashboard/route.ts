@@ -90,6 +90,7 @@ export async function GET() {
         select: {
           id: true,
           name: true,
+          description: true,
           updatedAt: true,
           _count: { select: { sessions: true } },
           sessions: {
@@ -99,6 +100,49 @@ export async function GET() {
       },
     },
   });
+
+  // Per-route thumbnails: last 8 outputs per briefing (project)
+  const briefingIds = workspaceProjects.flatMap((wp) => wp.briefings.map((b) => b.id));
+  const routeOutputs =
+    briefingIds.length === 0
+      ? []
+      : await prisma.output.findMany({
+          where: {
+            generation: {
+              session: { projectId: { in: briefingIds } },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            fileUrl: true,
+            fileType: true,
+            width: true,
+            height: true,
+            generation: {
+              select: {
+                session: { select: { projectId: true } },
+              },
+            },
+          },
+        });
+
+  // Group by projectId, keep last 8 per route (outputs are already desc by createdAt)
+  const thumbnailsByProjectId = new Map<string, { id: string; fileUrl: string; fileType: string; width: number | null; height: number | null }[]>();
+  for (const o of routeOutputs) {
+    const projectId = o.generation.session.projectId;
+    const list = thumbnailsByProjectId.get(projectId) ?? [];
+    if (list.length < 8) {
+      list.push({
+        id: o.id,
+        fileUrl: o.fileUrl,
+        fileType: o.fileType,
+        width: o.width,
+        height: o.height,
+      });
+      thumbnailsByProjectId.set(projectId, list);
+    }
+  }
 
   const journeys = workspaceProjects.map((wp) => {
     const totalGenerations = wp.briefings.reduce(
@@ -116,12 +160,21 @@ export async function GET() {
       description: wp.description,
       routeCount: wp._count.briefings,
       generationCount: totalGenerations,
-      routes: wp.briefings.map((b) => ({
-        id: b.id,
-        name: b.name,
-        updatedAt: b.updatedAt,
-        waypointCount: b._count.sessions,
-      })),
+      routes: wp.briefings.map((b) => {
+        const routeGenerationCount = b.sessions.reduce(
+          (s, sess) => s + sess._count.generations,
+          0
+        );
+        return {
+          id: b.id,
+          name: b.name,
+          description: b.description,
+          updatedAt: b.updatedAt,
+          waypointCount: b._count.sessions,
+          generationCount: routeGenerationCount,
+          thumbnails: thumbnailsByProjectId.get(b.id) ?? [],
+        };
+      }),
     };
   });
 

@@ -2,36 +2,27 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { ImageGallery } from "@/components/dashboard/ImageGallery";
-import { JourneyList } from "@/components/dashboard/JourneyList";
-import { AdminStatsPanel } from "@/components/dashboard/AdminStatsPanel";
+import { JourneyPanel } from "@/components/dashboard/JourneyPanel";
+import { RoutePanel } from "@/components/dashboard/RoutePanel";
+import { SigilPanel } from "@/components/dashboard/SigilPanel";
 
-type GalleryItem = {
-  id: string;
-  fileUrl: string;
-  fileType: string;
-  width: number | null;
-  height: number | null;
-  prompt: string;
-  modelId: string;
-  sessionName: string;
-  projectName: string;
-};
-
-type RouteItem = {
+export type DashboardRouteItem = {
   id: string;
   name: string;
+  description: string | null;
   updatedAt: string;
   waypointCount: number;
+  generationCount: number;
+  thumbnails: { id: string; fileUrl: string; fileType: string; width: number | null; height: number | null }[];
 };
 
-type JourneyItem = {
+export type DashboardJourneyItem = {
   id: string;
   name: string;
   description: string | null;
   routeCount: number;
   generationCount: number;
-  routes: RouteItem[];
+  routes: DashboardRouteItem[];
 };
 
 type AdminStatRow = {
@@ -41,8 +32,7 @@ type AdminStatRow = {
 };
 
 type DashboardData = {
-  gallery: GalleryItem[];
-  journeys: JourneyItem[];
+  journeys: DashboardJourneyItem[];
   adminStats?: AdminStatRow[];
 };
 
@@ -51,6 +41,8 @@ export function DashboardView() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedJourneyId, setSelectedJourneyId] = useState<string | null>(null);
+  const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -60,8 +52,9 @@ export function DashboardView() {
           const body = await res.json().catch(() => ({}));
           throw new Error(body.error ?? "Failed to load dashboard");
         }
-        const json = (await res.json()) as DashboardData;
-        setData(json);
+        const json = (await res.json()) as DashboardData & { gallery?: unknown[] };
+        const { gallery: _g, ...rest } = json;
+        setData(rest as DashboardData);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load dashboard");
       } finally {
@@ -70,6 +63,29 @@ export function DashboardView() {
     }
     void load();
   }, []);
+
+  // Default to first journey and first route when data loads
+  useEffect(() => {
+    if (!data?.journeys?.length) return;
+    if (selectedJourneyId === null) {
+      setSelectedJourneyId(data.journeys[0]!.id);
+    }
+  }, [data, selectedJourneyId]);
+
+  useEffect(() => {
+    if (!data?.journeys?.length || selectedJourneyId === null) return;
+    const journey = data.journeys.find((j) => j.id === selectedJourneyId);
+    const routes = journey?.routes ?? [];
+    if (routes.length > 0 && selectedRouteId === null) {
+      setSelectedRouteId(routes[0]!.id);
+    }
+    if (routes.length > 0 && selectedRouteId !== null && !routes.some((r) => r.id === selectedRouteId)) {
+      setSelectedRouteId(routes[0]!.id);
+    }
+    if (routes.length === 0) {
+      setSelectedRouteId(null);
+    }
+  }, [data, selectedJourneyId, selectedRouteId]);
 
   if (loading) {
     return (
@@ -117,44 +133,61 @@ export function DashboardView() {
 
   if (!data) return null;
 
+  const selectedJourney = data.journeys.find((j) => j.id === selectedJourneyId);
+  const routes = selectedJourney?.routes ?? [];
+  const selectedRoute = routes.find((r) => r.id === selectedRouteId);
+
   return (
     <section
-      className="w-full animate-fade-in-up"
+      className="dashboard-three-panel w-full animate-fade-in-up"
       style={{
-        paddingTop: "var(--space-2xl)",
+        width: "100%",
+        maxWidth: 1200,
+        margin: "0 auto",
+        height: "100%",
+        minHeight: 0,
         display: "grid",
-        gridTemplateColumns: "1fr 220px",
+        gridTemplateColumns: "240px 1fr 300px",
         gap: "var(--space-xl)",
-        alignItems: "start",
       }}
     >
-      {/* Center: gallery within a subtle square frame, centered in its column */}
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 960,
-          margin: "0 auto",
-          border: "1px solid var(--dawn-08)",
-          padding: "var(--space-md)",
-          background: "transparent",
-        }}
-      >
-        <ImageGallery items={data.gallery} />
+      <div className="dashboard-left-middle">
+        <div style={{ minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+          <JourneyPanel
+            journeys={data.journeys}
+            selectedJourneyId={selectedJourneyId}
+            onSelectJourney={setSelectedJourneyId}
+            adminStats={data.adminStats}
+            isAdmin={isAdmin}
+          />
+        </div>
+        <div
+          style={{
+            borderLeft: "1px solid var(--dawn-08)",
+            borderRight: "1px solid var(--dawn-08)",
+            paddingLeft: "var(--space-xl)",
+            paddingRight: "var(--space-xl)",
+            minHeight: 0,
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <RoutePanel
+            routes={routes}
+            selectedRouteId={selectedRouteId}
+            onSelectRoute={setSelectedRouteId}
+          />
+        </div>
       </div>
 
-      {/* Right: journeys + admin stats */}
-      <aside
-        style={{
-          position: "sticky",
-          top: "calc(var(--hud-padding) + 80px)",
-          paddingRight: "var(--space-xl)",
-        }}
-      >
-        <JourneyList journeys={data.journeys} />
-        {isAdmin && data.adminStats && (
-          <AdminStatsPanel stats={data.adminStats} />
-        )}
-      </aside>
+      <div style={{ minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <SigilPanel
+          routeName={selectedRoute?.name ?? ""}
+          description={selectedRoute?.description ?? null}
+          thumbnails={selectedRoute?.thumbnails ?? []}
+        />
+      </div>
     </section>
   );
 }

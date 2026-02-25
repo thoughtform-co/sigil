@@ -306,12 +306,7 @@ body {
 
 /* ─── NAVIGATION RAILS (tick marks rendered in React) ─── */
 
-/* ─── LEFT NAV PANEL ─── */
-
-/* Hide header nav fallback by default (panel is visible) */
-.sigil-header-nav-fallback {
-  display: none;
-}
+/* ─── NAVIGATION RAILS (tick marks rendered in React) ─── */
 
 @media (max-width: 1280px) {
   :root {
@@ -322,15 +317,6 @@ body {
 @media (max-width: 1100px) {
   .hud-rail-tick {
     display: none;
-  }
-
-  .sigil-nav-panel {
-    display: none !important;
-  }
-
-  /* Show header nav links as fallback */
-  .sigil-header-nav-fallback {
-    display: inline;
   }
 }
 
@@ -359,7 +345,7 @@ body {
 
 .hud-shell {
   min-height: 100vh;
-  padding-top: calc(var(--hud-padding) + 80px);
+  padding-top: calc(var(--hud-padding) + 56px);
   padding-bottom: calc(var(--hud-padding) + 40px);
   display: flex;
   flex-direction: column;
@@ -372,8 +358,48 @@ body {
   height: 100vh;
   min-height: 0;
   overflow: hidden;
-  padding-top: 0;
+  padding-top: calc(var(--hud-padding) + 56px);
   padding-bottom: 0;
+}
+
+/* Dashboard three-panel fills workspace height */
+.hud-shell--workspace .dashboard-three-panel {
+  flex: 1;
+  min-height: 0;
+}
+
+.dashboard-three-panel {
+  grid-column: 1 / -1;
+}
+
+.dashboard-three-panel .dashboard-left-middle {
+  grid-column: 1 / span 2;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 0;
+  overflow: hidden;
+  gap: var(--space-xl);
+}
+
+@media (max-width: 1280px) {
+  .dashboard-three-panel {
+    grid-template-columns: 1fr 300px;
+  }
+
+  .dashboard-three-panel .dashboard-left-middle {
+    grid-column: 1;
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .dashboard-three-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-three-panel .dashboard-left-middle {
+    grid-column: 1;
+  }
 }
 
 /* Dashboard gallery: max 4 columns, then wrap; fewer columns on small screens */
@@ -791,4 +817,8 @@ body {
   50% {
     opacity: 1;
   }
+}
+
+.sigil-particle-logo svg {
+  animation: sigilParticlePulse 2s ease-in-out infinite;
 }
