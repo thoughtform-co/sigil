@@ -2,26 +2,66 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import useSWR from "swr";
+import useSWRInfinite from "swr/infinite";
 import type { GenerationItem, GenerationType, ModelItem, SessionItem } from "@/components/generation/types";
 import { useGenerationsRealtime } from "@/hooks/useGenerationsRealtime";
 import { ForgeSidebar } from "@/components/generation/ForgeSidebar";
 import { ForgeGallery } from "@/components/generation/ForgeGallery";
 import { ForgePromptBar } from "@/components/generation/ForgePromptBar";
 
-import { BrainstormPanel } from "@/components/generation/BrainstormPanel";
-import { ConvertToVideoModal } from "@/components/generation/ConvertToVideoModal";
+import dynamic from "next/dynamic";
 import { CanvasSidebar } from "@/components/canvas/CanvasSidebar";
-import { CanvasWorkspace } from "@/components/canvas/CanvasWorkspace";
+
+const BrainstormPanel = dynamic(
+  () => import("@/components/generation/BrainstormPanel").then((m) => m.BrainstormPanel),
+  { ssr: false },
+);
+
+const ConvertToVideoModal = dynamic(
+  () => import("@/components/generation/ConvertToVideoModal").then((m) => m.ConvertToVideoModal),
+  { ssr: false },
+);
+
+const CanvasWorkspace = dynamic(
+  () => import("@/components/canvas/CanvasWorkspace").then((m) => m.CanvasWorkspace),
+  { ssr: false },
+);
 import type { WorkflowItem } from "@/components/canvas/types";
+import type { PrefetchedWorkspaceData } from "@/lib/prefetch/workspace";
 import type { Node, Edge, Viewport } from "@xyflow/react";
 import styles from "./ProjectWorkspace.module.css";
 
-export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode: GenerationType }) {
+const GENERATIONS_PAGE_SIZE = 20;
+
+type GenerationsPage = {
+  generations: GenerationItem[];
+  nextCursor: string | null;
+};
+
+const jsonFetcher = <T,>(url: string): Promise<T> =>
+  fetch(url, { cache: "no-store" }).then((r) => {
+    if (!r.ok) throw new Error(`Fetch failed: ${r.status}`);
+    return r.json() as Promise<T>;
+  });
+
+export function ProjectWorkspace({
+  projectId,
+  mode,
+  prefetchedData,
+}: {
+  projectId: string;
+  mode: GenerationType;
+  prefetchedData?: PrefetchedWorkspaceData;
+}) {
+  const mountedRef = useRef(false);
+  if (!mountedRef.current) {
+    mountedRef.current = true;
+    if (typeof performance !== "undefined") performance.mark("sigil:route-open");
+  }
+
   const searchParams = useSearchParams();
-  const [models, setModels] = useState<ModelItem[]>([]);
-  const [sessions, setSessions] = useState<SessionItem[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-  const [generations, setGenerations] = useState<GenerationItem[]>([]);
   const [prompt, setPrompt] = useState("");
   const [referenceImageUrl, setReferenceImageUrl] = useState("");
   const [aspectRatio, setAspectRatio] = useState("1:1");
@@ -44,6 +84,80 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
   const [selectedWorkflow, setSelectedWorkflow] = useState<WorkflowItem | null>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // --- SWR: sessions (stable, rarely changes) ---
+  const { data: sessionsData, mutate: mutateSessions } = useSWR<{ sessions: SessionItem[] }>(
+    `/api/sessions?projectId=${projectId}`,
+    jsonFetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 30_000,
+      fallbackData: prefetchedData?.sessions
+        ? { sessions: prefetchedData.sessions }
+        : undefined,
+    },
+  );
+  const sessions = sessionsData?.sessions ?? [];
+
+  // --- SWR: models (very stable, changes only on admin config) ---
+  const { data: modelsData } = useSWR<{ models: ModelItem[] }>(
+    `/api/models?type=${mode}`,
+    jsonFetcher,
+    { revalidateOnFocus: false, revalidateOnReconnect: false, dedupingInterval: 120_000 },
+  );
+  const models = modelsData?.models ?? [];
+
+  // --- SWR: generations (infinite scroll, realtime-updated) ---
+  const {
+    data: generationsPages,
+    size: generationsPageCount,
+    setSize: setGenerationsPageCount,
+    mutate: mutateGenerations,
+    isLoading: isLoadingGenerations,
+  } = useSWRInfinite<GenerationsPage>(
+    (pageIndex, previousPageData) => {
+      if (mode === "canvas") return null;
+      if (previousPageData && !previousPageData.nextCursor) return null;
+      const params = new URLSearchParams({ projectId, limit: String(GENERATIONS_PAGE_SIZE) });
+      if (pageIndex > 0 && previousPageData?.nextCursor) {
+        params.set("cursor", previousPageData.nextCursor);
+      }
+      return `/api/generations?${params}`;
+    },
+    jsonFetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      revalidateFirstPage: false,
+      dedupingInterval: 5_000,
+      fallbackData: prefetchedData?.generationsPage
+        ? [prefetchedData.generationsPage]
+        : undefined,
+    },
+  );
+
+  const generations = useMemo(
+    () => generationsPages?.flatMap((p) => p.generations) ?? [],
+    [generationsPages],
+  );
+
+  const hasMoreGenerations =
+    generationsPages != null &&
+    generationsPages.length > 0 &&
+    generationsPages[generationsPages.length - 1]?.nextCursor != null;
+
+  const isLoadingMoreGenerations =
+    isLoadingGenerations ||
+    (generationsPageCount > 0 &&
+      generationsPages != null &&
+      typeof generationsPages[generationsPageCount - 1] === "undefined");
+
+  const loadMoreGenerations = useCallback(() => {
+    if (hasMoreGenerations && !isLoadingMoreGenerations) {
+      void setGenerationsPageCount((s) => s + 1);
+    }
+  }, [hasMoreGenerations, isLoadingMoreGenerations, setGenerationsPageCount]);
+
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)");
     const fn = () => setIsNarrow(mq.matches);
@@ -64,36 +178,21 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
   }, [projectId]);
 
   useEffect(() => {
-    async function loadModels() {
-      const response = await fetch(`/api/models?type=${mode}`, { cache: "no-store" });
-      if (!response.ok) return;
-      const data = (await response.json()) as { models: ModelItem[] };
-      setModels(data.models);
-      const storageKey = `sigil:lastModel:${projectId}:${mode}`;
-      const stored = typeof window !== "undefined" ? sessionStorage.getItem(storageKey) : null;
-      const storedValid = stored && data.models.some((m) => m.id === stored);
-      setModelId((prev) => {
-        if (prev && data.models.some((m) => m.id === prev)) return prev;
-        return storedValid ? stored! : data.models[0]?.id ?? "";
-      });
-    }
-    void loadModels();
-  }, [mode, projectId]);
+    if (!models.length) return;
+    const storageKey = `sigil:lastModel:${projectId}:${mode}`;
+    const stored = typeof window !== "undefined" ? sessionStorage.getItem(storageKey) : null;
+    const storedValid = stored && models.some((m) => m.id === stored);
+    setModelId((prev) => {
+      if (prev && models.some((m) => m.id === prev)) return prev;
+      return storedValid ? stored! : models[0]?.id ?? "";
+    });
+  }, [models, mode, projectId]);
 
   const sessionsFiltered = useMemo(
     () => sessions.filter((s) => s.type === mode),
     [sessions, mode],
   );
 
-  useEffect(() => {
-    async function loadSessions() {
-      const response = await fetch(`/api/sessions?projectId=${projectId}`, { cache: "no-store" });
-      if (!response.ok) return;
-      const data = (await response.json()) as { sessions: SessionItem[] };
-      setSessions(data.sessions);
-    }
-    void loadSessions();
-  }, [projectId]);
 
   useEffect(() => {
     if (mode !== "canvas") return;
@@ -140,20 +239,38 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
     sessionStorage.setItem(storageKey, selectedSessionId);
   }, [selectedSessionId, projectId, mode]);
 
-  useEffect(() => {
-    async function loadGenerations() {
-      if (mode === "canvas") return;
-      const response = await fetch(`/api/generations?projectId=${projectId}`, {
-        cache: "no-store",
-      });
-      if (!response.ok) return;
-      const data = (await response.json()) as { generations: GenerationItem[] };
-      setGenerations(data.generations);
-    }
-    void loadGenerations();
-  }, [projectId, mode]);
 
-  useGenerationsRealtime(selectedSessionId, setGenerations);
+  const handleRealtimeGeneration = useCallback(
+    (gen: GenerationItem) => {
+      void mutateGenerations((pages) => {
+        if (!pages) return pages;
+        let found = false;
+        const updated = pages.map((page) => {
+          const idx = page.generations.findIndex((g) => g.id === gen.id);
+          if (idx >= 0) {
+            found = true;
+            const gens = [...page.generations];
+            gens[idx] = gen;
+            return { ...page, generations: gens };
+          }
+          return page;
+        });
+        if (!found && updated.length > 0) {
+          const lastIdx = updated.length - 1;
+          updated[lastIdx] = {
+            ...updated[lastIdx],
+            generations: [...updated[lastIdx].generations, gen].sort(
+              (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+            ),
+          };
+        }
+        return updated;
+      }, { revalidate: false });
+    },
+    [mutateGenerations],
+  );
+
+  useGenerationsRealtime(selectedSessionId, handleRealtimeGeneration);
 
   useEffect(() => {
     if (mode === "canvas" || !projectId) return;
@@ -162,17 +279,10 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
     );
     if (!hasProcessing) return;
     const interval = setInterval(() => {
-      void (async () => {
-        const response = await fetch(`/api/generations?projectId=${projectId}`, {
-          cache: "no-store",
-        });
-        if (!response.ok) return;
-        const data = (await response.json()) as { generations: GenerationItem[] };
-        setGenerations(data.generations);
-      })();
+      void mutateGenerations();
     }, 10000);
     return () => clearInterval(interval);
-  }, [generations, projectId, mode]);
+  }, [generations, projectId, mode, mutateGenerations]);
 
   const activeSession = useMemo(
     () => sessions.find((s) => s.id === selectedSessionId) ?? null,
@@ -213,7 +323,14 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
         const data = (await response.json()) as { error?: string };
         throw new Error(data.error ?? "Failed to dismiss");
       }
-      setGenerations((prev) => prev.filter((g) => g.id !== generationId));
+      void mutateGenerations(
+        (pages) =>
+          pages?.map((page) => ({
+            ...page,
+            generations: page.generations.filter((g) => g.id !== generationId),
+          })),
+        { revalidate: false },
+      );
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Failed to dismiss generation");
     }
@@ -278,7 +395,10 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
       const data = (await response.json()) as { session?: SessionItem; error?: string };
       if (!response.ok) throw new Error(data.error ?? "Failed to create session");
       const created = data.session!;
-      setSessions((prev) => [created, ...prev]);
+      void mutateSessions(
+        (cur) => cur ? { sessions: [created, ...cur.sessions] } : { sessions: [created] },
+        { revalidate: false },
+      );
       setSelectedSessionId(created.id);
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Failed to create session");
@@ -306,7 +426,10 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
         const sessionData = (await sessionResponse.json()) as { session?: SessionItem; error?: string };
         if (!sessionResponse.ok) throw new Error(sessionData.error ?? "Failed to create session");
         const created = sessionData.session!;
-        setSessions((prev) => [created, ...prev]);
+        void mutateSessions(
+          (cur) => cur ? { sessions: [created, ...cur.sessions] } : { sessions: [created] },
+          { revalidate: false },
+        );
         setSelectedSessionId(created.id);
         sessionId = created.id;
       }
@@ -356,15 +479,37 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
       }
       const data = (await response.json()) as { generation?: { id: string }; error?: string };
       if (!response.ok) throw new Error(data.error ?? "Failed to submit generation");
+
+      if (data.generation) {
+        const tempGen: GenerationItem = {
+          id: data.generation.id,
+          sessionId: sessionId!,
+          prompt: prompt.trim(),
+          status: "processing",
+          modelId,
+          createdAt: new Date().toISOString(),
+          outputs: [],
+          parameters: { aspectRatio, resolution: Number(resolution) },
+        };
+        void mutateGenerations(
+          (pages) => {
+            if (!pages || pages.length === 0)
+              return [{ generations: [tempGen], nextCursor: null }];
+            const lastIdx = pages.length - 1;
+            return pages.map((page, i) =>
+              i === lastIdx
+                ? { ...page, generations: [...page.generations, tempGen] }
+                : page,
+            );
+          },
+          { revalidate: true },
+        );
+      } else {
+        void mutateGenerations();
+      }
+
       setPrompt("");
       setMessage(data.generation ? `Generation queued: ${data.generation.id}` : "Generation queued.");
-      const refresh = await fetch(`/api/generations?sessionId=${sessionId}`, {
-        cache: "no-store",
-      });
-      if (refresh.ok) {
-        const refreshed = (await refresh.json()) as { generations: GenerationItem[] };
-        setGenerations(refreshed.generations);
-      }
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Failed to submit generation");
     } finally {
@@ -505,13 +650,7 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
       const data = (await response.json().catch(() => ({}))) as { error?: string };
       if (!response.ok) throw new Error(data.error ?? "Failed to retry generation");
       setMessage(`Retry queued: ${generationId}`);
-      if (!selectedSessionId) return;
-      const refresh = await fetch(`/api/generations?sessionId=${selectedSessionId}`, {
-        cache: "no-store",
-      });
-      if (!refresh.ok) return;
-      const refreshed = (await refresh.json()) as { generations: GenerationItem[] };
-      setGenerations(refreshed.generations);
+      void mutateGenerations();
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Failed to retry generation");
     } finally {
@@ -528,13 +667,7 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
       });
       const data = (await response.json().catch(() => ({}))) as { error?: string };
       if (!response.ok) throw new Error(data.error ?? "Failed to update output");
-      if (!selectedSessionId) return;
-      const refresh = await fetch(`/api/generations?sessionId=${selectedSessionId}`, {
-        cache: "no-store",
-      });
-      if (!refresh.ok) return;
-      const refreshed = (await refresh.json()) as { generations: GenerationItem[] };
-      setGenerations(refreshed.generations);
+      void mutateGenerations();
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Failed to update output");
     }
@@ -545,13 +678,7 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
       const response = await fetch(`/api/outputs/${outputId}`, { method: "DELETE" });
       const data = (await response.json().catch(() => ({}))) as { error?: string };
       if (!response.ok) throw new Error(data.error ?? "Failed to delete output");
-      if (!selectedSessionId) return;
-      const refresh = await fetch(`/api/generations?sessionId=${selectedSessionId}`, {
-        cache: "no-store",
-      });
-      if (!refresh.ok) return;
-      const refreshed = (await refresh.json()) as { generations: GenerationItem[] };
-      setGenerations(refreshed.generations);
+      void mutateGenerations();
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Failed to delete output");
     }
@@ -580,10 +707,10 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
       const data = (await response.json().catch(() => ({}))) as { error?: string };
       if (!response.ok) throw new Error(data.error ?? "Failed to delete session");
       const remaining = sessions.filter((s) => s.id !== sessionId);
-      setSessions(remaining);
+      void mutateSessions({ sessions: remaining }, { revalidate: false });
       const nextOfMode = remaining.find((s) => s.type === mode);
       setSelectedSessionId(nextOfMode?.id ?? null);
-      setGenerations([]);
+      void mutateGenerations();
       setMessage("Session deleted.");
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Failed to delete session");
@@ -740,6 +867,10 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
             onDismiss={handleDismissGeneration}
             onApprove={toggleApproveOutput}
             busy={busy}
+            onLoadMore={loadMoreGenerations}
+            hasMore={hasMoreGenerations}
+            isLoadingMore={isLoadingMoreGenerations}
+            isLoading={isLoadingGenerations}
           />
         </div>
       </div>

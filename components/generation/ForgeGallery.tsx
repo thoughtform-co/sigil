@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import type { GenerationItem } from "@/components/generation/types";
 import { ForgeGenerationCard } from "@/components/generation/ForgeGenerationCard";
 import styles from "./ForgeGallery.module.css";
+
+const VIRTUAL_THRESHOLD = 20;
 
 type ForgeGalleryProps = {
   generations: GenerationItem[];
@@ -15,6 +18,10 @@ type ForgeGalleryProps = {
   onDismiss?: (generationId: string) => void;
   onApprove: (outputId: string, isApproved: boolean) => void;
   busy: boolean;
+  onLoadMore?: () => void;
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
+  isLoading?: boolean;
 };
 
 export function ForgeGallery({
@@ -27,12 +34,28 @@ export function ForgeGallery({
   onDismiss,
   onApprove,
   busy,
+  onLoadMore,
+  hasMore,
+  isLoadingMore,
+  isLoading,
 }: ForgeGalleryProps) {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const feedRef = useRef<HTMLDivElement>(null);
   const lastSeenLastIdRef = useRef<string | null>(null);
   const lastSeenStatusRef = useRef<string | null>(null);
   const lastSeenOutputCountRef = useRef<number>(0);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  const perfMarked = useRef(false);
+  useEffect(() => {
+    if (!perfMarked.current && generations.length > 0) {
+      perfMarked.current = true;
+      performance.mark("sigil:gallery-first-render");
+      if (performance.getEntriesByName("sigil:route-open").length > 0) {
+        performance.measure("sigil:route-to-gallery", "sigil:route-open", "sigil:gallery-first-render");
+      }
+    }
+  }, [generations.length]);
 
   const closeLightbox = useCallback(() => setLightboxUrl(null), []);
 
@@ -137,32 +160,97 @@ export function ForgeGallery({
     }
   }, [generations]);
 
+  useEffect(() => {
+    if (!onLoadMore || !hasMore) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) onLoadMore();
+      },
+      { root: feedRef.current, rootMargin: "200px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [onLoadMore, hasMore]);
+
+  const useVirtual = generations.length >= VIRTUAL_THRESHOLD;
+
+  const rowVirtualizer = useVirtualizer({
+    count: generations.length,
+    getScrollElement: () => feedRef.current,
+    estimateSize: () => 400,
+    overscan: 3,
+    gap: 24,
+  });
+
+  const renderCard = useCallback(
+    (generation: GenerationItem) => (
+      <ForgeGenerationCard
+        key={generation.id}
+        generation={generation}
+        onRetry={onRetry}
+        onReuse={onReuse}
+        onRerun={onRerun}
+        onDismiss={onDismiss}
+        onConvertToVideo={onConvertToVideo}
+        onUseAsReference={onUseAsReference}
+        onApprove={onApprove}
+        onLightboxOpen={setLightboxUrl}
+        busy={busy}
+      />
+    ),
+    [onRetry, onReuse, onRerun, onDismiss, onConvertToVideo, onUseAsReference, onApprove, busy],
+  );
+
   return (
     <div className={styles.gallery}>
       <div ref={feedRef} className={styles.feed}>
-        {generations.length === 0 ? (
+        {isLoading && generations.length === 0 ? (
+          <>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={`skel-${i}`} className={styles.skeleton}>
+                <div className={styles.skeletonPrompt} />
+                <div className={styles.skeletonMedia} />
+              </div>
+            ))}
+          </>
+        ) : generations.length === 0 ? (
           <div className={styles.empty}>
             <p className={styles.emptyTitle}>No generations yet</p>
             <p className={styles.emptyBody}>
               Select a session and use the prompt bar below to create your first generation.
             </p>
           </div>
+        ) : useVirtual ? (
+          <div
+            className={styles.virtualContainer}
+            style={{ height: rowVirtualizer.getTotalSize() }}
+          >
+            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+              const generation = generations[virtualRow.index];
+              return (
+                <div
+                  key={generation.id}
+                  data-index={virtualRow.index}
+                  ref={rowVirtualizer.measureElement}
+                  className={styles.virtualRow}
+                  style={{ transform: `translateY(${virtualRow.start}px)` }}
+                >
+                  {renderCard(generation)}
+                </div>
+              );
+            })}
+          </div>
         ) : (
-          generations.map((generation) => (
-            <ForgeGenerationCard
-              key={generation.id}
-              generation={generation}
-              onRetry={onRetry}
-              onReuse={onReuse}
-              onRerun={onRerun}
-              onDismiss={onDismiss}
-              onConvertToVideo={onConvertToVideo}
-              onUseAsReference={onUseAsReference}
-              onApprove={onApprove}
-              onLightboxOpen={setLightboxUrl}
-              busy={busy}
-            />
-          ))
+          generations.map((generation) => renderCard(generation))
+        )}
+        {hasMore && (
+          <div ref={sentinelRef} className={styles.sentinel}>
+            {isLoadingMore && (
+              <span className={styles.loadingMore}>Loading more…</span>
+            )}
+          </div>
         )}
       </div>
 

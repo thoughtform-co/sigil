@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import type { CSSProperties } from "react";
+import Image from "next/image";
 import type { GenerationItem, OutputItem } from "@/components/generation/types";
 import { VideoIterationsStackHint } from "@/components/generation/VideoIterationsStackHint";
 import styles from "./ForgeGenerationCard.module.css";
@@ -263,12 +264,22 @@ export function ForgeGenerationCard({
                           onClick={() => onLightboxOpen(output.fileUrl)}
                           title="Open image"
                         >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img className={styles.media} src={output.fileUrl} alt="Generated output" />
+                          <Image
+                            fill
+                            className={styles.media}
+                            src={output.fileUrl}
+                            alt="Generated output"
+                            sizes="(max-width: 980px) 90vw, 660px"
+                          />
                         </button>
                       ) : (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img className={styles.media} src={output.fileUrl} alt="Generated output" />
+                        <Image
+                          fill
+                          className={styles.media}
+                          src={output.fileUrl}
+                          alt="Generated output"
+                          sizes="(max-width: 980px) 90vw, 660px"
+                        />
                       )}
                     </div>
                   </div>

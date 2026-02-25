@@ -58,6 +58,75 @@
   max-width: 360px;
 }
 
+.skeleton {
+  display: grid;
+  grid-template-columns: minmax(200px, 240px) minmax(0, 1fr);
+  gap: 16px;
+  width: 100%;
+  max-width: 880px;
+}
+
+.skeletonPrompt {
+  min-height: 200px;
+  background: linear-gradient(
+    110deg,
+    var(--dawn-08) 30%,
+    var(--dawn-15) 50%,
+    var(--dawn-08) 70%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+.skeletonMedia {
+  min-height: 200px;
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(
+    110deg,
+    var(--dawn-08) 30%,
+    var(--dawn-15) 50%,
+    var(--dawn-08) 70%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  animation-delay: 0.15s;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.virtualContainer {
+  width: 100%;
+  position: relative;
+}
+
+.virtualRow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.sentinel {
+  width: 100%;
+  min-height: 1px;
+  display: flex;
+  justify-content: center;
+  padding: 12px 0;
+}
+
+.loadingMore {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dawn-30);
+}
+
 /* Lightbox */
 .lightbox {
   position: fixed;

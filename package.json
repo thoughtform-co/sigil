@@ -22,6 +22,7 @@
     "@prisma/client": "^6.19.1",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.57.4",
+    "@tanstack/react-virtual": "^3.13.19",
     "@xyflow/react": "^12.10.1",
     "next": "^16.0.0",
     "react": "^19.2.0",

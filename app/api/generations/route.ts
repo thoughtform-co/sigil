@@ -4,10 +4,39 @@ import { getAuthedUser } from "@/lib/auth/server";
 import { withCacheHeaders } from "@/lib/api/cache-headers";
 import { projectAccessFilter } from "@/lib/auth/project-access";
 
-const DEFAULT_LIMIT = 100;
-const MAX_LIMIT = 500;
+const DEFAULT_LIMIT = 20;
+const MAX_LIMIT = 200;
+
+const GENERATION_SELECT = {
+  id: true,
+  sessionId: true,
+  prompt: true,
+  negativePrompt: true,
+  parameters: true,
+  status: true,
+  modelId: true,
+  createdAt: true,
+  source: true,
+  errorMessage: true,
+  errorCategory: true,
+  errorRetryable: true,
+  lastHeartbeatAt: true,
+  outputs: {
+    select: {
+      id: true,
+      fileUrl: true,
+      fileType: true,
+      isApproved: true,
+      width: true,
+      height: true,
+      duration: true,
+    },
+  },
+} as const;
 
 export async function GET(request: Request) {
+  const t0 = performance.now();
+
   const user = await getAuthedUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -31,50 +60,24 @@ export async function GET(request: Request) {
     const limit = Math.min(Number(searchParams.get("limit")) || DEFAULT_LIMIT, MAX_LIMIT);
     const cursor = searchParams.get("cursor");
 
+    const tQuery = performance.now();
     const generations = await prisma.generation.findMany({
-      where: {
-        session: { projectId },
-      },
+      where: { session: { projectId } },
       orderBy: { createdAt: "asc" },
       take: limit + 1,
       ...(cursor && { cursor: { id: cursor }, skip: 1 }),
-      select: {
-        id: true,
-        sessionId: true,
-        prompt: true,
-        negativePrompt: true,
-        parameters: true,
-        status: true,
-        modelId: true,
-        createdAt: true,
-        source: true,
-        workflowExecutionId: true,
-        errorMessage: true,
-        errorCategory: true,
-        errorRetryable: true,
-        lastHeartbeatAt: true,
-        outputs: {
-          select: {
-            id: true,
-            fileUrl: true,
-            fileType: true,
-            isApproved: true,
-            width: true,
-            height: true,
-            duration: true,
-          },
-        },
-      },
+      select: GENERATION_SELECT,
     });
+    const queryMs = Math.round(performance.now() - tQuery);
 
     const hasMore = generations.length > limit;
     const items = hasMore ? generations.slice(0, limit) : generations;
     const nextCursor = hasMore ? items[items.length - 1].id : null;
+    const totalMs = Math.round(performance.now() - t0);
 
-    return withCacheHeaders(
-      NextResponse.json({ generations: items, nextCursor }),
-      "private-short",
-    );
+    const response = NextResponse.json({ generations: items, nextCursor });
+    response.headers.set("Server-Timing", `query;dur=${queryMs}, total;dur=${totalMs}`);
+    return withCacheHeaders(response, "private-short");
   }
 
   if (!sessionId) {
@@ -82,10 +85,7 @@ export async function GET(request: Request) {
   }
 
   const session = await prisma.session.findFirst({
-    where: {
-      id: sessionId,
-      project: accessFilter,
-    },
+    where: { id: sessionId, project: accessFilter },
     select: { id: true },
   });
   if (!session) {
@@ -95,45 +95,22 @@ export async function GET(request: Request) {
   const limit = Math.min(Number(searchParams.get("limit")) || DEFAULT_LIMIT, MAX_LIMIT);
   const cursor = searchParams.get("cursor");
 
+  const tQuery = performance.now();
   const generations = await prisma.generation.findMany({
     where: { sessionId },
     orderBy: { createdAt: "asc" },
     take: limit + 1,
     ...(cursor && { cursor: { id: cursor }, skip: 1 }),
-    select: {
-      id: true,
-      prompt: true,
-      negativePrompt: true,
-      parameters: true,
-      status: true,
-      modelId: true,
-      createdAt: true,
-      source: true,
-      workflowExecutionId: true,
-      errorMessage: true,
-      errorCategory: true,
-      errorRetryable: true,
-      lastHeartbeatAt: true,
-      outputs: {
-        select: {
-          id: true,
-          fileUrl: true,
-          fileType: true,
-          isApproved: true,
-          width: true,
-          height: true,
-          duration: true,
-        },
-      },
-    },
+    select: GENERATION_SELECT,
   });
+  const queryMs = Math.round(performance.now() - tQuery);
 
   const hasMore = generations.length > limit;
   const items = hasMore ? generations.slice(0, limit) : generations;
   const nextCursor = hasMore ? items[items.length - 1].id : null;
+  const totalMs = Math.round(performance.now() - t0);
 
-  return withCacheHeaders(
-    NextResponse.json({ generations: items, nextCursor }),
-    "private-short",
-  );
+  const response = NextResponse.json({ generations: items, nextCursor });
+  response.headers.set("Server-Timing", `query;dur=${queryMs}, total;dur=${totalMs}`);
+  return withCacheHeaders(response, "private-short");
 }

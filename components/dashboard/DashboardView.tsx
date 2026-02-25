@@ -55,7 +55,7 @@ async function adminStatsFetcher(url: string): Promise<{ adminStats: AdminStatRo
 export function DashboardView() {
   const router = useRouter();
   const { isAdmin } = useAuth();
-  const { data, error, isLoading } = useSWR("/api/dashboard", dashboardFetcher, {
+  const { data, error, isLoading, mutate } = useSWR("/api/dashboard", dashboardFetcher, {
     revalidateOnFocus: false,
     dedupingInterval: 10_000,
   });
@@ -169,6 +169,7 @@ export function DashboardView() {
             journeys={data.journeys}
             selectedJourneyId={selectedJourneyId}
             onSelectJourney={setSelectedJourneyId}
+            onJourneyCreated={() => void mutate()}
             adminStats={adminStatsData?.adminStats ?? undefined}
             isAdmin={isAdmin}
           />
@@ -189,6 +190,8 @@ export function DashboardView() {
             routes={routes}
             selectedRouteId={selectedRouteId}
             onSelectRoute={setSelectedRouteId}
+            journeyId={selectedJourneyId}
+            onRouteCreated={() => void mutate()}
           />
         </div>
       </div>

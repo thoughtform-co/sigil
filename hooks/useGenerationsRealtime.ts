@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { CHANNEL_NAME, EVENT_GENERATION } from "@/lib/supabase/realtime";
 import type { GenerationItem } from "@/components/generation/types";
@@ -37,12 +37,17 @@ function mapPayloadToItem(payload: {
 
 /**
  * Subscribe to Supabase Realtime generation updates for a session.
- * Merges incoming generations into state by id; no polling needed while subscribed.
+ * Calls onGenerationUpdate with each incoming generation; caller handles merge.
  */
 export function useGenerationsRealtime(
   sessionId: string | null,
-  setGenerations: React.Dispatch<React.SetStateAction<GenerationItem[]>>,
+  onGenerationUpdate: (generation: GenerationItem) => void,
 ): void {
+  const callbackRef = useRef(onGenerationUpdate);
+  useEffect(() => {
+    callbackRef.current = onGenerationUpdate;
+  });
+
   useEffect(() => {
     if (!sessionId) return;
 
@@ -56,22 +61,16 @@ export function useGenerationsRealtime(
           generation: Parameters<typeof mapPayloadToItem>[0];
         };
         if (payloadSessionId !== sessionId) return;
-        setGenerations((prev) => {
-          const next = prev.filter((g) => g.id !== generation.id);
-          // Keep feed oldest->newest so new generations appear at the bottom.
-          next.push(mapPayloadToItem(generation));
-          next.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-          return next;
-        });
+        callbackRef.current(mapPayloadToItem(generation));
       })
       .subscribe((status) => {
         if (status === "CHANNEL_ERROR") {
-          // Fallback to polling is handled by workspace keeping the poll when no realtime
+          // Fallback to polling is handled by workspace
         }
       });
 
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [sessionId, setGenerations]);
+  }, [sessionId]);
 }

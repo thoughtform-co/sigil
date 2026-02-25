@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
         hostname: "hrgxfbyrumeyftqrlehv.supabase.co",
         pathname: "/storage/v1/object/public/**",
       },
+      {
+        protocol: "https",
+        hostname: "replicate.delivery",
+      },
     ],
   },
   async headers() {
