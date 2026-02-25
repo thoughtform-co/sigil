@@ -45,6 +45,8 @@ export function ForgeGallery({
   const lastSeenStatusRef = useRef<string | null>(null);
   const lastSeenOutputCountRef = useRef<number>(0);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const scrollTargetRef = useRef<number | null>(null);
+  const scrollAnimRef = useRef(0);
 
   const perfMarked = useRef(false);
   useEffect(() => {
@@ -105,6 +107,28 @@ export function ForgeGallery({
     };
   }, [updateScrollBeam]);
 
+  const animateScroll = useCallback(() => {
+    const feed = feedRef.current;
+    if (scrollTargetRef.current === null || !feed) {
+      scrollAnimRef.current = 0;
+      return;
+    }
+
+    const diff = scrollTargetRef.current - feed.scrollTop;
+
+    if (Math.abs(diff) < 0.5) {
+      feed.scrollTop = scrollTargetRef.current;
+      scrollTargetRef.current = null;
+      scrollAnimRef.current = 0;
+      updateScrollBeam();
+      return;
+    }
+
+    feed.scrollTop += diff * 0.12;
+    updateScrollBeam();
+    scrollAnimRef.current = requestAnimationFrame(animateScroll);
+  }, [updateScrollBeam]);
+
   useEffect(() => {
     const feed = feedRef.current;
     if (!feed) return;
@@ -117,15 +141,29 @@ export function ForgeGallery({
       const scrollable = feed.scrollHeight - feed.clientHeight;
       if (scrollable <= 0) return;
 
-      // Prevent browser/page scrollbar and route wheel motion to the feed.
       event.preventDefault();
-      feed.scrollTop += event.deltaY;
-      updateScrollBeam();
+
+      const base = scrollTargetRef.current ?? feed.scrollTop;
+      scrollTargetRef.current = Math.max(
+        0,
+        Math.min(scrollable, base + event.deltaY),
+      );
+
+      if (!scrollAnimRef.current) {
+        scrollAnimRef.current = requestAnimationFrame(animateScroll);
+      }
     };
 
     window.addEventListener("wheel", handleWheelAnywhere, { passive: false });
-    return () => window.removeEventListener("wheel", handleWheelAnywhere);
-  }, [lightboxUrl, updateScrollBeam]);
+    return () => {
+      window.removeEventListener("wheel", handleWheelAnywhere);
+      if (scrollAnimRef.current) {
+        cancelAnimationFrame(scrollAnimRef.current);
+        scrollAnimRef.current = 0;
+      }
+      scrollTargetRef.current = null;
+    };
+  }, [lightboxUrl, animateScroll]);
 
   useEffect(() => {
     if (generations.length === 0) {
@@ -148,6 +186,12 @@ export function ForgeGallery({
       lastSeenLastIdRef.current = lastId;
       lastSeenStatusRef.current = status;
       lastSeenOutputCountRef.current = outputCount;
+
+      scrollTargetRef.current = null;
+      if (scrollAnimRef.current) {
+        cancelAnimationFrame(scrollAnimRef.current);
+        scrollAnimRef.current = 0;
+      }
 
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {

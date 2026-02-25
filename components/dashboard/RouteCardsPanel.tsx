@@ -1,26 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog } from "@/components/ui/Dialog";
+import { RouteCard } from "./RouteCard";
+import type { DashboardRouteItem } from "./DashboardView";
 import type { ReactNode } from "react";
 
-export type RoutePanelItem = {
-  id: string;
-  name: string;
-  description: string | null;
-  updatedAt: string;
-  waypointCount: number;
-  generationCount: number;
-  thumbnails: { id: string; fileUrl: string; fileType: string; width: number | null; height: number | null }[];
-};
-
-type RoutePanelProps = {
-  routes: RoutePanelItem[];
-  selectedRouteId: string | null;
-  onSelectRoute: (id: string) => void;
-  journeyId?: string | null;
-  onRouteCreated?: () => void;
+type RouteCardsPanelProps = {
+  routes: DashboardRouteItem[];
+  journeyId: string | null;
+  onRouteCreated: () => void;
 };
 
 function SectionHeader({ bearing, label, action }: { bearing: string; label: string; action?: ReactNode }) {
@@ -44,12 +34,29 @@ function SectionHeader({ bearing, label, action }: { bearing: string; label: str
   );
 }
 
-export function RoutePanel({ routes, selectedRouteId, onSelectRoute, journeyId, onRouteCreated }: RoutePanelProps) {
+export function RouteCardsPanel({ routes, journeyId, onRouteCreated }: RouteCardsPanelProps) {
   const router = useRouter();
+  const [focusedRouteId, setFocusedRouteId] = useState<string | null>(null);
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [creating, setCreating] = useState(false);
+
+  useEffect(() => {
+    setFocusedRouteId((prev) => {
+      if (routes.length === 0) return null;
+      if (prev && routes.some((r) => r.id === prev)) return prev;
+      return routes[0]!.id;
+    });
+  }, [routes]);
+
+  useEffect(() => {
+    if (!focusedRouteId) return;
+    router.prefetch(`/routes/${focusedRouteId}/image`);
+    void fetch(`/api/generations?projectId=${focusedRouteId}`).catch(() => {});
+    void fetch(`/api/sessions?projectId=${focusedRouteId}`).catch(() => {});
+  }, [focusedRouteId, router]);
 
   async function handleCreate() {
     if (!name.trim() || creating || !journeyId) return;
@@ -68,7 +75,7 @@ export function RoutePanel({ routes, selectedRouteId, onSelectRoute, journeyId, 
         setDialogOpen(false);
         setName("");
         setDescription("");
-        onRouteCreated?.();
+        onRouteCreated();
       }
     } finally {
       setCreating(false);
@@ -83,6 +90,8 @@ export function RoutePanel({ routes, selectedRouteId, onSelectRoute, journeyId, 
         height: "100%",
         minHeight: 0,
         overflow: "hidden",
+        paddingLeft: "var(--space-md)",
+        paddingRight: "var(--space-md)",
       }}
     >
       <SectionHeader
@@ -126,7 +135,15 @@ export function RoutePanel({ routes, selectedRouteId, onSelectRoute, journeyId, 
         }
       />
 
-      <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          display: "flex",
+          alignItems: "center",
+          overflow: "hidden",
+        }}
+      >
         {routes.length === 0 ? (
           <p
             style={{
@@ -135,93 +152,39 @@ export function RoutePanel({ routes, selectedRouteId, onSelectRoute, journeyId, 
               color: "var(--dawn-30)",
               textAlign: "center",
               padding: "var(--space-xl)",
+              width: "100%",
             }}
           >
             No routes in this journey
           </p>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-            {routes.map((route) => {
-              const isSelected = selectedRouteId === route.id;
-              return (
-                <button
+          <div
+            style={{
+              width: "100%",
+              overflowX: "auto",
+              display: "flex",
+              justifyContent: "center",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-end",
+                gap: "var(--space-xl)",
+                padding: "var(--space-2xl) var(--space-xl)",
+                flexShrink: 0,
+              }}
+            >
+              {routes.map((route) => (
+                <RouteCard
                   key={route.id}
-                  type="button"
-                  onClick={() => onSelectRoute(route.id)}
-                  onDoubleClick={() => router.push(`/routes/${route.id}/image`)}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "stretch",
-                    gap: 2,
-                    width: "100%",
-                    padding: "var(--space-sm) var(--space-md)",
-                    background: isSelected ? "var(--gold-10)" : "transparent",
-                    border: "none",
-                    borderBottom: "1px solid var(--dawn-04)",
-                    borderLeft: "2px solid " + (isSelected ? "var(--gold)" : "transparent"),
-                    textAlign: "left",
-                    cursor: "pointer",
-                    transition: "background 80ms, border-color 80ms",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isSelected) {
-                      e.currentTarget.style.background = "var(--dawn-04)";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isSelected) {
-                      e.currentTarget.style.background = "transparent";
-                    }
-                  }}
-                >
-                  <span
-                    style={{
-                      fontFamily: "var(--font-sans)",
-                      fontSize: "14px",
-                      fontWeight: 500,
-                      color: "var(--dawn)",
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                  >
-                    {route.name}
-                  </span>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: "var(--space-sm)",
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "10px",
-                        letterSpacing: "0.08em",
-                        textTransform: "uppercase",
-                        color: "var(--dawn-30)",
-                      }}
-                    >
-                      {route.waypointCount} wp · {route.generationCount} gen
-                    </span>
-                    <span
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "10px",
-                        color: "var(--dawn-30)",
-                        fontVariantNumeric: "tabular-nums",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {new Date(route.updatedAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
+                  route={route}
+                  isActive={focusedRouteId === route.id}
+                  onSelect={() => setFocusedRouteId(route.id)}
+                  onNavigate={() => router.push(`/routes/${route.id}/image`)}
+                />
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -232,12 +195,10 @@ export function RoutePanel({ routes, selectedRouteId, onSelectRoute, journeyId, 
         title="create new route"
         footer={
           <>
-            <button className="sigil-btn-ghost" onClick={() => setDialogOpen(false)}>cancel</button>
-            <button
-              className="sigil-btn-primary"
-              disabled={creating || !name.trim()}
-              onClick={() => void handleCreate()}
-            >
+            <button className="sigil-btn-ghost" onClick={() => setDialogOpen(false)}>
+              cancel
+            </button>
+            <button className="sigil-btn-primary" disabled={creating || !name.trim()} onClick={() => void handleCreate()}>
               {creating ? "creating..." : "create"}
             </button>
           </>
@@ -264,7 +225,9 @@ export function RoutePanel({ routes, selectedRouteId, onSelectRoute, journeyId, 
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") void handleCreate(); }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void handleCreate();
+              }}
               placeholder="e.g. Brand Campaign Q2"
               autoFocus
               className="admin-input"

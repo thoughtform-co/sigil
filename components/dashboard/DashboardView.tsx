@@ -2,11 +2,9 @@
 
 import useSWR from "swr";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { JourneyPanel } from "@/components/dashboard/JourneyPanel";
-import { RoutePanel } from "@/components/dashboard/RoutePanel";
-import { SigilPanel } from "@/components/dashboard/SigilPanel";
+import { RouteCardsPanel } from "@/components/dashboard/RouteCardsPanel";
 
 export type DashboardRouteItem = {
   id: string;
@@ -53,7 +51,6 @@ async function adminStatsFetcher(url: string): Promise<{ adminStats: AdminStatRo
 }
 
 export function DashboardView() {
-  const router = useRouter();
   const { isAdmin } = useAuth();
   const { data, error, isLoading, mutate } = useSWR("/api/dashboard", dashboardFetcher, {
     revalidateOnFocus: false,
@@ -65,39 +62,13 @@ export function DashboardView() {
     { revalidateOnFocus: false, dedupingInterval: 30_000 }
   );
   const [selectedJourneyId, setSelectedJourneyId] = useState<string | null>(null);
-  const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
 
-  // Default to first journey and first route when data loads
   useEffect(() => {
     if (!data?.journeys?.length) return;
     if (selectedJourneyId === null) {
       setSelectedJourneyId(data.journeys[0]!.id);
     }
   }, [data, selectedJourneyId]);
-
-  useEffect(() => {
-    if (!data?.journeys?.length || selectedJourneyId === null) return;
-    const journey = data.journeys.find((j) => j.id === selectedJourneyId);
-    const routes = journey?.routes ?? [];
-    if (routes.length > 0 && selectedRouteId === null) {
-      setSelectedRouteId(routes[0]!.id);
-    }
-    if (routes.length > 0 && selectedRouteId !== null && !routes.some((r) => r.id === selectedRouteId)) {
-      setSelectedRouteId(routes[0]!.id);
-    }
-    if (routes.length === 0) {
-      setSelectedRouteId(null);
-    }
-  }, [data, selectedJourneyId, selectedRouteId]);
-
-  // Prefetch route data when a route is selected so opening the route feels instant
-  useEffect(() => {
-    if (!selectedRouteId) return;
-    router.prefetch(`/routes/${selectedRouteId}/image`);
-    const url = `/api/generations?projectId=${selectedRouteId}`;
-    void fetch(url).catch(() => {});
-    void fetch(`/api/sessions?projectId=${selectedRouteId}`).catch(() => {});
-  }, [selectedRouteId, router]);
 
   if (isLoading) {
     return (
@@ -147,61 +118,45 @@ export function DashboardView() {
 
   const selectedJourney = data.journeys.find((j) => j.id === selectedJourneyId);
   const routes = selectedJourney?.routes ?? [];
-  const selectedRoute = routes.find((r) => r.id === selectedRouteId);
 
   return (
     <section
-      className="dashboard-three-panel w-full animate-fade-in-up"
+      className="dashboard-two-panel w-full animate-fade-in-up"
       style={{
         width: "100%",
-        maxWidth: 1200,
+        maxWidth: 1400,
         margin: "0 0 0 var(--space-2xl)",
         height: "100%",
         minHeight: 0,
         display: "grid",
-        gridTemplateColumns: "260px 1fr 320px",
+        gridTemplateColumns: "300px 1fr",
         gap: "var(--space-xl)",
       }}
     >
-      <div className="dashboard-left-middle">
-        <div style={{ minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-          <JourneyPanel
-            journeys={data.journeys}
-            selectedJourneyId={selectedJourneyId}
-            onSelectJourney={setSelectedJourneyId}
-            onJourneyCreated={() => void mutate()}
-            adminStats={adminStatsData?.adminStats ?? undefined}
-            isAdmin={isAdmin}
-          />
-        </div>
-        <div
-          style={{
-            borderLeft: "1px solid var(--dawn-08)",
-            borderRight: "1px solid var(--dawn-08)",
-            paddingLeft: "var(--space-xl)",
-            paddingRight: "var(--space-xl)",
-            minHeight: 0,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          <RoutePanel
-            routes={routes}
-            selectedRouteId={selectedRouteId}
-            onSelectRoute={setSelectedRouteId}
-            journeyId={selectedJourneyId}
-            onRouteCreated={() => void mutate()}
-          />
-        </div>
+      <div style={{ minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <JourneyPanel
+          journeys={data.journeys}
+          selectedJourneyId={selectedJourneyId}
+          onSelectJourney={setSelectedJourneyId}
+          onJourneyCreated={() => void mutate()}
+          adminStats={adminStatsData?.adminStats ?? undefined}
+          isAdmin={isAdmin}
+        />
       </div>
 
-      <div style={{ minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-        <SigilPanel
-          routeId={selectedRoute?.id ?? null}
-          routeName={selectedRoute?.name ?? ""}
-          description={selectedRoute?.description ?? null}
-          thumbnails={selectedRoute?.thumbnails ?? []}
+      <div
+        style={{
+          borderLeft: "1px solid var(--dawn-08)",
+          minHeight: 0,
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <RouteCardsPanel
+          routes={routes}
+          journeyId={selectedJourneyId}
+          onRouteCreated={() => void mutate()}
         />
       </div>
     </section>
