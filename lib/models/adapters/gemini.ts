@@ -430,7 +430,9 @@ export class GeminiAdapter extends BaseModelAdapter {
 
   private async generateVideoVeo(request: GenerationRequest): Promise<GenerationResponse> {
     const parameters = (request as { parameters?: Record<string, unknown> }).parameters ?? {};
-    const aspectRatio = (parameters.aspectRatio as string) ?? request.aspectRatio ?? "16:9";
+    const rawAspectRatio = (parameters.aspectRatio as string) ?? request.aspectRatio ?? "16:9";
+    const VEO_SUPPORTED_RATIOS = ["16:9", "9:16"];
+    const aspectRatio = VEO_SUPPORTED_RATIOS.includes(rawAspectRatio) ? rawAspectRatio : "16:9";
     const resolutionRaw = parameters.resolution ?? request.resolution ?? 720;
     const resolution =
       typeof resolutionRaw === "number"

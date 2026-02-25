@@ -357,7 +357,6 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
       const data = (await response.json()) as { generation?: { id: string }; error?: string };
       if (!response.ok) throw new Error(data.error ?? "Failed to submit generation");
       setPrompt("");
-      setReferenceImageUrl("");
       setMessage(data.generation ? `Generation queued: ${data.generation.id}` : "Generation queued.");
       const refresh = await fetch(`/api/generations?sessionId=${sessionId}`, {
         cache: "no-store",

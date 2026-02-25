@@ -154,7 +154,8 @@ export class KlingOfficialAdapter extends BaseModelAdapter {
     let response: Response | null = null;
     for (let attempt = 1; attempt <= 3; attempt++) {
       const attemptToken = attempt === 1 ? token : generateKlingJWT();
-      response = await fetch(`${this.baseUrl}/videos/image2video`, {
+      const klingEndpoint = startImage ? "image2video" : "text2video";
+      response = await fetch(`${this.baseUrl}/videos/${klingEndpoint}`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${attemptToken}`,
