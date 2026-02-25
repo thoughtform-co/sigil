@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { json } from "@/lib/api/responses";
@@ -8,12 +7,17 @@ export async function GET() {
   if ("error" in result) return result.error;
 
   const generations = await prisma.generation.findMany({
-    where: { status: "failed" },
+    where: { status: { in: ["failed", "processing", "processing_locked"] } },
     select: {
       id: true,
       modelId: true,
       prompt: true,
+      status: true,
       createdAt: true,
+      errorMessage: true,
+      errorCategory: true,
+      errorRetryable: true,
+      lastHeartbeatAt: true,
       session: {
         select: {
           id: true,

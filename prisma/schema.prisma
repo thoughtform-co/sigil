@@ -133,6 +133,10 @@ model Generation {
   createdAt             DateTime  @default(now()) @map("created_at")
   source                String    @default("session")
   workflowExecutionId   String?   @map("workflow_execution_id") @db.Uuid
+  errorMessage          String?   @map("error_message") @db.Text
+  errorCategory         String?   @map("error_category")
+  errorRetryable        Boolean?  @map("error_retryable")
+  lastHeartbeatAt       DateTime? @map("last_heartbeat_at")
 
   session Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   user    Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -143,6 +147,7 @@ model Generation {
   @@index([sessionId, userId])
   @@index([sessionId, status])
   @@index([sessionId, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([status, createdAt])
   @@map("generations")
 }
 

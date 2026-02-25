@@ -23,7 +23,13 @@ export async function POST(request: Request, context: RouteContext) {
     prisma.output.deleteMany({ where: { generationId: id } }),
     prisma.generation.update({
       where: { id },
-      data: { status: "processing" },
+      data: {
+        status: "processing",
+        errorMessage: null,
+        errorCategory: null,
+        errorRetryable: null,
+        lastHeartbeatAt: null,
+      },
     }),
   ]);
 

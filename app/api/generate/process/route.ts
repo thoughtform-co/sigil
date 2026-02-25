@@ -12,8 +12,11 @@ import { processRequestSchema } from "@/lib/models/contracts";
 import { normalizeGenerationRequest } from "@/lib/models/request-builder";
 import { isProcessable } from "@/lib/models/generation-status";
 import { observeGeneration } from "@/lib/observability/generation";
-import { unauthorized, notFound, badRequest, internalError } from "@/lib/api/errors";
+import { classifyError, userFacingMessage } from "@/lib/errors/classification";
+import { unauthorized, notFound, badRequest } from "@/lib/api/errors";
 import { json } from "@/lib/api/responses";
+
+const HEARTBEAT_INTERVAL_MS = 10_000;
 
 async function broadcastUpdatedGeneration(sessionId: string, generationId: string): Promise<void> {
   try {
@@ -27,6 +30,9 @@ async function broadcastUpdatedGeneration(sessionId: string, generationId: strin
         status: true,
         modelId: true,
         createdAt: true,
+        errorMessage: true,
+        errorCategory: true,
+        errorRetryable: true,
         outputs: {
           select: {
             id: true,
@@ -51,12 +57,52 @@ async function broadcastUpdatedGeneration(sessionId: string, generationId: strin
         status: gen.status,
         modelId: gen.modelId,
         createdAt: gen.createdAt.toISOString(),
+        errorMessage: gen.errorMessage,
+        errorCategory: gen.errorCategory,
+        errorRetryable: gen.errorRetryable,
         outputs: gen.outputs,
       },
     });
   } catch {
-    // ignore
+    // ignore broadcast failures
   }
+}
+
+async function markFailed(
+  generationId: string,
+  sessionId: string,
+  err: unknown,
+): Promise<void> {
+  const classified = classifyError(err);
+  const friendlyMessage = userFacingMessage(classified);
+  try {
+    await prisma.generation.update({
+      where: { id: generationId },
+      data: {
+        status: "failed",
+        errorMessage: friendlyMessage,
+        errorCategory: classified.category,
+        errorRetryable: classified.isRetryable,
+      },
+    });
+  } catch (dbErr) {
+    console.error(`[generate/process] failed to persist error for ${generationId}:`, dbErr);
+  }
+  void broadcastUpdatedGeneration(sessionId, generationId);
+}
+
+function startHeartbeat(generationId: string): () => void {
+  const timer = setInterval(async () => {
+    try {
+      await prisma.generation.updateMany({
+        where: { id: generationId, status: { in: ["processing", "processing_locked"] } },
+        data: { lastHeartbeatAt: new Date() },
+      });
+    } catch {
+      // heartbeat is best-effort
+    }
+  }, HEARTBEAT_INTERVAL_MS);
+  return () => clearInterval(timer);
 }
 
 export async function POST(request: Request) {
@@ -93,22 +139,21 @@ export async function POST(request: Request) {
 
   const lock = await prisma.generation.updateMany({
     where: { id: generation.id, status: "processing" },
-    data: { status: "processing_locked" },
+    data: { status: "processing_locked", lastHeartbeatAt: new Date() },
   });
 
   if (lock.count === 0 && generation.status !== "processing_locked") {
     return NextResponse.json({ message: "Generation already claimed", id: generation.id });
   }
 
+  const stopHeartbeat = startHeartbeat(generation.id);
+
   try {
     const routed = routeModel(generation.modelId);
     const adapter = getModel(routed.modelId);
     if (!adapter) {
-      await prisma.generation.update({
-        where: { id: generation.id },
-        data: { status: "failed" },
-      });
-      void broadcastUpdatedGeneration(generation.sessionId, generation.id);
+      stopHeartbeat();
+      await markFailed(generation.id, generation.sessionId, new Error(`Unknown model: ${routed.modelId}`));
       return NextResponse.json({ error: `Unknown model: ${routed.modelId}` }, { status: 400 });
     }
 
@@ -122,24 +167,24 @@ export async function POST(request: Request) {
     const result = await adapter.generate(requestPayload);
 
     if (result.status !== "completed" || !result.outputs?.length) {
+      stopHeartbeat();
+      const adapterError = result.error ?? "Generation did not produce outputs";
       observeGeneration({
         type: "adapter_failed",
         generationId: generation.id,
         modelId: routed.modelId,
-        error: result.error ?? "No outputs",
+        error: adapterError,
       });
-      await prisma.generation.update({
-        where: { id: generation.id },
-        data: { status: "failed" },
-      });
-      void broadcastUpdatedGeneration(generation.sessionId, generation.id);
-
+      await markFailed(generation.id, generation.sessionId, new Error(adapterError));
       return NextResponse.json({
         id: generation.id,
         status: "failed",
-        error: result.error ?? "Generation did not produce outputs",
+        error: adapterError,
       });
     }
+
+    stopHeartbeat();
+
     const outputs = result.outputs;
     const modelConfig = getModelConfig(routed.modelId);
     const computedCost =
@@ -170,7 +215,6 @@ export async function POST(request: Request) {
           });
           return { ...output, url: platformUrl };
         } catch {
-          // Keep image outputs durable even when storage is unavailable by inlining a data URL.
           if (fileType === "image") {
             try {
               const safeFallbackUrl = getSafeFetchUrl(output.url, { allowGsToGoogleStorage: true });
@@ -186,11 +230,9 @@ export async function POST(request: Request) {
                 }
               }
             } catch {
-              // Ignore and keep provider URL fallback below.
+              // keep provider URL fallback
             }
           }
-
-          // Last-resort fallback to provider URL if storage upload fails.
           return output;
         }
       }),
@@ -203,6 +245,9 @@ export async function POST(request: Request) {
           status: "completed",
           modelId: routed.modelId,
           cost: typeof computedCost === "number" ? new Prisma.Decimal(computedCost) : undefined,
+          errorMessage: null,
+          errorCategory: null,
+          errorRetryable: null,
         },
       });
 
@@ -229,14 +274,9 @@ export async function POST(request: Request) {
       routeReason: routed.reason,
     });
   } catch (err) {
+    stopHeartbeat();
     console.error(`[generate/process] ${generation.id} failed:`, err);
-    await prisma.generation
-      .update({
-        where: { id: generation.id },
-        data: { status: "failed" },
-      })
-      .catch((dbErr) => console.error(`[generate/process] failed to set status failed:`, dbErr));
-    void broadcastUpdatedGeneration(generation.sessionId, generation.id);
+    await markFailed(generation.id, generation.sessionId, err);
     const message = err instanceof Error ? err.message : "Processing failed";
     return NextResponse.json(
       { id: generation.id, status: "failed", error: message },

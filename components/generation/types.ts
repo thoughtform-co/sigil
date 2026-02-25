@@ -32,6 +32,10 @@ export type GenerationItem = {
   outputs: OutputItem[];
   source?: string;
   workflowExecutionId?: string | null;
+  errorMessage?: string | null;
+  errorCategory?: string | null;
+  errorRetryable?: boolean | null;
+  lastHeartbeatAt?: string | null;
 };
 
 export type ModelItem = {

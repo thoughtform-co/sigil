@@ -38,6 +38,20 @@ type ForgeGenerationCardProps = {
   busy: boolean;
 };
 
+const STUCK_THRESHOLD_MS = 10 * 60 * 1000;
+const VIDEO_STUCK_THRESHOLD_MS = 15 * 60 * 1000;
+
+function isLikelyStuck(generation: GenerationItem): boolean {
+  if (!isProcessing(generation.status)) return false;
+  const age = Date.now() - new Date(generation.createdAt).getTime();
+  const isVideo = generation.modelId.includes("veo") || generation.modelId.includes("kling");
+  return age > (isVideo ? VIDEO_STUCK_THRESHOLD_MS : STUCK_THRESHOLD_MS);
+}
+
+function stuckAgeMinutes(generation: GenerationItem): number {
+  return Math.round((Date.now() - new Date(generation.createdAt).getTime()) / 60_000);
+}
+
 const PHASE_MESSAGES = [
   "Navigating latent topology…",
   "Resolving temporal manifold…",
@@ -107,6 +121,7 @@ export function ForgeGenerationCard({
 }: ForgeGenerationCardProps) {
   const [copied, setCopied] = useState(false);
   const processing = isProcessing(generation.status);
+  const stuck = isLikelyStuck(generation);
   const failed = isFailed(generation.status);
   const hasOutputs = generation.outputs.length > 0;
   const multiOutput = generation.outputs.length > 1;
@@ -328,10 +343,41 @@ export function ForgeGenerationCard({
             <div className={styles.mediaStateCornerMarks} aria-hidden />
             <div className={styles.mediaStateCornerMarksSecondary} aria-hidden />
             <div className={styles.mediaStateContent}>
-              <div className={styles.progressDiamond}>
-                <span className={styles.progressPercent}>…</span>
-              </div>
-              <span className={styles.phaseMessage}>{phaseMessage}</span>
+              {stuck ? (
+                <>
+                  <span className={styles.failedTitle}>Taking unusually long</span>
+                  <span className={styles.errorMessage}>
+                    Processing for {stuckAgeMinutes(generation)} min — this generation may have stalled.
+                  </span>
+                  <div style={{ display: "flex", gap: "var(--space-sm)", marginTop: "var(--space-xs)" }}>
+                    <button
+                      type="button"
+                      className={styles.textAction}
+                      onClick={() => onRetry(generation.id)}
+                      disabled={busy}
+                    >
+                      Try Again
+                    </button>
+                    {onDismiss && (
+                      <button
+                        type="button"
+                        className={styles.textAction}
+                        onClick={() => onDismiss(generation.id)}
+                        disabled={busy}
+                      >
+                        Dismiss
+                      </button>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className={styles.progressDiamond}>
+                    <span className={styles.progressPercent}>…</span>
+                  </div>
+                  <span className={styles.phaseMessage}>{phaseMessage}</span>
+                </>
+              )}
             </div>
           </div>
         ) : failed ? (
@@ -343,15 +389,31 @@ export function ForgeGenerationCard({
             <div className={styles.mediaStateCornerMarksSecondary} aria-hidden />
             <div className={styles.mediaStateContent}>
               <span className={styles.failedTitle}>Traversal collapsed</span>
-              <span className={styles.errorMessage}>Generation failed.</span>
-              <button
-                type="button"
-                className={styles.textAction}
-                onClick={() => onRetry(generation.id)}
-                disabled={busy}
-              >
-                Retry
-              </button>
+              <span className={styles.errorMessage}>
+                {generation.errorMessage || "Generation failed."}
+              </span>
+              <div style={{ display: "flex", gap: "var(--space-sm)", marginTop: "var(--space-xs)" }}>
+                {generation.errorRetryable !== false && (
+                  <button
+                    type="button"
+                    className={styles.textAction}
+                    onClick={() => onRetry(generation.id)}
+                    disabled={busy}
+                  >
+                    Retry
+                  </button>
+                )}
+                {onDismiss && (
+                  <button
+                    type="button"
+                    className={styles.textAction}
+                    onClick={() => onDismiss(generation.id)}
+                    disabled={busy}
+                  >
+                    Dismiss
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         ) : (

@@ -13,6 +13,9 @@ export type BroadcastGenerationPayload = {
     status: string;
     modelId: string;
     createdAt: string;
+    errorMessage?: string | null;
+    errorCategory?: string | null;
+    errorRetryable?: boolean | null;
     outputs?: Array<{
       id: string;
       fileUrl: string;

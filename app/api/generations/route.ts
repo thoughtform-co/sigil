@@ -49,6 +49,10 @@ export async function GET(request: Request) {
         createdAt: true,
         source: true,
         workflowExecutionId: true,
+        errorMessage: true,
+        errorCategory: true,
+        errorRetryable: true,
+        lastHeartbeatAt: true,
         outputs: {
           select: {
             id: true,
@@ -106,6 +110,10 @@ export async function GET(request: Request) {
       createdAt: true,
       source: true,
       workflowExecutionId: true,
+      errorMessage: true,
+      errorCategory: true,
+      errorRetryable: true,
+      lastHeartbeatAt: true,
       outputs: {
         select: {
           id: true,
