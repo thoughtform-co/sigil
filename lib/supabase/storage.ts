@@ -84,7 +84,7 @@ export async function uploadBase64ToStorage(
   const { error } = await admin.storage.from(bucket).upload(path, buffer, {
     contentType: mimeType,
     upsert: true,
-    cacheControl: opts?.cacheControl ?? "3600",
+    cacheControl: opts?.cacheControl ?? "31536000",
   });
   if (error) throw new Error(`Storage upload failed: ${error.message}`);
   const { data } = admin.storage.from(bucket).getPublicUrl(path);
@@ -127,7 +127,7 @@ export async function uploadProviderOutput(params: {
   const uploadResult = await admin.storage.from(bucket).upload(path, buffer, {
     upsert: true,
     contentType: response.headers.get("content-type") || (fileType === "video" ? "video/mp4" : "image/png"),
-    cacheControl: "3600",
+    cacheControl: "31536000",
   });
 
   if (uploadResult.error) {

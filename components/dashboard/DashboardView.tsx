@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import useSWR from "swr";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { JourneyPanel } from "@/components/dashboard/JourneyPanel";
 import { RoutePanel } from "@/components/dashboard/RoutePanel";
@@ -31,38 +33,39 @@ type AdminStatRow = {
   videoCount: number;
 };
 
-type DashboardData = {
+export type DashboardData = {
   journeys: DashboardJourneyItem[];
-  adminStats?: AdminStatRow[];
 };
 
+async function dashboardFetcher(url: string): Promise<DashboardData> {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error((body as { error?: string }).error ?? "Failed to load dashboard");
+  }
+  return res.json() as Promise<DashboardData>;
+}
+
+async function adminStatsFetcher(url: string): Promise<{ adminStats: AdminStatRow[] }> {
+  const res = await fetch(url);
+  if (!res.ok) return { adminStats: [] };
+  return res.json();
+}
+
 export function DashboardView() {
+  const router = useRouter();
   const { isAdmin } = useAuth();
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data, error, isLoading } = useSWR("/api/dashboard", dashboardFetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 10_000,
+  });
+  const { data: adminStatsData } = useSWR(
+    isAdmin ? "/api/admin/dashboard-stats" : null,
+    adminStatsFetcher,
+    { revalidateOnFocus: false, dedupingInterval: 30_000 }
+  );
   const [selectedJourneyId, setSelectedJourneyId] = useState<string | null>(null);
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function load() {
-      try {
-        const res = await fetch("/api/dashboard", { cache: "no-store" });
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body.error ?? "Failed to load dashboard");
-        }
-        const json = (await res.json()) as DashboardData & { gallery?: unknown[] };
-        const { gallery: _g, ...rest } = json;
-        setData(rest as DashboardData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load dashboard");
-      } finally {
-        setLoading(false);
-      }
-    }
-    void load();
-  }, []);
 
   // Default to first journey and first route when data loads
   useEffect(() => {
@@ -87,7 +90,16 @@ export function DashboardView() {
     }
   }, [data, selectedJourneyId, selectedRouteId]);
 
-  if (loading) {
+  // Prefetch route data when a route is selected so opening the route feels instant
+  useEffect(() => {
+    if (!selectedRouteId) return;
+    router.prefetch(`/routes/${selectedRouteId}/image`);
+    const url = `/api/generations?projectId=${selectedRouteId}`;
+    void fetch(url).catch(() => {});
+    void fetch(`/api/sessions?projectId=${selectedRouteId}`).catch(() => {});
+  }, [selectedRouteId, router]);
+
+  if (isLoading) {
     return (
       <div className="flex items-center gap-3 py-12">
         <div
@@ -126,7 +138,7 @@ export function DashboardView() {
         }}
         role="alert"
       >
-        {error}
+        {error.message}
       </div>
     );
   }
@@ -157,7 +169,7 @@ export function DashboardView() {
             journeys={data.journeys}
             selectedJourneyId={selectedJourneyId}
             onSelectJourney={setSelectedJourneyId}
-            adminStats={data.adminStats}
+            adminStats={adminStatsData?.adminStats ?? undefined}
             isAdmin={isAdmin}
           />
         </div>

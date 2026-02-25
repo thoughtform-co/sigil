@@ -116,6 +116,7 @@ model Session {
 
   @@index([projectId])
   @@index([projectId, isPrivate])
+  @@index([projectId, createdAt(sort: Desc)])
   @@map("sessions")
 }
 

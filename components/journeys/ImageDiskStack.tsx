@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback, useState } from "react";
 import styles from "./ImageDiskStack.module.css";
 
@@ -143,12 +144,16 @@ export function ImageDiskStack({
                     preload="metadata"
                   />
                 ) : (
-                  <img
-                    src={img.fileUrl}
-                    alt=""
-                    className={styles.cardImage}
-                    loading="lazy"
-                  />
+                  <div style={{ position: "relative", width: "100%", height: "100%" }}>
+                    <Image
+                      src={img.fileUrl}
+                      alt=""
+                      fill
+                      className={styles.cardImage}
+                      sizes="260px"
+                      loading="lazy"
+                    />
+                  </div>
                 )}
               </div>
             </div>
@@ -170,12 +175,16 @@ export function ImageDiskStack({
                   preload="metadata"
                 />
               ) : (
-                <img
-                  src={img.fileUrl}
-                  alt=""
-                  className={styles.cardImage}
-                  loading="lazy"
-                />
+                <div style={{ position: "relative", width: "100%", height: "100%" }}>
+                  <Image
+                    src={img.fileUrl}
+                    alt=""
+                    fill
+                    className={styles.cardImage}
+                    sizes="260px"
+                    priority
+                  />
+                </div>
               );
             })()}
           </div>

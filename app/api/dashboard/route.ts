@@ -1,153 +1,98 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthedUser } from "@/lib/auth/server";
+import { withCacheHeaders } from "@/lib/api/cache-headers";
 
 export async function GET() {
+  const start = Date.now();
   const user = await getAuthedUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const afterAuth = Date.now();
 
-  const profile = await prisma.profile.findUnique({
-    where: { id: user.id },
-    select: { role: true },
-  });
+  const [profile, wpMemberships] = await Promise.all([
+    prisma.profile.findUnique({
+      where: { id: user.id },
+      select: { role: true },
+    }),
+    prisma.workspaceProjectMember.findMany({
+      where: { userId: user.id },
+      select: { workspaceProjectId: true },
+    }),
+  ]);
   const isAdmin = profile?.role === "admin";
-
-  // Accessible project IDs: owned, direct member, or via workspace membership
-  const wpMemberships = await prisma.workspaceProjectMember.findMany({
-    where: { userId: user.id },
-    select: { workspaceProjectId: true },
-  });
   const wpIds = wpMemberships.map((m) => m.workspaceProjectId);
-  const accessibleProjects = await prisma.project.findMany({
-    where: {
-      OR: [
-        { ownerId: user.id },
-        { members: { some: { userId: user.id } } },
-        ...(wpIds.length > 0 ? [{ workspaceProjectId: { in: wpIds } }] : []),
-      ],
-    },
-    select: { id: true },
-  });
-  const projectIds = accessibleProjects.map((p) => p.id);
 
-  // Gallery: recent outputs from accessible projects (latest 30)
-  const galleryOutputs =
-    projectIds.length === 0
-      ? []
-      : await prisma.output.findMany({
-          where: {
-            generation: {
-              session: { projectId: { in: projectIds } },
-            },
-          },
-          orderBy: { createdAt: "desc" },
-          take: 30,
-          select: {
-            id: true,
-            fileUrl: true,
-            fileType: true,
-            width: true,
-            height: true,
-            createdAt: true,
-            generation: {
-              select: {
-                prompt: true,
-                modelId: true,
-                session: {
-                  select: {
-                    name: true,
-                    project: { select: { name: true } },
-                  },
-                },
-              },
-            },
-          },
-        });
-
-  const gallery = galleryOutputs.map((o) => ({
-    id: o.id,
-    fileUrl: o.fileUrl,
-    fileType: o.fileType,
-    width: o.width,
-    height: o.height,
-    createdAt: o.createdAt,
-    prompt: o.generation.prompt,
-    modelId: o.generation.modelId,
-    sessionName: o.generation.session.name,
-    projectName: o.generation.session.project.name,
-  }));
-
-  // Journeys: for user = those they're member of; for admin = all
   const journeyWhere = isAdmin ? {} : { members: { some: { userId: user.id } } };
+
   const workspaceProjects = await prisma.workspaceProject.findMany({
     where: journeyWhere,
     orderBy: { updatedAt: "desc" },
-    include: {
-      _count: { select: { briefings: true } },
-      briefings: {
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          updatedAt: true,
-          _count: { select: { sessions: true } },
-          sessions: {
-            select: { _count: { select: { generations: true } } },
+      include: {
+        _count: { select: { briefings: true } },
+        briefings: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            updatedAt: true,
+            _count: { select: { sessions: true } },
+            sessions: {
+              select: { _count: { select: { generations: true } } },
+            },
           },
         },
       },
-    },
   });
+  const afterWorkspace = Date.now();
 
-  // Per-route thumbnails: last 8 outputs per briefing (project)
   const briefingIds = workspaceProjects.flatMap((wp) => wp.briefings.map((b) => b.id));
-  const routeOutputs =
+
+  const thumbnailResults =
     briefingIds.length === 0
       ? []
-      : await prisma.output.findMany({
-          where: {
-            generation: {
-              session: { projectId: { in: briefingIds } },
-            },
-          },
-          orderBy: { createdAt: "desc" },
-          select: {
-            id: true,
-            fileUrl: true,
-            fileType: true,
-            width: true,
-            height: true,
-            generation: {
-              select: {
-                sessionId: true,
-                session: { select: { projectId: true } },
+      : await Promise.all(
+          briefingIds.map((projectId) =>
+            prisma.output.findMany({
+              where: {
+                generation: {
+                  session: { projectId },
+                },
               },
-            },
-          },
-        });
+              orderBy: { createdAt: "desc" },
+              take: 8,
+              select: {
+                id: true,
+                fileUrl: true,
+                fileType: true,
+                width: true,
+                height: true,
+                generation: { select: { sessionId: true } },
+              },
+            })
+          )
+        );
+  const afterThumbnails = Date.now();
 
-  // Group by projectId, keep last 8 per route (outputs are already desc by createdAt)
   const thumbnailsByProjectId = new Map<
     string,
     { id: string; fileUrl: string; fileType: string; width: number | null; height: number | null; sessionId: string }[]
   >();
-  for (const o of routeOutputs) {
-    const projectId = o.generation.session.projectId;
-    const list = thumbnailsByProjectId.get(projectId) ?? [];
-    if (list.length < 8) {
-      list.push({
+  briefingIds.forEach((projectId, i) => {
+    const outputs = thumbnailResults[i] ?? [];
+    thumbnailsByProjectId.set(
+      projectId,
+      outputs.map((o) => ({
         id: o.id,
         fileUrl: o.fileUrl,
         fileType: o.fileType,
         width: o.width,
         height: o.height,
         sessionId: o.generation.sessionId,
-      });
-      thumbnailsByProjectId.set(projectId, list);
-    }
-  }
+      }))
+    );
+  });
 
   const journeys = workspaceProjects.map((wp) => {
     const totalGenerations = wp.briefings.reduce(
@@ -183,55 +128,16 @@ export async function GET() {
     };
   });
 
-  // Admin stats: per-user image and video output counts
-  let adminStats: { displayName: string; imageCount: number; videoCount: number }[] = [];
-  if (isAdmin) {
-    const outputsWithUser = await prisma.output.findMany({
-      where: {
-        OR: [
-          { fileType: { startsWith: "image" } },
-          { fileType: { startsWith: "video" } },
-        ],
-      },
-      select: {
-        fileType: true,
-        generation: { select: { userId: true } },
-      },
-    });
-    const userCounts = new Map<
-      string,
-      { imageCount: number; videoCount: number }
-    >();
-    for (const o of outputsWithUser) {
-      const uid = o.generation.userId;
-      if (!userCounts.has(uid))
-        userCounts.set(uid, { imageCount: 0, videoCount: 0 });
-      const c = userCounts.get(uid)!;
-      if (o.fileType.startsWith("image")) c.imageCount++;
-      else if (o.fileType.startsWith("video")) c.videoCount++;
-    }
-    const profileIds = Array.from(userCounts.keys());
-    const profiles = await prisma.profile.findMany({
-      where: { id: { in: profileIds } },
-      select: { id: true, displayName: true, username: true },
-    });
-    adminStats = profiles.map((p) => {
-      const c = userCounts.get(p.id) ?? { imageCount: 0, videoCount: 0 };
-      return {
-        displayName: p.displayName || p.username || p.id.slice(0, 8),
-        imageCount: c.imageCount,
-        videoCount: c.videoCount,
-      };
-    });
-    adminStats.sort(
-      (a, b) =>
-        b.imageCount + b.videoCount - (a.imageCount + a.videoCount)
-    );
-  }
-
-  return NextResponse.json({
-    gallery,
+  const response = NextResponse.json({
     journeys,
-    adminStats: isAdmin ? adminStats : undefined,
   });
+  const total = Date.now() - start;
+  response.headers.set(
+    "Server-Timing",
+    `auth;dur=${afterAuth - start},workspace;dur=${afterWorkspace - afterAuth},thumbnails;dur=${afterThumbnails - afterWorkspace},total;dur=${total}`
+  );
+  if (process.env.NODE_ENV === "development") {
+    console.log(`[dashboard] auth=${afterAuth - start}ms workspace=${afterWorkspace - afterAuth}ms thumbnails=${afterThumbnails - afterWorkspace}ms total=${total}ms`);
+  }
+  return withCacheHeaders(response, "short");
 }
