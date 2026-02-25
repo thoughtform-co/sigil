@@ -216,7 +216,7 @@ export class GeminiAdapter extends BaseModelAdapter {
     const refImages =
       request.referenceImages ?? (request.referenceImage ? [request.referenceImage] : []);
     for (const img of refImages) {
-      const dataUrlMatch = img.match(/^data:([^;]+);base64,(.+)$/s);
+      const dataUrlMatch = img.match(/^data:([^;]+);base64,(.+)$/);
       if (dataUrlMatch) {
         parts.push({ inlineData: { mimeType: dataUrlMatch[1], data: dataUrlMatch[2] } });
       } else if (img.startsWith("http")) {
