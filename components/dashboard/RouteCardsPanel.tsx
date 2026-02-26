@@ -22,7 +22,7 @@ function SectionHeader({ bearing, label, action }: { bearing: string; label: str
         marginBottom: "var(--space-lg)",
         display: "flex",
         alignItems: "center",
-        justifyContent: "space-between",
+        gap: "var(--space-sm)",
       }}
     >
       <h2 className="sigil-section-label" style={{ margin: 0 }}>
@@ -110,7 +110,7 @@ export function RouteCardsPanel({ routes, journeyId, onRouteCreated }: RouteCard
                 alignItems: "center",
                 justifyContent: "center",
                 background: "transparent",
-                border: "1px solid var(--dawn-15)",
+                border: "none",
                 color: "var(--dawn-30)",
                 fontFamily: "var(--font-mono)",
                 fontSize: "14px",
@@ -119,14 +119,10 @@ export function RouteCardsPanel({ routes, journeyId, onRouteCreated }: RouteCard
                 transition: "all 150ms ease",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = "var(--gold)";
                 e.currentTarget.style.color = "var(--gold)";
-                e.currentTarget.style.background = "rgba(202, 165, 84, 0.1)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "var(--dawn-15)";
                 e.currentTarget.style.color = "var(--dawn-30)";
-                e.currentTarget.style.background = "transparent";
               }}
             >
               +
