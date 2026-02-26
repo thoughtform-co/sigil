@@ -29,7 +29,7 @@ export function RouteCard({ route, isActive, onSelect, onNavigate }: RouteCardPr
 
   const thumb = route.thumbnails[0];
   const isVideo = thumb?.fileType?.startsWith("video");
-  const cardWidth = isActive ? 320 : 220;
+  const cardWidth = isActive ? 400 : 280;
 
   useEffect(() => {
     const v = videoRef.current;
@@ -350,39 +350,6 @@ export function RouteCard({ route, isActive, onSelect, onNavigate }: RouteCardPr
         </div>
       </div>
 
-      {/* Corner bracket — top-left (non-chamfered corner) */}
-      <div
-        style={{
-          position: "absolute",
-          top: -1,
-          left: -1,
-          width: 14,
-          height: 14,
-          borderTop: "1px solid",
-          borderLeft: "1px solid",
-          borderColor: isActive ? "var(--dawn-30)" : "var(--dawn-15)",
-          opacity: isActive || hovered ? 1 : 0,
-          transition: "opacity 300ms ease, border-color 300ms ease",
-          pointerEvents: "none",
-        }}
-      />
-
-      {/* Corner bracket — bottom-right (non-chamfered corner) */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: -1,
-          right: -1,
-          width: 14,
-          height: 14,
-          borderBottom: "1px solid",
-          borderRight: "1px solid",
-          borderColor: isActive ? "var(--dawn-30)" : "var(--dawn-15)",
-          opacity: isActive || hovered ? 1 : 0,
-          transition: "opacity 300ms ease, border-color 300ms ease",
-          pointerEvents: "none",
-        }}
-      />
     </article>
   );
 }
