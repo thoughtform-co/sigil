@@ -243,7 +243,7 @@ function OverviewContent({
           )}
           <div>
             <div className={styles.sectionLabel}>Progress</div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--dawn-50)", letterSpacing: "0.06em" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--dawn-70)", letterSpacing: "0.06em" }}>
               {exploredCount} / {totalLessons} lessons explored
             </div>
             <div style={{ marginTop: "8px", height: "2px", background: "var(--dawn-08)", position: "relative" }}>
@@ -344,7 +344,7 @@ function CurriculumContent({
               <span className={`${styles.lessonDiamond} ${explored.has(les.id) ? styles.lessonDiamondExplored : styles.lessonDiamondPending}`} />
               <div className={styles.lessonMeta}>
                 <div className={styles.lessonTitle}>{les.title}</div>
-                {les.subtitle && <div style={{ fontFamily: "var(--font-sans)", fontSize: "11px", color: "var(--dawn-40)", marginTop: "2px" }}>{les.subtitle}</div>}
+                {les.subtitle && <div style={{ fontFamily: "var(--font-sans)", fontSize: "11px", color: "var(--dawn-70)", marginTop: "2px" }}>{les.subtitle}</div>}
                 <div className={styles.lessonDuration}>{les.estimatedMinutes} min</div>
               </div>
             </Link>

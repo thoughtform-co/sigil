@@ -116,7 +116,7 @@ export function JourneyCard({ journey }: JourneyCardProps) {
               fontSize: "9px",
               letterSpacing: "0.1em",
               textTransform: "uppercase",
-              color: "var(--dawn-50)",
+              color: "var(--dawn-70)",
               flexShrink: 0,
               transitionDuration: "var(--duration-fast)",
             }}
@@ -145,7 +145,7 @@ export function JourneyCard({ journey }: JourneyCardProps) {
             fontSize: "9px",
             letterSpacing: "0.05em",
             textTransform: "uppercase",
-            color: "var(--dawn-50)",
+            color: "var(--dawn-70)",
             borderTop: "1px solid var(--dawn-08)",
             paddingTop: "12px",
           }}
