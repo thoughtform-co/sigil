@@ -121,7 +121,7 @@ function JourneyCardWithMenu({
               e.currentTarget.style.color = "var(--dawn-70)";
             }}
           >
-            delete
+            DELETE
           </button>
         </div>
       )}
@@ -184,9 +184,6 @@ export default function JourneysOverviewPage() {
           style={{ paddingTop: "var(--space-2xl)" }}
         >
           <HudPanel>
-            <div style={{ marginBottom: "var(--space-md)" }}>
-              <HudBreadcrumb segments={[{ label: "journeys" }]} />
-            </div>
             <HudPanelHeader title="Journeys" />
             {loading ? (
               <div className="flex items-center gap-3 py-12">
