@@ -7,6 +7,9 @@ import { RequireAuth } from "@/components/auth/RequireAuth";
 import { RouteCard } from "@/components/journeys/RouteCard";
 import { HudPanel, HudPanelHeader, HudEmptyState, HudBreadcrumb } from "@/components/ui/hud";
 import { Dialog } from "@/components/ui/Dialog";
+import { JourneyHub } from "@/components/learning/JourneyHub";
+import { INKROOT_JOURNEY } from "@/lib/learning";
+import type { JourneyContent } from "@/lib/learning";
 
 type RouteItem = {
   id: string;
@@ -26,6 +29,10 @@ type JourneyData = {
     routes: RouteItem[];
   };
 };
+
+function getLearningContent(_journeyId: string): JourneyContent | null {
+  return INKROOT_JOURNEY;
+}
 
 export default function JourneyDetailPage() {
   const params = useParams();
@@ -107,15 +114,56 @@ export default function JourneyDetailPage() {
     return null;
   }
 
+  const learningContent = getLearningContent(id);
+
   return (
     <RequireAuth>
       <NavigationFrame title="SIGIL" modeLabel="journey">
         <section
-          className="w-full max-w-[960px] animate-fade-in-up"
-          style={{ paddingTop: "var(--space-2xl)" }}
+          className="w-full animate-fade-in-up"
+          style={{
+            paddingTop: "var(--space-2xl)",
+            maxWidth: learningContent ? "1200px" : "960px",
+          }}
         >
-          <HudPanel>
-            {data ? (
+          {loading ? (
+            <div className="flex items-center gap-3 py-12">
+              <div
+                style={{
+                  width: "6px",
+                  height: "6px",
+                  background: "var(--gold)",
+                  animation: "glowPulse 1.5s ease-in-out infinite",
+                }}
+              />
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "10px",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: "var(--dawn-30)",
+                }}
+              >
+                Loading journey...
+              </span>
+            </div>
+          ) : error ? (
+            <div
+              style={{
+                padding: "10px 12px",
+                fontFamily: "var(--font-mono)",
+                fontSize: "11px",
+                color: "var(--status-error)",
+                background: "rgba(193, 127, 89, 0.1)",
+                border: "1px solid rgba(193, 127, 89, 0.2)",
+              }}
+              role="alert"
+            >
+              {error}
+            </div>
+          ) : data && learningContent ? (
+            <>
               <div style={{ marginBottom: "var(--space-md)" }}>
                 <HudBreadcrumb
                   segments={[
@@ -124,99 +172,75 @@ export default function JourneyDetailPage() {
                   ]}
                 />
               </div>
-            ) : null}
-            {loading ? (
-              <div className="flex items-center gap-3 py-12">
-                <div
-                  style={{
-                    width: "6px",
-                    height: "6px",
-                    background: "var(--gold)",
-                    animation: "glowPulse 1.5s ease-in-out infinite",
-                  }}
+              <JourneyHub
+                content={learningContent}
+                journeyId={id}
+                routes={data.journey.routes}
+              />
+            </>
+          ) : data ? (
+            <HudPanel>
+              <div style={{ marginBottom: "var(--space-md)" }}>
+                <HudBreadcrumb
+                  segments={[
+                    { label: "journeys", href: "/journeys" },
+                    { label: data.journey.name },
+                  ]}
                 />
-                <span
+              </div>
+              <HudPanelHeader
+                title={data.journey.name}
+                actions={
+                  <button
+                    type="button"
+                    className="sigil-btn-secondary"
+                    onClick={() => setDialogOpen(true)}
+                  >
+                    + create route
+                  </button>
+                }
+              />
+              {data.journey.description ? (
+                <p
                   style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "10px",
-                    letterSpacing: "0.08em",
-                    textTransform: "uppercase",
-                    color: "var(--dawn-30)",
+                    fontFamily: "var(--font-sans)",
+                    fontSize: "12px",
+                    color: "var(--dawn-50)",
+                    marginBottom: "var(--space-md)",
                   }}
                 >
-                  Loading journey...
-                </span>
-              </div>
-            ) : error ? (
-              <div
-                style={{
-                  padding: "10px 12px",
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "11px",
-                  color: "var(--status-error)",
-                  background: "rgba(193, 127, 89, 0.1)",
-                  border: "1px solid rgba(193, 127, 89, 0.2)",
-                }}
-                role="alert"
-              >
-                {error}
-              </div>
-            ) : data ? (
-              <>
-                <HudPanelHeader
-                  title={data.journey.name}
-                  actions={
+                  {data.journey.description}
+                </p>
+              ) : null}
+              {data.journey.routes.length > 0 ? (
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {data.journey.routes.map((route, index) => (
+                    <div
+                      key={route.id}
+                      className="animate-fade-in-up"
+                      style={{ animationDelay: `${index * 0.06}s` }}
+                    >
+                      <RouteCard route={route} />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <HudEmptyState
+                  title="No routes yet"
+                  body="Create a route to get started, or ask an admin to add one."
+                  action={
                     <button
                       type="button"
-                      className="sigil-btn-secondary"
+                      className="sigil-btn-primary"
                       onClick={() => setDialogOpen(true)}
                     >
-                      + create route
+                      + create first route
                     </button>
                   }
                 />
-                {data.journey.description ? (
-                  <p
-                    style={{
-                      fontFamily: "var(--font-sans)",
-                      fontSize: "12px",
-                      color: "var(--dawn-50)",
-                      marginBottom: "var(--space-md)",
-                    }}
-                  >
-                    {data.journey.description}
-                  </p>
-                ) : null}
-                {data.journey.routes.length > 0 ? (
-                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    {data.journey.routes.map((route, index) => (
-                      <div
-                        key={route.id}
-                        className="animate-fade-in-up"
-                        style={{ animationDelay: `${index * 0.06}s` }}
-                      >
-                        <RouteCard route={route} />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <HudEmptyState
-                    title="No routes yet"
-                    body="Create a route to get started, or ask an admin to add one."
-                    action={
-                      <button
-                        type="button"
-                        className="sigil-btn-primary"
-                        onClick={() => setDialogOpen(true)}
-                      >
-                        + create first route
-                      </button>
-                    }
-                  />
-                )}
-              </>
-            ) : null}
-          </HudPanel>
+              )}
+            </HudPanel>
+          ) : null}
 
           <Dialog
             open={dialogOpen}
