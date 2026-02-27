@@ -43,4 +43,5 @@ export type ModelItem = {
   name: string;
   type: "image" | "video";
   provider: string;
+  supportedAspectRatios?: string[];
 };

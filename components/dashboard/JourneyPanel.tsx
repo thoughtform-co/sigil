@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { AdminStatsPanel } from "@/components/dashboard/AdminStatsPanel";
 import { Dialog } from "@/components/ui/Dialog";
 import type { ReactNode } from "react";
@@ -63,7 +63,7 @@ function SectionHeader({ bearing, label, action }: { bearing: string; label: str
         marginBottom: "var(--space-md)",
         display: "flex",
         alignItems: "center",
-        justifyContent: "space-between",
+        gap: "var(--space-sm)",
       }}
     >
       <h2 className="sigil-section-label" style={{ margin: 0 }}>
@@ -71,6 +71,87 @@ function SectionHeader({ bearing, label, action }: { bearing: string; label: str
         {label}
       </h2>
       {action}
+    </div>
+  );
+}
+
+function ThreeDotIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <circle cx="3" cy="7" r="1.2" fill="currentColor" />
+      <circle cx="7" cy="7" r="1.2" fill="currentColor" />
+      <circle cx="11" cy="7" r="1.2" fill="currentColor" />
+    </svg>
+  );
+}
+
+function JourneyMenu({
+  journeyId,
+  onRename,
+  onClose,
+}: {
+  journeyId: string;
+  onRename: (id: string) => void;
+  onClose: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        onClose();
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [onClose]);
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        position: "absolute",
+        right: 0,
+        top: "100%",
+        marginTop: 4,
+        background: "var(--void)",
+        border: "1px solid var(--dawn-15)",
+        zIndex: 50,
+        minWidth: 120,
+      }}
+    >
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onRename(journeyId);
+          onClose();
+        }}
+        style={{
+          display: "block",
+          width: "100%",
+          padding: "8px 12px",
+          background: "transparent",
+          border: "none",
+          color: "var(--dawn-70)",
+          fontFamily: "var(--font-mono)",
+          fontSize: "11px",
+          letterSpacing: "0.06em",
+          textAlign: "left",
+          cursor: "pointer",
+          transition: "background 80ms ease, color 80ms ease",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "var(--dawn-08)";
+          e.currentTarget.style.color = "var(--dawn)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "transparent";
+          e.currentTarget.style.color = "var(--dawn-70)";
+        }}
+      >
+        rename
+      </button>
     </div>
   );
 }
@@ -88,6 +169,39 @@ export function JourneyPanel({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [creating, setCreating] = useState(false);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [renameId, setRenameId] = useState<string | null>(null);
+  const [renameName, setRenameName] = useState("");
+  const [renaming, setRenaming] = useState(false);
+
+  const closeMenu = useCallback(() => setMenuOpenId(null), []);
+
+  function openRenameDialog(id: string) {
+    const journey = journeys.find((j) => j.id === id);
+    if (!journey) return;
+    setRenameId(id);
+    setRenameName(journey.name);
+  }
+
+  async function handleRename() {
+    if (!renameId || !renameName.trim() || renaming) return;
+    setRenaming(true);
+    try {
+      const res = await fetch(`/api/admin/workspace-projects/${renameId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: renameName.trim() }),
+      });
+      if (res.ok) {
+        setRenameId(null);
+        setRenameName("");
+        onJourneyCreated?.();
+      }
+    } finally {
+      setRenaming(false);
+    }
+  }
 
   async function handleCreate() {
     if (!name.trim() || creating) return;
@@ -137,7 +251,7 @@ export function JourneyPanel({
                 alignItems: "center",
                 justifyContent: "center",
                 background: "transparent",
-                border: "1px solid var(--dawn-15)",
+                border: "none",
                 color: "var(--dawn-30)",
                 fontFamily: "var(--font-mono)",
                 fontSize: "14px",
@@ -146,14 +260,10 @@ export function JourneyPanel({
                 transition: "all 150ms ease",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = "var(--gold)";
                 e.currentTarget.style.color = "var(--gold)";
-                e.currentTarget.style.background = "rgba(202, 165, 84, 0.1)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "var(--dawn-15)";
                 e.currentTarget.style.color = "var(--dawn-30)";
-                e.currentTarget.style.background = "transparent";
               }}
             >
               +
@@ -174,66 +284,111 @@ export function JourneyPanel({
             No journeys assigned
           </p>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {journeys.map((journey) => {
               const isSelected = selectedJourneyId === journey.id;
+              const isHovered = hoveredId === journey.id;
+              const showDots = isAdmin && (isHovered || menuOpenId === journey.id);
               return (
-                <button
+                <div
                   key={journey.id}
-                  type="button"
-                  onClick={() => onSelectJourney(journey.id)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    width: "100%",
-                    padding: "var(--space-sm) var(--space-md)",
-                    background: isSelected ? "var(--gold-10)" : "transparent",
-                    border: "none",
-                    borderLeft: "2px solid " + (isSelected ? "var(--gold)" : "transparent"),
-                    color: isSelected ? "var(--gold)" : "var(--dawn-50)",
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "12px",
-                    letterSpacing: "0.06em",
-                    textTransform: "uppercase",
-                    textAlign: "left",
-                    cursor: "pointer",
-                    transition: "color 100ms, background 100ms, border-color 100ms",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isSelected) {
-                      e.currentTarget.style.background = "var(--dawn-04)";
-                      e.currentTarget.style.color = "var(--dawn)";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isSelected) {
-                      e.currentTarget.style.background = "transparent";
-                      e.currentTarget.style.color = "var(--dawn-50)";
-                    }
-                  }}
+                  style={{ position: "relative" }}
+                  onMouseEnter={() => setHoveredId(journey.id)}
+                  onMouseLeave={() => setHoveredId(null)}
                 >
-                  <Diamond active={isSelected} />
-                  <span
+                  <button
+                    type="button"
+                    onClick={() => onSelectJourney(journey.id)}
                     style={{
-                      flex: 1,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 8,
+                      width: "100%",
+                      padding: "10px var(--space-md)",
+                      background: isSelected ? "var(--gold-10)" : isHovered ? "var(--dawn-04)" : "transparent",
+                      border: "1px solid " + (isSelected ? "var(--gold-30, rgba(202,165,84,0.3))" : isHovered ? "var(--dawn-15)" : "var(--dawn-08)"),
+                      borderLeft: "2px solid " + (isSelected ? "var(--gold)" : isHovered ? "var(--dawn-15)" : "var(--dawn-08)"),
+                      color: isSelected ? "var(--gold)" : isHovered ? "var(--dawn)" : "var(--dawn-50)",
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "12px",
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase",
+                      textAlign: "left",
+                      cursor: "pointer",
+                      transition: "color 100ms, background 100ms, border-color 100ms",
                     }}
                   >
-                    {journey.name}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: "10px",
-                      color: "var(--dawn-30)",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {journey.routeCount} routes
-                  </span>
-                </button>
+                    <span style={{ marginTop: 4 }}>
+                      <Diamond active={isSelected} />
+                    </span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div
+                        style={{
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        {journey.name}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "10px",
+                          letterSpacing: "0.04em",
+                          color: isSelected ? "var(--gold-50, var(--gold))" : "var(--dawn-30)",
+                          marginTop: 3,
+                          display: "flex",
+                          gap: 10,
+                        }}
+                      >
+                        <span>{journey.routeCount} routes</span>
+                        <span>{journey.generationCount} gen</span>
+                      </div>
+                    </div>
+                    {showDots && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMenuOpenId(menuOpenId === journey.id ? null : journey.id);
+                        }}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          width: 22,
+                          height: 22,
+                          padding: 0,
+                          marginTop: 1,
+                          background: menuOpenId === journey.id ? "var(--dawn-08)" : "transparent",
+                          border: "1px solid transparent",
+                          color: "var(--dawn-40)",
+                          cursor: "pointer",
+                          flexShrink: 0,
+                          transition: "color 80ms ease, background 80ms ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.color = "var(--dawn)";
+                          e.currentTarget.style.borderColor = "var(--dawn-15)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.color = "var(--dawn-40)";
+                          e.currentTarget.style.borderColor = "transparent";
+                        }}
+                      >
+                        <ThreeDotIcon />
+                      </button>
+                    )}
+                  </button>
+                  {menuOpenId === journey.id && (
+                    <JourneyMenu
+                      journeyId={journey.id}
+                      onRename={openRenameDialog}
+                      onClose={closeMenu}
+                    />
+                  )}
+                </div>
               );
             })}
           </div>
@@ -338,6 +493,51 @@ export function JourneyPanel({
               style={{ width: "100%" }}
             />
           </div>
+        </div>
+      </Dialog>
+
+      <Dialog
+        open={renameId !== null}
+        onClose={() => { setRenameId(null); setRenameName(""); }}
+        title="rename journey"
+        footer={
+          <>
+            <button className="sigil-btn-ghost" onClick={() => { setRenameId(null); setRenameName(""); }}>cancel</button>
+            <button
+              className="sigil-btn-primary"
+              disabled={renaming || !renameName.trim()}
+              onClick={() => void handleRename()}
+            >
+              {renaming ? "saving..." : "save"}
+            </button>
+          </>
+        }
+      >
+        <div>
+          <label
+            htmlFor="rename-journey"
+            style={{
+              display: "block",
+              fontFamily: "var(--font-mono)",
+              fontSize: "10px",
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              color: "var(--dawn-40)",
+              marginBottom: "var(--space-xs)",
+            }}
+          >
+            Name
+          </label>
+          <input
+            id="rename-journey"
+            type="text"
+            value={renameName}
+            onChange={(e) => setRenameName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") void handleRename(); }}
+            autoFocus
+            className="admin-input"
+            style={{ width: "100%" }}
+          />
         </div>
       </Dialog>
     </div>

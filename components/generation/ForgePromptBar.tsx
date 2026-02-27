@@ -5,6 +5,29 @@ import { useRef, useState, useEffect, useCallback } from "react";
 import type { GenerationType, ModelItem } from "@/components/generation/types";
 import styles from "./ForgePromptBar.module.css";
 
+const DEFAULT_ASPECT_RATIOS = ["1:1", "16:9", "9:16", "4:3", "3:4"];
+
+function detectClosestAspectRatio(
+  width: number,
+  height: number,
+  supported: string[],
+): string | null {
+  if (width <= 0 || height <= 0 || supported.length === 0) return null;
+  const ratio = width / height;
+  let closest = supported[0];
+  let minDiff = Infinity;
+  for (const label of supported) {
+    const [w, h] = label.split(":").map(Number);
+    if (!w || !h) continue;
+    const diff = Math.abs(ratio - w / h);
+    if (diff < minDiff) {
+      minDiff = diff;
+      closest = label;
+    }
+  }
+  return closest;
+}
+
 type ForgePromptBarProps = {
   projectId: string;
   generationType: GenerationType;
@@ -125,6 +148,9 @@ export function ForgePromptBar({
 
   const selectedModel = models.find((m) => m.id === modelId);
   const displayModelName = selectedModel ? selectedModel.name : modelId || "Model";
+  const aspectRatios = selectedModel?.supportedAspectRatios?.length
+    ? selectedModel.supportedAspectRatios
+    : DEFAULT_ASPECT_RATIOS;
 
   useEffect(() => {
     if (isResizing) return;
@@ -156,6 +182,12 @@ export function ForgePromptBar({
       if (!file || !file.type.startsWith("image/")) return;
       const url = URL.createObjectURL(file);
       setImagePreview(url);
+      const img = new window.Image();
+      img.onload = () => {
+        const match = detectClosestAspectRatio(img.naturalWidth, img.naturalHeight, aspectRatios);
+        if (match) onAspectRatioChange(match);
+      };
+      img.src = url;
       const reader = new FileReader();
       reader.onload = () => {
         const dataUrl = reader.result as string;
@@ -164,7 +196,7 @@ export function ForgePromptBar({
       reader.readAsDataURL(file);
       if (fileInputRef.current) fileInputRef.current.value = "";
     },
-    [onReferenceImageUrlChange],
+    [onReferenceImageUrlChange, onAspectRatioChange, aspectRatios],
   );
 
   const handleDrop = useCallback(
@@ -175,13 +207,19 @@ export function ForgePromptBar({
       if (!file || !file.type.startsWith("image/")) return;
       const url = URL.createObjectURL(file);
       setImagePreview(url);
+      const img = new window.Image();
+      img.onload = () => {
+        const match = detectClosestAspectRatio(img.naturalWidth, img.naturalHeight, aspectRatios);
+        if (match) onAspectRatioChange(match);
+      };
+      img.src = url;
       const reader = new FileReader();
       reader.onload = () => {
         onReferenceImageUrlChange(reader.result as string);
       };
       reader.readAsDataURL(file);
     },
-    [onReferenceImageUrlChange],
+    [onReferenceImageUrlChange, onAspectRatioChange, aspectRatios],
   );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -395,11 +433,9 @@ export function ForgePromptBar({
                 aria-label="Aspect ratio"
                 disabled={busy}
               >
-                <option value="1:1">1:1</option>
-                <option value="16:9">16:9</option>
-                <option value="9:16">9:16</option>
-                <option value="4:3">4:3</option>
-                <option value="3:4">3:4</option>
+                {aspectRatios.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
               </select>
               <select
                 value={resolution}
