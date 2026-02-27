@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { NavigationFrame } from "@/components/hud/NavigationFrame";
 import { RequireAuth } from "@/components/auth/RequireAuth";
@@ -11,6 +11,130 @@ import { HudPanel, HudPanelHeader, HudEmptyState, HudBreadcrumb } from "@/compon
 type JourneysListData = {
   journeys: JourneyCardItem[];
 };
+
+function JourneyCardWithMenu({
+  journey,
+  index,
+  isAdmin,
+  onDelete,
+}: {
+  journey: JourneyCardItem;
+  index: number;
+  isAdmin: boolean;
+  onDelete: (j: JourneyCardItem) => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [menuOpen]);
+
+  return (
+    <div
+      className="animate-fade-in-up relative"
+      style={{ animationDelay: `${index * 0.06}s` }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => { setHovered(false); setMenuOpen(false); }}
+    >
+      <JourneyCard journey={journey} />
+      {isAdmin && (hovered || menuOpen) && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setMenuOpen((v) => !v);
+          }}
+          style={{
+            position: "absolute",
+            top: "10px",
+            right: "10px",
+            width: 22,
+            height: 22,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: menuOpen ? "var(--dawn-08)" : "var(--surface-0)",
+            border: "1px solid var(--dawn-08)",
+            padding: 0,
+            cursor: "pointer",
+            zIndex: 3,
+            transition: "background 80ms, border-color 80ms",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = "var(--dawn-15)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = "var(--dawn-08)";
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <rect x="2" y="6" width="2" height="2" fill="currentColor" style={{ color: "var(--dawn-40)" }} />
+            <rect x="6" y="6" width="2" height="2" fill="currentColor" style={{ color: "var(--dawn-40)" }} />
+            <rect x="10" y="6" width="2" height="2" fill="currentColor" style={{ color: "var(--dawn-40)" }} />
+          </svg>
+        </button>
+      )}
+      {menuOpen && (
+        <div
+          ref={menuRef}
+          style={{
+            position: "absolute",
+            top: "34px",
+            right: "10px",
+            background: "var(--void)",
+            border: "1px solid var(--dawn-15)",
+            zIndex: 50,
+            minWidth: 120,
+          }}
+        >
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setMenuOpen(false);
+              onDelete(journey);
+            }}
+            style={{
+              display: "block",
+              width: "100%",
+              padding: "8px 12px",
+              background: "transparent",
+              border: "none",
+              color: "var(--dawn-70)",
+              fontFamily: "var(--font-mono)",
+              fontSize: "11px",
+              letterSpacing: "0.06em",
+              textAlign: "left",
+              cursor: "pointer",
+              transition: "background 80ms, color 80ms",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--dawn-08)";
+              e.currentTarget.style.color = "var(--status-error, #ff6b35)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "var(--dawn-70)";
+            }}
+          >
+            delete
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function JourneysOverviewPage() {
   const { isAdmin } = useAuth();
@@ -110,49 +234,13 @@ export default function JourneysOverviewPage() {
             ) : data && data.journeys.length > 0 ? (
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {data.journeys.map((journey, index) => (
-                  <div
+                  <JourneyCardWithMenu
                     key={journey.id}
-                    className="animate-fade-in-up relative"
-                    style={{ animationDelay: `${index * 0.06}s` }}
-                  >
-                    <JourneyCard journey={journey} />
-                    {isAdmin && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setDeleteTarget(journey);
-                        }}
-                        style={{
-                          position: "absolute",
-                          top: "8px",
-                          right: "8px",
-                          background: "var(--surface-0)",
-                          border: "1px solid var(--dawn-08)",
-                          padding: "2px 6px",
-                          fontFamily: "var(--font-mono)",
-                          fontSize: "8px",
-                          letterSpacing: "0.08em",
-                          textTransform: "uppercase",
-                          color: "var(--dawn-30)",
-                          cursor: "pointer",
-                          zIndex: 2,
-                          transition: "color 120ms, border-color 120ms",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.color = "var(--status-error)";
-                          e.currentTarget.style.borderColor = "var(--status-error)";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.color = "var(--dawn-30)";
-                          e.currentTarget.style.borderColor = "var(--dawn-08)";
-                        }}
-                      >
-                        delete
-                      </button>
-                    )}
-                  </div>
+                    journey={journey}
+                    index={index}
+                    isAdmin={isAdmin}
+                    onDelete={setDeleteTarget}
+                  />
                 ))}
               </div>
             ) : data ? (
