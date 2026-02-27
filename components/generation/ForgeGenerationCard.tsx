@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import type { CSSProperties } from "react";
 import Image from "next/image";
 import type { GenerationItem, OutputItem } from "@/components/generation/types";
-import { VideoIterationsStackHint } from "@/components/generation/VideoIterationsStackHint";
+import { VideoIterationsStackGlow, VideoIterationsBarButton } from "@/components/generation/VideoIterationsStackHint";
 import styles from "./ForgeGenerationCard.module.css";
 
 function isProcessing(status: string): boolean {
@@ -93,14 +93,11 @@ function getPlaceholderAspectRatio(generation: GenerationItem): string {
 }
 
 function getFlowDuration(output: OutputItem, generation: GenerationItem): number {
-  // Sync flow speed with media context:
-  // - Video: follow output duration (bounded for subtlety)
-  // - Image: deterministic tempo derived from generation timestamp
   if (typeof output.duration === "number" && output.duration > 0) {
     return Math.min(14, Math.max(6, output.duration));
   }
   const sec = new Date(generation.createdAt).getSeconds();
-  return 7 + (sec % 4); // 7–10s
+  return 7 + (sec % 4);
 }
 
 function getFlowDelay(generation: GenerationItem): number {
@@ -121,14 +118,18 @@ export function ForgeGenerationCard({
   busy,
 }: ForgeGenerationCardProps) {
   const [copied, setCopied] = useState(false);
+  const [refPopupOpen, setRefPopupOpen] = useState(false);
   const processing = isProcessing(generation.status);
   const stuck = isLikelyStuck(generation);
   const failed = isFailed(generation.status);
   const hasOutputs = generation.outputs.length > 0;
   const multiOutput = generation.outputs.length > 1;
-  const hasApproved = generation.outputs.some((o) => o.isApproved);
+  const hasBookmarked = generation.outputs.some((o) => o.isApproved);
   const phaseMessage = PHASE_MESSAGES[generation.id.length % PHASE_MESSAGES.length];
   const createdAt = formatCreatedAt(generation.createdAt);
+  const refImageUrl = typeof generation.parameters?.referenceImageUrl === "string"
+    ? generation.parameters.referenceImageUrl
+    : null;
 
   const copyPrompt = useCallback(() => {
     if (!generation.prompt) return;
@@ -144,7 +145,7 @@ export function ForgeGenerationCard({
     processing ? styles.cardProcessing : "",
     failed ? styles.cardFailed : "",
   ].filter(Boolean).join(" ");
-  const statusLabel = hasApproved ? `${generation.status} / approved` : generation.status;
+  const statusLabel = hasBookmarked ? `${generation.status} / bookmarked` : generation.status;
   const idShort = generation.id.slice(0, 8);
 
   return (
@@ -159,6 +160,21 @@ export function ForgeGenerationCard({
           <span className={styles.promptText}>{generation.prompt || "No prompt"}</span>
           {copied && <span className={styles.copiedBadge}>COPIED</span>}
         </button>
+
+        {refImageUrl && (
+          <>
+            <div className={styles.promptPanelDivider} aria-hidden />
+            <button
+              type="button"
+              className={styles.refThumb}
+              onClick={() => setRefPopupOpen(true)}
+              title="View reference image"
+            >
+              <img src={refImageUrl} alt="Reference" className={styles.refThumbImg} />
+              <span className={styles.refThumbLabel}>REF</span>
+            </button>
+          </>
+        )}
 
         <div className={styles.promptPanelDivider} aria-hidden />
 
@@ -236,111 +252,114 @@ export function ForgeGenerationCard({
                   } as CSSProperties;
 
                   return (
-                <div
-                  className={styles.mediaFrame}
-                  style={{ ...frameStyle, zIndex: 1, position: "relative" }}
-                >
-                  {output.fileType !== "video" && onConvertToVideo && (
-                    <VideoIterationsStackHint
-                      outputId={output.id}
-                      onClick={() => onConvertToVideo(output.id, output.fileUrl, { generationId: generation.id, modelId: generation.modelId, createdAt: generation.createdAt, status: generation.status })}
-                    />
-                  )}
-                  <div className={styles.energyFlow} aria-hidden />
-                  <div className={styles.mediaInset}>
-                    <div className={styles.mediaViewport}>
-                      {output.fileType === "video" ? (
-                        <video
-                          className={styles.media}
-                          controls
-                          src={output.fileUrl}
-                          preload="metadata"
-                          playsInline
-                        />
-                      ) : onLightboxOpen ? (
-                        <button
-                          type="button"
-                          className={styles.mediaButton}
-                          onClick={() => onLightboxOpen(output.fileUrl)}
-                          title="Open image"
-                        >
-                          <Image
-                            fill
-                            className={styles.media}
-                            src={output.fileUrl}
-                            alt="Generated output"
-                            sizes="(max-width: 980px) 90vw, 660px"
-                          />
-                        </button>
-                      ) : (
-                        <Image
-                          fill
-                          className={styles.media}
-                          src={output.fileUrl}
-                          alt="Generated output"
-                          sizes="(max-width: 980px) 90vw, 660px"
-                        />
-                      )}
-                    </div>
-                  </div>
-
-                  <div className={styles.hoverActions}>
-                    <div className={styles.actionsTopLeft}>
-                      <button
-                        type="button"
-                        className={styles.actionButton}
-                        onClick={() => downloadFile(output.fileUrl, `output-${output.id.slice(0, 8)}`)}
-                        title="Download"
+                    <>
+                      <div
+                        className={styles.mediaFrame}
+                        style={{ ...frameStyle, zIndex: 1, position: "relative" }}
                       >
-                        <svg className={styles.actionIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
-                        </svg>
-                      </button>
-                    </div>
+                        {output.fileType !== "video" && onConvertToVideo && (
+                          <VideoIterationsStackGlow outputId={output.id} />
+                        )}
+                        <div className={styles.energyFlow} aria-hidden />
+                        <div className={styles.mediaInset}>
+                          <div className={styles.mediaViewport}>
+                            {output.fileType === "video" ? (
+                              <video
+                                className={styles.media}
+                                controls
+                                src={output.fileUrl}
+                                preload="metadata"
+                                playsInline
+                              />
+                            ) : onLightboxOpen ? (
+                              <button
+                                type="button"
+                                className={styles.mediaButton}
+                                onClick={() => onLightboxOpen(output.fileUrl)}
+                                title="Open image"
+                              >
+                                <Image
+                                  fill
+                                  className={styles.media}
+                                  src={output.fileUrl}
+                                  alt="Generated output"
+                                  sizes="(max-width: 980px) 90vw, 660px"
+                                />
+                              </button>
+                            ) : (
+                              <Image
+                                fill
+                                className={styles.media}
+                                src={output.fileUrl}
+                                alt="Generated output"
+                                sizes="(max-width: 980px) 90vw, 660px"
+                              />
+                            )}
+                          </div>
+                        </div>
+                      </div>
 
-                    <div className={styles.actionsTopRight}>
-                      <button
-                        type="button"
-                        className={`${styles.actionButton} ${output.isApproved ? styles.actionActive : ""}`}
-                        onClick={() => onApprove(output.id, !output.isApproved)}
-                        disabled={busy}
-                        title={output.isApproved ? "Unapprove" : "Approve"}
-                      >
-                        <svg className={styles.actionIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M20 6L9 17l-5-5" />
-                        </svg>
-                      </button>
-                    </div>
-
-                    <div className={styles.actionsBottomLeft}>
-                      <button
-                        type="button"
-                        className={styles.actionButton}
-                        onClick={() => onReuse(generation)}
-                        disabled={busy}
-                        title="Reuse parameters"
-                      >
-                        <svg className={styles.actionIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                      </button>
-                      {output.fileType !== "video" && onUseAsReference && (
+                      <div className={styles.actionBar}>
                         <button
                           type="button"
                           className={styles.actionButton}
-                          onClick={() => onUseAsReference(output.fileUrl)}
+                          onClick={() => onReuse(generation)}
                           disabled={busy}
-                          title="Use as reference"
+                          title="Reuse parameters"
                         >
                           <svg className={styles.actionIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M17 7H7v10" />
-                            <path d="M17 7L7 17" />
+                            <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                           </svg>
                         </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
+
+                        <button
+                          type="button"
+                          className={`${styles.actionButton} ${output.isApproved ? styles.actionActive : ""}`}
+                          onClick={() => onApprove(output.id, !output.isApproved)}
+                          disabled={busy}
+                          title={output.isApproved ? "Remove bookmark" : "Bookmark"}
+                        >
+                          <svg className={styles.actionIcon} viewBox="0 0 24 24" fill={output.isApproved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
+                            <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                          </svg>
+                        </button>
+
+                        <button
+                          type="button"
+                          className={styles.actionButton}
+                          onClick={() => downloadFile(output.fileUrl, `output-${output.id.slice(0, 8)}`)}
+                          title="Download"
+                        >
+                          <svg className={styles.actionIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                          </svg>
+                        </button>
+
+                        <div className={styles.actionBarSpacer} />
+
+                        {output.fileType !== "video" && onUseAsReference && (
+                          <button
+                            type="button"
+                            className={styles.actionButton}
+                            onClick={() => onUseAsReference(output.fileUrl)}
+                            disabled={busy}
+                            title="Use as reference"
+                          >
+                            <svg className={styles.actionIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M17 7H7v10" />
+                              <path d="M17 7L7 17" />
+                            </svg>
+                          </button>
+                        )}
+
+                        {output.fileType !== "video" && onConvertToVideo && (
+                          <VideoIterationsBarButton
+                            outputId={output.id}
+                            onClick={() => onConvertToVideo(output.id, output.fileUrl, { generationId: generation.id, modelId: generation.modelId, createdAt: generation.createdAt, status: generation.status })}
+                          />
+                        )}
+                      </div>
+                    </>
                   );
                 })()}
               </article>
@@ -440,6 +459,21 @@ export function ForgeGenerationCard({
           </div>
         )}
       </section>
+
+      {refPopupOpen && refImageUrl && (
+        <div className={styles.refPopupBackdrop} onClick={() => setRefPopupOpen(false)}>
+          <div className={styles.refPopup} onClick={(e) => e.stopPropagation()}>
+            <img src={refImageUrl} alt="Reference" className={styles.refPopupImg} />
+            <button
+              type="button"
+              className={styles.refPopupClose}
+              onClick={() => setRefPopupOpen(false)}
+            >
+              &times;
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

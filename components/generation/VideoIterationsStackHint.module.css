@@ -61,6 +61,34 @@
   animation: iconSpin 1s linear infinite;
 }
 
+.barButton {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--dawn-12);
+  color: var(--dawn-50);
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease;
+}
+
+.barButton:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.barButton svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.barButton.spin svg {
+  animation: iconSpin 1s linear infinite;
+}
+
 @keyframes stackPulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }

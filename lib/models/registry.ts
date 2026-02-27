@@ -1,5 +1,5 @@
 import { BaseModelAdapter, ModelConfig } from "@/lib/models/base";
-import { GeminiAdapter, NANO_BANANA_CONFIG, VEO_3_1_CONFIG } from "@/lib/models/adapters/gemini";
+import { GeminiAdapter, NANO_BANANA_CONFIG, NANO_BANANA_2_CONFIG, VEO_3_1_CONFIG } from "@/lib/models/adapters/gemini";
 import {
   KLING_2_6_CONFIG,
   NANO_BANANA_BACKUP_CONFIG,
@@ -21,6 +21,7 @@ class ModelRegistry {
 
   private registerDefaultModels() {
     this.register(NANO_BANANA_CONFIG, GeminiAdapter);
+    this.register(NANO_BANANA_2_CONFIG, GeminiAdapter);
     this.register(VEO_3_1_CONFIG, GeminiAdapter);
 
     this.register(SEEDREAM_4_CONFIG, ReplicateAdapter);

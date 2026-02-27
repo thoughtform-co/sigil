@@ -35,6 +35,39 @@ export const NANO_BANANA_CONFIG: ModelConfig = {
   },
 };
 
+export const NANO_BANANA_2_CONFIG: ModelConfig = {
+  id: "gemini-nano-banana-2",
+  name: "Nano Banana 2",
+  provider: "Google",
+  type: "image",
+  description: "Gemini 3.1 Flash Image - High-efficiency generation optimized for speed",
+  defaultAspectRatio: "1:1",
+  maxResolution: 4096,
+  supportedAspectRatios: [
+    "1:1",
+    "1:4",
+    "1:8",
+    "2:3",
+    "3:2",
+    "3:4",
+    "4:1",
+    "4:3",
+    "4:5",
+    "5:4",
+    "8:1",
+    "9:16",
+    "16:9",
+    "21:9",
+  ],
+  capabilities: {
+    editing: true,
+    "text-2-image": true,
+    "image-2-image": true,
+    multiImageEditing: true,
+    maxReferenceImages: 14,
+  },
+};
+
 export const VEO_3_1_CONFIG: ModelConfig = {
   id: "veo-3.1",
   name: "Veo 3.1",
@@ -52,14 +85,23 @@ const GEMINI_MODEL = "gemini-3-pro-image-preview";
 const MAX_RETRIES = 4;
 const IMAGE_DELAY_MS = 2000;
 
+const GEMINI_MODEL_MAP: Record<string, string> = {
+  "gemini-nano-banana-pro": "gemini-3-pro-image-preview",
+  "gemini-nano-banana-2": "gemini-3.1-flash-image-preview",
+};
+
 const ASPECT_RATIO_DIMS: Record<string, { width: number; height: number }> = {
   "1:1": { width: 1024, height: 1024 },
+  "1:4": { width: 512, height: 2048 },
+  "1:8": { width: 384, height: 3072 },
   "2:3": { width: 832, height: 1248 },
   "3:2": { width: 1248, height: 832 },
   "3:4": { width: 864, height: 1184 },
+  "4:1": { width: 2048, height: 512 },
   "4:3": { width: 1184, height: 864 },
   "4:5": { width: 896, height: 1152 },
   "5:4": { width: 1152, height: 896 },
+  "8:1": { width: 3072, height: 384 },
   "9:16": { width: 768, height: 1344 },
   "16:9": { width: 1344, height: 768 },
   "21:9": { width: 1536, height: 672 },
@@ -210,7 +252,8 @@ export class GeminiAdapter extends BaseModelAdapter {
   private async callGeminiAPI(
     request: GenerationRequest,
   ): Promise<{ url: string; width: number; height: number }> {
-    const endpoint = `${GEMINI_BASE_URL}/models/${GEMINI_MODEL}:generateContent`;
+    const geminiModel = GEMINI_MODEL_MAP[this.config.id] || GEMINI_MODEL;
+    const endpoint = `${GEMINI_BASE_URL}/models/${geminiModel}:generateContent`;
     const parts: Array<Record<string, unknown>> = [{ text: request.prompt }];
 
     const refImages =

@@ -261,56 +261,26 @@
   object-fit: contain;
 }
 
-.hoverActions {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  opacity: 0;
-  transition: opacity 120ms ease;
-  pointer-events: none;
-  background: rgba(0, 0, 0, 0.5);
-}
+/* ── Action bar (persistent row below media) ────────────────────── */
 
-.outputCard:hover .hoverActions {
-  opacity: 1;
-}
-
-.actionsTopLeft,
-.actionsTopRight,
-.actionsBottomLeft,
-.actionsBottomRight {
-  position: absolute;
+.actionBar {
   display: flex;
+  align-items: center;
   gap: 6px;
-  pointer-events: auto;
+  padding: 6px 0;
+  margin-top: 4px;
 }
 
-.actionsTopLeft {
-  top: 8px;
-  left: 8px;
-}
-
-.actionsTopRight {
-  top: 8px;
-  right: 8px;
-}
-
-.actionsBottomRight {
-  bottom: 8px;
-  right: 8px;
-}
-
-.actionsBottomLeft {
-  bottom: 8px;
-  left: 8px;
+.actionBarSpacer {
+  flex: 1;
 }
 
 .actionButton {
   width: 26px;
   height: 26px;
-  border: 1px solid var(--dawn-15);
-  background: rgba(10, 9, 8, 0.82);
-  color: var(--dawn-70);
+  border: 1px solid var(--dawn-12);
+  background: transparent;
+  color: var(--dawn-50);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -321,7 +291,6 @@
 .actionButton:hover {
   border-color: var(--gold);
   color: var(--gold);
-  background: rgba(10, 9, 8, 0.95);
 }
 
 .actionButton:disabled {
@@ -337,6 +306,91 @@
 .actionIcon {
   width: 12px;
   height: 12px;
+}
+
+/* ── Reference image thumbnail (prompt panel) ───────────────────── */
+
+.refThumb {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  padding: 0;
+  border: 1px solid var(--dawn-12);
+  background: transparent;
+  cursor: pointer;
+  transition: border-color 120ms ease;
+}
+
+.refThumb:hover {
+  border-color: var(--gold-30);
+}
+
+.refThumbImg {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  display: block;
+}
+
+.refThumbLabel {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dawn-40);
+  padding-right: 8px;
+}
+
+/* ── Reference image popup ──────────────────────────────────────── */
+
+.refPopupBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.refPopup {
+  position: relative;
+  max-width: 600px;
+  max-height: 80vh;
+  cursor: default;
+}
+
+.refPopupImg {
+  display: block;
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+}
+
+.refPopupClose {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--dawn-20);
+  background: var(--void);
+  color: var(--dawn-70);
+  font-size: 18px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease;
+}
+
+.refPopupClose:hover {
+  border-color: var(--gold);
+  color: var(--gold);
 }
 
 .mediaState {
