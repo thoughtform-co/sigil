@@ -42,10 +42,18 @@
   /* Status */
   --status-success: #5b8a7a;
   --status-error: #c17f59;
+  --alert: #c17f59;
+
+  /* Gold-on-button contrast text (inverts with theme) */
+  --gold-contrast: #050403;
+
+  /* Card elevation shadow (adapts between themes) */
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.35);
 
   /* Fonts */
   --font-mono: "PT Mono", ui-monospace, monospace;
   --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
 
   /* Animation */
   --ease-out: cubic-bezier(0.19, 1, 0.22, 1);
@@ -91,6 +99,10 @@
   --gold-15: rgba(154, 122, 46, 0.15);
   --gold-10: rgba(154, 122, 46, 0.1);
   --overlay-bg: rgba(17, 15, 9, 0.5);
+  --alert: #b5623a;
+  --gold-contrast: #F2EAE0;
+  --shadow-card: 0 4px 24px rgba(17, 15, 9, 0.1);
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
 }
 
 @theme inline {
@@ -433,7 +445,7 @@ body {
   font-size: 11px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--void);
+  color: var(--gold-contrast);
   background: var(--gold);
   border: 1px solid var(--gold);
   cursor: pointer;

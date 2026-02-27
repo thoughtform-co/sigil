@@ -129,7 +129,7 @@ export function RouteCard({ route, isActive, onSelect, onNavigate }: RouteCardPr
                     inset: 0,
                     pointerEvents: "none",
                     background:
-                      "linear-gradient(to bottom, rgba(5,4,3,0.05) 0%, transparent 25%, transparent 55%, rgba(10,9,8,0.6) 85%, rgba(10,9,8,0.95) 100%)",
+                      "linear-gradient(to bottom, var(--dawn-04) 0%, transparent 25%, transparent 55%, var(--overlay-bg) 85%, var(--surface-0) 100%)",
                   }}
                 />
 

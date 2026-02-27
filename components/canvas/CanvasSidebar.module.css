@@ -183,7 +183,7 @@
 }
 
 .actionBtn:hover:not(:disabled) {
-  color: var(--red, #c44);
+  color: var(--alert);
 }
 
 .actionBtnDelete {

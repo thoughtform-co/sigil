@@ -4,7 +4,7 @@
   position: fixed;
   inset: 0;
   z-index: var(--z-nav);
-  background: rgba(5, 4, 3, 0.7);
+  background: var(--overlay-bg);
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -17,7 +17,7 @@
   max-width: 960px;
   height: min(84vh, 720px);
   margin: 0 var(--space-lg);
-  background: rgba(10, 9, 8, 0.88);
+  background: var(--surface-0);
   backdrop-filter: blur(32px);
   -webkit-backdrop-filter: blur(32px);
   border: 1px solid var(--dawn-15);
@@ -34,10 +34,10 @@
   justify-content: space-between;
   padding: 0 16px;
   height: 32px;
-  background: rgba(10, 9, 8, 0.15);
+  background: var(--dawn-08);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(236, 227, 214, 0.12);
+  border-bottom: 1px solid var(--dawn-12);
   font-size: 9px;
   letter-spacing: 0.1em;
   flex-shrink: 0;
@@ -106,7 +106,7 @@
 .sessionModeActive {
   color: var(--dawn-70);
   border-color: var(--dawn-30);
-  background: rgba(236, 227, 214, 0.08);
+  background: var(--dawn-08);
 }
 
 .closeBtn:hover {
@@ -157,7 +157,7 @@
   min-width: 0;
   aspect-ratio: 16 / 9;
   overflow: hidden;
-  background: rgba(5, 4, 3, 0.4);
+  background: var(--dawn-04);
   border: 1px solid var(--dawn-08);
 }
 
@@ -177,7 +177,7 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--dawn);
-  background: rgba(5, 4, 3, 0.7);
+  background: var(--overlay-bg);
   padding: 3px 8px;
   pointer-events: none;
 }
@@ -205,7 +205,7 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--dawn-50);
-  background: rgba(5, 4, 3, 0.75);
+  background: var(--overlay-bg);
   border: 1px solid var(--dawn-15);
   padding: 8px 14px;
   cursor: pointer;
@@ -245,7 +245,7 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--dawn);
-  background: rgba(5, 4, 3, 0.7);
+  background: var(--overlay-bg);
   padding: 3px 8px;
   pointer-events: none;
 }
@@ -260,7 +260,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(5, 4, 3, 0.75);
+  background: var(--overlay-bg);
   border: 1px solid var(--dawn-15);
   color: var(--dawn-50);
   font-size: 16px;
@@ -293,7 +293,7 @@
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.06em;
-  color: var(--void);
+  color: var(--gold-contrast);
   background: var(--gold);
   border: 1px solid var(--gold);
   cursor: pointer;
@@ -508,7 +508,7 @@
   width: 100%;
   max-height: 160px;
   object-fit: contain;
-  background: rgba(5, 4, 3, 0.5);
+  background: var(--dawn-04);
   border: 1px solid var(--dawn-08);
 }
 
@@ -518,7 +518,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(5, 4, 3, 0.5);
+  background: var(--dawn-04);
   border: 1px solid var(--dawn-08);
   font-size: 11px;
   color: var(--dawn-40);

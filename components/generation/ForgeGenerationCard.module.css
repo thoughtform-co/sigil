@@ -349,7 +349,7 @@
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: rgba(0, 0, 0, 0.72);
+  background: var(--overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -402,7 +402,7 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  background: radial-gradient(circle at center, rgba(202, 165, 84, 0.07) 0%, rgba(5, 4, 3, 0) 70%);
+  background: radial-gradient(circle at center, var(--gold-10) 0%, transparent 70%);
 }
 
 /* Corner brackets on processing/failed/empty state (same HUD style as media frame) */

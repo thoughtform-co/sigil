@@ -6,7 +6,7 @@
   background: var(--surface-0);
   border: 1px solid var(--dawn-15);
   border-radius: 2px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-card);
   transition: border-color 150ms ease, box-shadow 150ms ease;
 }
 

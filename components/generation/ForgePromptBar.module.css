@@ -437,7 +437,7 @@
 }
 
 .generateButton:hover:not(:disabled) {
-  background: #d4b064;
+  background: var(--gold);
 }
 
 .generateButton:disabled {
@@ -446,7 +446,7 @@
 }
 
 .generateIcon {
-  color: var(--void);
+  color: var(--gold-contrast);
   font-size: 16px;
 }
 
@@ -459,7 +459,7 @@
 .spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid var(--void);
+  border: 2px solid var(--gold-contrast);
   border-top-color: transparent;
   animation: spin 0.8s linear infinite;
 }
