@@ -108,6 +108,7 @@ export async function GET() {
       id: wp.id,
       name: wp.name,
       description: wp.description,
+      type: (wp as unknown as { type?: string }).type ?? "create",
       routeCount: wp._count.briefings,
       generationCount: totalGenerations,
       routes: wp.briefings.map((b) => {

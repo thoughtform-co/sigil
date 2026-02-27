@@ -7,6 +7,7 @@ export type JourneyCardItem = {
   id: string;
   name: string;
   description: string | null;
+  type?: string;
   routeCount: number;
   generationCount: number;
   routes: { id: string; name: string; updatedAt: string; waypointCount: number }[];
@@ -79,17 +80,35 @@ export function JourneyCard({ journey }: JourneyCardProps) {
       {/* Left: metadata */}
       <div style={{ minWidth: 0 }}>
         <div className="mb-3 flex items-start justify-between gap-3">
-          <h2
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "13px",
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              color: "var(--dawn)",
-            }}
-          >
-            {journey.name}
-          </h2>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <h2
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "13px",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "var(--dawn)",
+              }}
+            >
+              {journey.name}
+            </h2>
+            {journey.type === "learn" && (
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "8px",
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  color: "var(--gold)",
+                  border: "1px solid var(--gold-15)",
+                  padding: "1px 4px",
+                  flexShrink: 0,
+                }}
+              >
+                learn
+              </span>
+            )}
+          </div>
           <span
             className="transition-colors group-hover:text-[var(--gold)]"
             style={{

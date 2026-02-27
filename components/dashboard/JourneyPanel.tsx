@@ -19,6 +19,7 @@ export type JourneyPanelItem = {
   id: string;
   name: string;
   description: string | null;
+  type?: string;
   routeCount: number;
   generationCount: number;
   routes: JourneyPanelRoute[];
@@ -168,6 +169,7 @@ export function JourneyPanel({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [journeyType, setJourneyType] = useState<"learn" | "create">("create");
   const [creating, setCreating] = useState(false);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
@@ -210,12 +212,13 @@ export function JourneyPanel({
       const res = await fetch("/api/admin/workspace-projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), description: description.trim() || undefined }),
+        body: JSON.stringify({ name: name.trim(), description: description.trim() || undefined, type: journeyType }),
       });
       if (res.ok) {
         setDialogOpen(false);
         setName("");
         setDescription("");
+        setJourneyType("create");
         onJourneyCreated?.();
       }
     } finally {
@@ -328,9 +331,28 @@ export function JourneyPanel({
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                           lineHeight: 1.4,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
                         }}
                       >
                         {journey.name}
+                        {journey.type === "learn" && (
+                          <span
+                            style={{
+                              fontFamily: "var(--font-mono)",
+                              fontSize: "8px",
+                              letterSpacing: "0.1em",
+                              textTransform: "uppercase",
+                              color: "var(--gold)",
+                              border: "1px solid var(--gold-15)",
+                              padding: "1px 4px",
+                              flexShrink: 0,
+                            }}
+                          >
+                            learn
+                          </span>
+                        )}
                       </div>
                       <div
                         style={{
@@ -492,6 +514,50 @@ export function JourneyPanel({
               className="admin-input"
               style={{ width: "100%" }}
             />
+          </div>
+          <div>
+            <label
+              style={{
+                display: "block",
+                fontFamily: "var(--font-mono)",
+                fontSize: "10px",
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                color: "var(--dawn-40)",
+                marginBottom: "var(--space-xs)",
+              }}
+            >
+              Type
+            </label>
+            <div style={{ display: "flex", gap: 8 }}>
+              {(["create", "learn"] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setJourneyType(t)}
+                  style={{
+                    flex: 1,
+                    padding: "8px 12px",
+                    background: journeyType === t ? (t === "learn" ? "var(--gold-10)" : "var(--dawn-04)") : "transparent",
+                    border: `1px solid ${journeyType === t ? (t === "learn" ? "var(--gold)" : "var(--dawn-15)") : "var(--dawn-08)"}`,
+                    borderLeft: `2px solid ${journeyType === t ? (t === "learn" ? "var(--gold)" : "var(--dawn-30)") : "var(--dawn-08)"}`,
+                    color: journeyType === t ? (t === "learn" ? "var(--gold)" : "var(--dawn)") : "var(--dawn-40)",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "10px",
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    cursor: "pointer",
+                    transition: "all 120ms",
+                    textAlign: "left",
+                  }}
+                >
+                  <div>{t === "create" ? "Create" : "Learn"}</div>
+                  <div style={{ fontSize: "9px", color: "var(--dawn-30)", marginTop: 2 }}>
+                    {t === "create" ? "Direct image/video generation" : "Workshop with lessons"}
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </Dialog>

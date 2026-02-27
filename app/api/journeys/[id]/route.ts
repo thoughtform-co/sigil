@@ -98,6 +98,7 @@ export async function GET(
       id: journey.id,
       name: journey.name,
       description: journey.description,
+      type: (journey as unknown as { type?: string }).type ?? "create",
       routeCount: journey.briefings.length,
       routes: routesWithThumbnails,
     },

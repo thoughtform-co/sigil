@@ -20,6 +20,7 @@ export type DashboardJourneyItem = {
   id: string;
   name: string;
   description: string | null;
+  type?: string;
   routeCount: number;
   generationCount: number;
   routes: DashboardRouteItem[];

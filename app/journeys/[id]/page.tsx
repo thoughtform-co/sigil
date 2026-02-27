@@ -4,10 +4,10 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { NavigationFrame } from "@/components/hud/NavigationFrame";
 import { RequireAuth } from "@/components/auth/RequireAuth";
-import { RouteCard } from "@/components/journeys/RouteCard";
-import { HudPanel, HudPanelHeader, HudEmptyState, HudBreadcrumb } from "@/components/ui/hud";
+import { HudBreadcrumb } from "@/components/ui/hud";
 import { Dialog } from "@/components/ui/Dialog";
 import { JourneyHub } from "@/components/learning/JourneyHub";
+import { CreationHub, LearnEmptyState } from "@/components/learning/CreationHub";
 import { INKROOT_JOURNEY } from "@/lib/learning";
 import type { JourneyContent } from "@/lib/learning";
 
@@ -25,10 +25,16 @@ type JourneyData = {
     id: string;
     name: string;
     description: string | null;
+    type?: string;
     routeCount: number;
     routes: RouteItem[];
   };
 };
+
+/**
+ * Feature flag: set to false to revert all journeys to the old route-grid layout.
+ */
+const DUAL_MODE_ENABLED = true;
 
 function getLearningContent(_journeyId: string): JourneyContent | null {
   return INKROOT_JOURNEY;
@@ -51,14 +57,8 @@ export default function JourneyDetailPage() {
     try {
       const res = await fetch(`/api/journeys/${id}`, { cache: "no-store" });
       if (!res.ok) {
-        if (res.status === 404) {
-          setError("Journey not found");
-          return;
-        }
-        if (res.status === 403) {
-          setError("You don't have access to this journey");
-          return;
-        }
+        if (res.status === 404) { setError("Journey not found"); return; }
+        if (res.status === 403) { setError("You don't have access to this journey"); return; }
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error ?? "Failed to load journey");
       }
@@ -92,9 +92,7 @@ export default function JourneyDetailPage() {
         }),
       });
       const payload = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(payload.error ?? "Failed to create route");
-      }
+      if (!res.ok) throw new Error(payload.error ?? "Failed to create route");
       const created = payload.project as { id: string };
       setNewRouteName("");
       setNewRouteDescription("");
@@ -114,7 +112,9 @@ export default function JourneyDetailPage() {
     return null;
   }
 
-  const learningContent = getLearningContent(id);
+  const journeyType = DUAL_MODE_ENABLED ? (data?.journey.type ?? "create") : "create";
+  const isLearnMode = journeyType === "learn";
+  const learningContent = isLearnMode ? getLearningContent(id) : null;
 
   return (
     <RequireAuth>
@@ -123,7 +123,7 @@ export default function JourneyDetailPage() {
           className="w-full animate-fade-in-up"
           style={{
             paddingTop: "var(--space-2xl)",
-            maxWidth: learningContent ? "1200px" : "960px",
+            maxWidth: isLearnMode && learningContent ? "1200px" : "1000px",
           }}
         >
           {loading ? (
@@ -162,7 +162,7 @@ export default function JourneyDetailPage() {
             >
               {error}
             </div>
-          ) : data && learningContent ? (
+          ) : data ? (
             <>
               <div style={{ marginBottom: "var(--space-md)" }}>
                 <HudBreadcrumb
@@ -172,74 +172,30 @@ export default function JourneyDetailPage() {
                   ]}
                 />
               </div>
-              <JourneyHub
-                content={learningContent}
-                journeyId={id}
-                routes={data.journey.routes}
-              />
-            </>
-          ) : data ? (
-            <HudPanel>
-              <div style={{ marginBottom: "var(--space-md)" }}>
-                <HudBreadcrumb
-                  segments={[
-                    { label: "journeys", href: "/journeys" },
-                    { label: data.journey.name },
-                  ]}
+
+              {/* Learn mode + content exists */}
+              {isLearnMode && learningContent ? (
+                <JourneyHub
+                  content={learningContent}
+                  journeyId={id}
+                  routes={data.journey.routes}
                 />
-              </div>
-              <HudPanelHeader
-                title={data.journey.name}
-                actions={
-                  <button
-                    type="button"
-                    className="sigil-btn-secondary"
-                    onClick={() => setDialogOpen(true)}
-                  >
-                    + create route
-                  </button>
-                }
-              />
-              {data.journey.description ? (
-                <p
-                  style={{
-                    fontFamily: "var(--font-sans)",
-                    fontSize: "12px",
-                    color: "var(--dawn-50)",
-                    marginBottom: "var(--space-md)",
-                  }}
-                >
-                  {data.journey.description}
-                </p>
-              ) : null}
-              {data.journey.routes.length > 0 ? (
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {data.journey.routes.map((route, index) => (
-                    <div
-                      key={route.id}
-                      className="animate-fade-in-up"
-                      style={{ animationDelay: `${index * 0.06}s` }}
-                    >
-                      <RouteCard route={route} />
-                    </div>
-                  ))}
-                </div>
+              ) : isLearnMode && !learningContent ? (
+                /* Learn mode but no curriculum yet */
+                <LearnEmptyState
+                  journeyName={data.journey.name}
+                  onOpenCreation={() => setDialogOpen(true)}
+                />
               ) : (
-                <HudEmptyState
-                  title="No routes yet"
-                  body="Create a route to get started, or ask an admin to add one."
-                  action={
-                    <button
-                      type="button"
-                      className="sigil-btn-primary"
-                      onClick={() => setDialogOpen(true)}
-                    >
-                      + create first route
-                    </button>
-                  }
+                /* Create mode */
+                <CreationHub
+                  journeyName={data.journey.name}
+                  journeyDescription={data.journey.description}
+                  routes={data.journey.routes}
+                  onCreateRoute={() => setDialogOpen(true)}
                 />
               )}
-            </HudPanel>
+            </>
           ) : null}
 
           <Dialog
@@ -282,10 +238,7 @@ export default function JourneyDetailPage() {
                   value={newRouteName}
                   onChange={(e) => setNewRouteName(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      void createRoute();
-                    }
+                    if (e.key === "Enter") { e.preventDefault(); void createRoute(); }
                   }}
                   placeholder="Route name"
                   autoFocus
