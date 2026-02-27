@@ -18,7 +18,7 @@ export const INKROOT_JOURNEY: JourneyContent = {
       accentColor: "#3D6B4F",
       gradientDirection: "bottom",
     },
-    workspaceProjectId: "",
+    workspaceProjectId: "a9cc40da-0ccb-4ef6-abf9-fd8847318cac",
   },
   chapters: [
     {

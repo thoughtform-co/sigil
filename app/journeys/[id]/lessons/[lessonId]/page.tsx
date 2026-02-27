@@ -7,7 +7,7 @@ import { HudBreadcrumb } from "@/components/ui/hud";
 import { LessonView } from "@/components/learning/LessonView";
 import { EmbeddedPractice } from "@/components/learning/EmbeddedPractice";
 import { LatentSpaceScene } from "@/components/learning/LatentSpaceScene";
-import { INKROOT_JOURNEY, findLesson } from "@/lib/learning";
+import { getJourneyContentByWorkspaceId, findLesson } from "@/lib/learning";
 import type { ContentBlock } from "@/lib/learning";
 
 export default function LessonPage() {
@@ -15,10 +15,10 @@ export default function LessonPage() {
   const journeyId = params.id as string;
   const lessonId = params.lessonId as string;
 
-  const content = INKROOT_JOURNEY;
-  const found = findLesson(content, lessonId);
+  const content = getJourneyContentByWorkspaceId(journeyId);
+  const found = content ? findLesson(content, lessonId) : null;
 
-  if (!found) {
+  if (!content || !found) {
     return (
       <RequireAuth>
         <NavigationFrame title="SIGIL" modeLabel="lesson">

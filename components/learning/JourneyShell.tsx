@@ -261,7 +261,7 @@ function OverviewContent({
       <div className={styles.overviewPanel}>
         {description && (
           <div>
-            <div className={styles.sectionLabel}>About this project</div>
+            <div className={styles.sectionLabel}>About this {isLearn ? "journey" : "project"}</div>
             <p className={styles.descriptionText}>{description}</p>
           </div>
         )}
@@ -385,6 +385,18 @@ function CurriculumRail({ chapters, journeyId, explored }: { chapters: JourneyCo
 /* ── Resources tab ─────────────────────────────────────────── */
 
 function ResourcesContent({ resources }: { resources: Resource[] }) {
+  if (resources.length === 0) {
+    return (
+      <div className={styles.curriculumEmpty}>
+        <div className={styles.curriculumEmptyDiamond} />
+        <div className={styles.curriculumEmptyTitle}>Resources coming soon</div>
+        <div className={styles.curriculumEmptyBody}>
+          Documentation and reference materials will appear here.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ maxWidth: 600 }}>
       <div className={styles.sectionLabel}>Documents &amp; links</div>

@@ -7,8 +7,7 @@ import { RequireAuth } from "@/components/auth/RequireAuth";
 import { HudBreadcrumb } from "@/components/ui/hud";
 import { Dialog } from "@/components/ui/Dialog";
 import { JourneyShell } from "@/components/learning/JourneyShell";
-import { INKROOT_JOURNEY } from "@/lib/learning";
-import type { JourneyContent } from "@/lib/learning";
+import { getJourneyContentByWorkspaceId } from "@/lib/learning";
 import type { JourneyMode } from "@/lib/terminology";
 
 type RouteItem = {
@@ -30,10 +29,6 @@ type JourneyData = {
     routes: RouteItem[];
   };
 };
-
-function getLearningContent(_journeyId: string): JourneyContent | null {
-  return INKROOT_JOURNEY;
-}
 
 export default function JourneyDetailPage() {
   const params = useParams();
@@ -126,7 +121,7 @@ export default function JourneyDetailPage() {
   }
 
   const journeyType = localType;
-  const learningContent = journeyType === "learn" ? getLearningContent(id) : null;
+  const learningContent = journeyType === "learn" ? getJourneyContentByWorkspaceId(id) : null;
 
   return (
     <RequireAuth>
