@@ -165,6 +165,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  background: transparent;
+  border-color: var(--gold-30);
 }
 
 .frameLabel {
@@ -204,12 +206,12 @@
   font-size: 9px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--dawn-50);
-  background: var(--overlay-bg);
-  border: 1px solid var(--dawn-15);
+  color: var(--gold);
+  background: transparent;
+  border: 1px solid var(--gold-30);
   padding: 8px 14px;
   cursor: pointer;
-  transition: border-color var(--duration-fast), color var(--duration-fast);
+  transition: background var(--duration-fast), color var(--duration-fast), border-color var(--duration-fast);
 }
 
 .endFrameCardEmpty .endFrameAddBtn {
@@ -217,8 +219,9 @@
 }
 
 .endFrameAddBtn:hover:not(:disabled) {
-  border-color: var(--gold-30);
-  color: var(--gold);
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--gold-contrast);
 }
 
 .endFrameAddBtn:disabled {

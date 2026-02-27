@@ -371,12 +371,13 @@ export function NavigationFrame({
         </div>
       </nav>
 
-      {/* Far right: theme toggle + admin settings — inside the HUD grid, bottom-right corner */}
+      {/* Top-right: theme toggle + admin settings — aligned with nav bar */}
       <div
-        className="fixed z-40 pointer-events-auto flex flex-col items-center gap-3"
+        className="fixed z-50 pointer-events-auto flex flex-row items-center gap-3"
         style={{
-          bottom: "calc(var(--hud-padding) + 16px)",
-          right: `calc(var(--hud-padding) + ${RAIL_WIDTH}px + 8px)`,
+          top: 8,
+          right: "var(--hud-padding)",
+          height: 48,
         }}
       >
         <button

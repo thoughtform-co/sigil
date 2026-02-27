@@ -138,38 +138,40 @@ export function JourneyShell({
         ))}
       </div>
 
-      {/* Tab content */}
-      {tab === "overview" && (
-        <OverviewContent
-          isLearn={isLearn}
-          journeyId={journeyId}
-          journeyName={journeyName}
-          journeyDescription={journeyDescription}
-          learningContent={learningContent}
-          routes={routes}
-          chapters={chapters}
-          explored={explored}
-          totalLessons={totalLessons}
-          exploredCount={exploredCount}
-          onCreateRoute={onCreateRoute}
-          onUpgradeToLearn={onUpgradeToLearn}
-          isAdmin={isAdmin}
-        />
-      )}
-      {tab === "curriculum" && isLearn && (
-        <CurriculumContent
-          learningContent={learningContent}
-          journeyId={journeyId}
-          journeyName={journeyName}
-          explored={explored}
-        />
-      )}
-      {tab === "resources" && isLearn && (
-        <ResourcesContent resources={resources} />
-      )}
-      {tab === "artifacts" && (
-        <ArtifactsContent routes={routes} onCreateRoute={onCreateRoute} />
-      )}
+      {/* Tab content — wrapped in tabPanel to sit above the hero gradient overlay */}
+      <div className={styles.tabPanel}>
+        {tab === "overview" && (
+          <OverviewContent
+            isLearn={isLearn}
+            journeyId={journeyId}
+            journeyName={journeyName}
+            journeyDescription={journeyDescription}
+            learningContent={learningContent}
+            routes={routes}
+            chapters={chapters}
+            explored={explored}
+            totalLessons={totalLessons}
+            exploredCount={exploredCount}
+            onCreateRoute={onCreateRoute}
+            onUpgradeToLearn={onUpgradeToLearn}
+            isAdmin={isAdmin}
+          />
+        )}
+        {tab === "curriculum" && isLearn && (
+          <CurriculumContent
+            learningContent={learningContent}
+            journeyId={journeyId}
+            journeyName={journeyName}
+            explored={explored}
+          />
+        )}
+        {tab === "resources" && isLearn && (
+          <ResourcesContent resources={resources} />
+        )}
+        {tab === "artifacts" && (
+          <ArtifactsContent routes={routes} onCreateRoute={onCreateRoute} />
+        )}
+      </div>
     </div>
   );
 }
@@ -337,14 +339,14 @@ function CurriculumContent({
           <div className={styles.chapterTitle}>
             <span className={styles.chapterBearing}>{String(chIdx + 1).padStart(2, "0")}</span>
             {ch.title}
-            {ch.subtitle && <span style={{ color: "var(--dawn-50)", fontWeight: 400 }}> — {ch.subtitle}</span>}
+            {ch.subtitle && <span style={{ color: "var(--dawn)", fontWeight: 400 }}> — {ch.subtitle}</span>}
           </div>
           {ch.lessons.map((les) => (
             <Link key={les.id} href={`/journeys/${journeyId}/lessons/${les.id}`} className={styles.lessonItem}>
               <span className={`${styles.lessonDiamond} ${explored.has(les.id) ? styles.lessonDiamondExplored : styles.lessonDiamondPending}`} />
               <div className={styles.lessonMeta}>
                 <div className={styles.lessonTitle}>{les.title}</div>
-                {les.subtitle && <div style={{ fontFamily: "var(--font-sans)", fontSize: "11px", color: "var(--dawn-70)", marginTop: "2px" }}>{les.subtitle}</div>}
+                {les.subtitle && <div style={{ fontFamily: "var(--font-sans)", fontSize: "12px", color: "var(--dawn)", marginTop: "2px" }}>{les.subtitle}</div>}
                 <div className={styles.lessonDuration}>{les.estimatedMinutes} min</div>
               </div>
             </Link>
@@ -401,16 +403,40 @@ function ResourcesContent({ resources }: { resources: Resource[] }) {
     <div style={{ maxWidth: 600 }}>
       <div className={styles.sectionLabel}>Documents &amp; links</div>
       <div className={styles.resourcesList}>
-        {resources.map((r) => (
-          <div key={r.id} className={styles.resourceItem}>
-            <span className={styles.resourceIcon} />
-            <div>
-              <div className={styles.resourceTitle}>{r.title}</div>
-              {r.description && <div className={styles.resourceDesc}>{r.description}</div>}
-              <div className={styles.resourceType}>{r.fileType ?? "document"}</div>
+        {resources.map((r) => {
+          const href = r.externalUrl ?? r.fileUrl;
+          const isExternal = Boolean(href && /^https?:\/\//i.test(href));
+          const content = (
+            <>
+              <span className={styles.resourceIcon} />
+              <div>
+                <div className={styles.resourceTitle}>{r.title}</div>
+                {r.description && <div className={styles.resourceDesc}>{r.description}</div>}
+                <div className={styles.resourceType}>{r.fileType ?? "document"}</div>
+              </div>
+            </>
+          );
+
+          if (href) {
+            return (
+              <a
+                key={r.id}
+                href={href}
+                className={`${styles.resourceItem} ${styles.resourceItemLink}`}
+                target={isExternal ? "_blank" : undefined}
+                rel={isExternal ? "noopener noreferrer" : undefined}
+              >
+                {content}
+              </a>
+            );
+          }
+
+          return (
+            <div key={r.id} className={styles.resourceItem}>
+              {content}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       <div className={styles.uploadZone}>
         <span className={styles.uploadLabel}>Upload documentation</span>
