@@ -63,18 +63,11 @@ function JourneyCardWithMenu({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: menuOpen ? "var(--dawn-08)" : "var(--surface-0)",
-            border: "1px solid var(--dawn-08)",
+            background: menuOpen ? "var(--dawn-08)" : "transparent",
+            border: "none",
             padding: 0,
             cursor: "pointer",
             zIndex: 3,
-            transition: "background 80ms, border-color 80ms",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = "var(--dawn-15)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = "var(--dawn-08)";
           }}
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
