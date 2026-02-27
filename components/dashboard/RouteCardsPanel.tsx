@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Dialog } from "@/components/ui/Dialog";
 import { RouteCard } from "./RouteCard";
 import type { DashboardRouteItem } from "./DashboardView";
@@ -130,6 +131,39 @@ export function RouteCardsPanel({ routes, journeyId, onRouteCreated }: RouteCard
           ) : undefined
         }
       />
+
+      {/* Open journey link */}
+      {journeyId && (
+        <Link
+          href={`/journeys/${journeyId}`}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            padding: "8px var(--space-md)",
+            marginBottom: "var(--space-md)",
+            border: "1px solid var(--dawn-08)",
+            textDecoration: "none",
+            color: "var(--dawn-50)",
+            fontFamily: "var(--font-mono)",
+            fontSize: "10px",
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            transition: "border-color 120ms, color 120ms",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = "var(--gold-15)";
+            e.currentTarget.style.color = "var(--gold)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = "var(--dawn-08)";
+            e.currentTarget.style.color = "var(--dawn-50)";
+          }}
+        >
+          <span style={{ width: 6, height: 6, background: "var(--gold)", transform: "rotate(45deg)", flexShrink: 0 }} />
+          Open journey &rarr;
+        </Link>
+      )}
 
       <div
         style={{

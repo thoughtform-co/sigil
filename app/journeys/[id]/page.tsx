@@ -6,10 +6,10 @@ import { NavigationFrame } from "@/components/hud/NavigationFrame";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { HudBreadcrumb } from "@/components/ui/hud";
 import { Dialog } from "@/components/ui/Dialog";
-import { JourneyHub } from "@/components/learning/JourneyHub";
-import { CreationHub, LearnEmptyState } from "@/components/learning/CreationHub";
+import { JourneyShell } from "@/components/learning/JourneyShell";
 import { INKROOT_JOURNEY } from "@/lib/learning";
 import type { JourneyContent } from "@/lib/learning";
+import type { JourneyMode } from "@/lib/terminology";
 
 type RouteItem = {
   id: string;
@@ -31,11 +31,6 @@ type JourneyData = {
   };
 };
 
-/**
- * Feature flag: set to false to revert all journeys to the old route-grid layout.
- */
-const DUAL_MODE_ENABLED = true;
-
 function getLearningContent(_journeyId: string): JourneyContent | null {
   return INKROOT_JOURNEY;
 }
@@ -51,6 +46,7 @@ export default function JourneyDetailPage() {
   const [newRouteDescription, setNewRouteDescription] = useState("");
   const [creating, setCreating] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [localType, setLocalType] = useState<JourneyMode>("create");
 
   const loadJourney = useCallback(async () => {
     if (!id) return;
@@ -64,6 +60,7 @@ export default function JourneyDetailPage() {
       }
       const json = (await res.json()) as JourneyData;
       setData(json);
+      setLocalType((json.journey.type as JourneyMode) ?? "create");
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load journey");
@@ -107,24 +104,36 @@ export default function JourneyDetailPage() {
     }
   }
 
+  async function upgradeToLearn() {
+    if (!id) return;
+    try {
+      const res = await fetch(`/api/admin/workspace-projects/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "learn" }),
+      });
+      if (res.ok) {
+        setLocalType("learn");
+      }
+    } catch {
+      // silently fail — admin can retry
+    }
+  }
+
   if (!id) {
     router.replace("/dashboard");
     return null;
   }
 
-  const journeyType = DUAL_MODE_ENABLED ? (data?.journey.type ?? "create") : "create";
-  const isLearnMode = journeyType === "learn";
-  const learningContent = isLearnMode ? getLearningContent(id) : null;
+  const journeyType = localType;
+  const learningContent = journeyType === "learn" ? getLearningContent(id) : null;
 
   return (
     <RequireAuth>
       <NavigationFrame title="SIGIL" modeLabel="journey">
         <section
           className="w-full animate-fade-in-up"
-          style={{
-            paddingTop: "var(--space-2xl)",
-            maxWidth: isLearnMode && learningContent ? "1200px" : "1000px",
-          }}
+          style={{ paddingTop: "var(--space-2xl)", maxWidth: "1200px" }}
         >
           {loading ? (
             <div className="flex items-center gap-3 py-12">
@@ -172,29 +181,16 @@ export default function JourneyDetailPage() {
                   ]}
                 />
               </div>
-
-              {/* Learn mode + content exists */}
-              {isLearnMode && learningContent ? (
-                <JourneyHub
-                  content={learningContent}
-                  journeyId={id}
-                  routes={data.journey.routes}
-                />
-              ) : isLearnMode && !learningContent ? (
-                /* Learn mode but no curriculum yet */
-                <LearnEmptyState
-                  journeyName={data.journey.name}
-                  onOpenCreation={() => setDialogOpen(true)}
-                />
-              ) : (
-                /* Create mode */
-                <CreationHub
-                  journeyName={data.journey.name}
-                  journeyDescription={data.journey.description}
-                  routes={data.journey.routes}
-                  onCreateRoute={() => setDialogOpen(true)}
-                />
-              )}
+              <JourneyShell
+                journeyId={id}
+                journeyName={data.journey.name}
+                journeyDescription={data.journey.description}
+                journeyType={journeyType}
+                routes={data.journey.routes}
+                learningContent={learningContent}
+                onCreateRoute={() => setDialogOpen(true)}
+                onUpgradeToLearn={upgradeToLearn}
+              />
             </>
           ) : null}
 
@@ -204,19 +200,8 @@ export default function JourneyDetailPage() {
             title="create new route"
             footer={
               <>
-                <button
-                  type="button"
-                  className="sigil-btn-ghost"
-                  onClick={() => setDialogOpen(false)}
-                >
-                  cancel
-                </button>
-                <button
-                  type="button"
-                  className="sigil-btn-primary"
-                  disabled={creating || !newRouteName.trim()}
-                  onClick={() => void createRoute()}
-                >
+                <button type="button" className="sigil-btn-ghost" onClick={() => setDialogOpen(false)}>cancel</button>
+                <button type="button" className="sigil-btn-primary" disabled={creating || !newRouteName.trim()} onClick={() => void createRoute()}>
                   {creating ? "creating..." : "create"}
                 </button>
               </>
@@ -224,42 +209,12 @@ export default function JourneyDetailPage() {
           >
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-lg)" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                <label
-                  htmlFor="journey-dialog-route-name"
-                  className="sigil-section-label"
-                  style={{ fontSize: "9px", letterSpacing: "0.05em" }}
-                >
-                  name
-                </label>
-                <input
-                  id="journey-dialog-route-name"
-                  type="text"
-                  className="sigil-input"
-                  value={newRouteName}
-                  onChange={(e) => setNewRouteName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") { e.preventDefault(); void createRoute(); }
-                  }}
-                  placeholder="Route name"
-                  autoFocus
-                />
+                <label htmlFor="journey-dialog-route-name" className="sigil-section-label" style={{ fontSize: "9px", letterSpacing: "0.05em" }}>name</label>
+                <input id="journey-dialog-route-name" type="text" className="sigil-input" value={newRouteName} onChange={(e) => setNewRouteName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void createRoute(); } }} placeholder="Route name" autoFocus />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                <label
-                  htmlFor="journey-dialog-route-desc"
-                  className="sigil-section-label"
-                  style={{ fontSize: "9px", letterSpacing: "0.05em" }}
-                >
-                  description
-                </label>
-                <textarea
-                  id="journey-dialog-route-desc"
-                  className="sigil-textarea"
-                  value={newRouteDescription}
-                  onChange={(e) => setNewRouteDescription(e.target.value)}
-                  placeholder="Optional description..."
-                  rows={4}
-                />
+                <label htmlFor="journey-dialog-route-desc" className="sigil-section-label" style={{ fontSize: "9px", letterSpacing: "0.05em" }}>description</label>
+                <textarea id="journey-dialog-route-desc" className="sigil-textarea" value={newRouteDescription} onChange={(e) => setNewRouteDescription(e.target.value)} placeholder="Optional description..." rows={4} />
               </div>
             </div>
           </Dialog>

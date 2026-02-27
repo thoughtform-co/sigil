@@ -1,4 +1,4 @@
-.hub {
+.shell {
   width: 100%;
   max-width: 1200px;
   padding-top: var(--space-xl);
@@ -44,6 +44,24 @@
   text-transform: uppercase;
   color: var(--dawn-30);
   margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modeBadge {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border: 1px solid var(--dawn-08);
+  color: var(--dawn-30);
+}
+
+.modeBadgeLearn {
+  color: var(--gold);
+  border-color: var(--gold-15);
 }
 
 .journeyTitle {
@@ -98,7 +116,7 @@
   border-bottom-color: var(--gold);
 }
 
-/* ── Content area ─────────────────────────────────────────── */
+/* ── Content area (two-column) ────────────────────────────── */
 
 .content {
   position: relative;
@@ -107,6 +125,10 @@
   grid-template-columns: 1fr 340px;
   gap: var(--space-xl);
   min-height: 400px;
+}
+
+.contentSingle {
+  grid-template-columns: 1fr;
 }
 
 @media (max-width: 860px) {
@@ -158,7 +180,7 @@
   flex-shrink: 0;
 }
 
-/* ── Curriculum rail (right) ──────────────────────────────── */
+/* ── Curriculum rail (right sidebar) ──────────────────────── */
 
 .curriculumRail {
   display: flex;
@@ -257,94 +279,19 @@
   margin-top: 2px;
 }
 
-/* ── Resources tab ────────────────────────────────────────── */
+/* ── Route grid (used in both Overview-create and Artifacts) ─ */
 
-.resourcesList {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.resourceItem {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--dawn-04);
-}
-
-.resourceIcon {
-  width: 8px;
-  height: 8px;
-  min-width: 8px;
-  background: var(--dawn-15);
-  transform: rotate(45deg);
-  margin-top: 4px;
-}
-
-.resourceTitle {
-  font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--dawn);
-}
-
-.resourceDesc {
-  font-family: var(--font-sans);
-  font-size: 12px;
-  color: var(--dawn-50);
-  margin-top: 2px;
-  line-height: 1.5;
-}
-
-.resourceType {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--dawn-30);
-  margin-top: 4px;
-}
-
-/* ── Upload placeholder ───────────────────────────────────── */
-
-.uploadZone {
-  border: 1px dashed var(--dawn-15);
-  padding: var(--space-lg);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-sm);
-  margin-top: var(--space-lg);
-  cursor: pointer;
-  transition: border-color 120ms;
-}
-
-.uploadZone:hover {
-  border-color: var(--gold);
-}
-
-.uploadLabel {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--dawn-30);
-}
-
-.uploadHint {
-  font-family: var(--font-sans);
-  font-size: 11px;
-  color: var(--dawn-15);
-}
-
-/* ── Artifacts tab ────────────────────────────────────────── */
-
-.artifactsGrid {
+.routeGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: var(--space-md);
 }
+
+.routeGridWide {
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+/* ── Route card (Artifacts tab style) ─────────────────────── */
 
 .routeLink {
   display: block;
@@ -412,4 +359,176 @@
   color: var(--gold);
   margin-top: 12px;
   display: inline-block;
+}
+
+/* ── Resources tab ────────────────────────────────────────── */
+
+.resourcesList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.resourceItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--dawn-04);
+}
+
+.resourceIcon {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  background: var(--dawn-15);
+  transform: rotate(45deg);
+  margin-top: 4px;
+}
+
+.resourceTitle {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dawn);
+}
+
+.resourceDesc {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--dawn-50);
+  margin-top: 2px;
+  line-height: 1.5;
+}
+
+.resourceType {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dawn-30);
+  margin-top: 4px;
+}
+
+.uploadZone {
+  border: 1px dashed var(--dawn-15);
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+  cursor: pointer;
+  transition: border-color 120ms;
+}
+
+.uploadZone:hover {
+  border-color: var(--gold);
+}
+
+.uploadLabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dawn-30);
+}
+
+.uploadHint {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--dawn-15);
+}
+
+/* ── Upgrade CTA ──────────────────────────────────────────── */
+
+.upgradeCta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: var(--space-md);
+  border: 1px dashed var(--dawn-15);
+  margin-top: var(--space-xl);
+  cursor: pointer;
+  transition: border-color 120ms;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+
+.upgradeCta:hover {
+  border-color: var(--gold);
+}
+
+.upgradeCtaDiamond {
+  width: 6px;
+  height: 6px;
+  background: var(--gold);
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+
+.upgradeCtaText {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dawn-40);
+}
+
+/* ── Empty route state ────────────────────────────────────── */
+
+.emptyRoutes {
+  padding: var(--space-2xl);
+  text-align: center;
+  border: 1px dashed var(--dawn-15);
+}
+
+.emptyRoutesLabel {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dawn-30);
+  margin-bottom: var(--space-md);
+}
+
+.emptyRoutesBody {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--dawn-40);
+  line-height: 1.6;
+  margin-bottom: var(--space-lg);
+}
+
+/* ── Curriculum empty state ───────────────────────────────── */
+
+.curriculumEmpty {
+  padding: var(--space-2xl);
+  text-align: center;
+  max-width: 480px;
+}
+
+.curriculumEmptyDiamond {
+  width: 8px;
+  height: 8px;
+  background: var(--gold);
+  transform: rotate(45deg);
+  margin: 0 auto var(--space-lg);
+}
+
+.curriculumEmptyTitle {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dawn);
+  margin-bottom: var(--space-sm);
+}
+
+.curriculumEmptyBody {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--dawn-50);
 }

@@ -7,6 +7,7 @@ import { badRequest, notFound } from "@/lib/api/errors";
 const updateSchema = z.object({
   name: z.string().min(1).max(256).optional(),
   description: z.string().max(2000).optional(),
+  type: z.enum(["learn", "create"]).optional(),
 });
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
