@@ -27,7 +27,7 @@ function SectionHeader({ bearing, label, action }: { bearing: string; label: str
       }}
     >
       <h2 className="sigil-section-label" style={{ margin: 0 }}>
-        <span style={{ color: "var(--dawn-30)", marginRight: "var(--space-xs)" }}>{bearing}</span>
+        <span style={{ color: "var(--dawn-50)", marginRight: "var(--space-xs)" }}>{bearing}</span>
         {label}
       </h2>
       {action}
@@ -179,7 +179,7 @@ export function RouteCardsPanel({ routes, journeyId, onRouteCreated }: RouteCard
             style={{
               fontFamily: "var(--font-mono)",
               fontSize: "11px",
-              color: "var(--dawn-30)",
+              color: "var(--dawn-50)",
               textAlign: "center",
               padding: "var(--space-xl)",
               width: "100%",

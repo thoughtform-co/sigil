@@ -108,7 +108,7 @@ export function RouteCard({ route }: RouteCardProps) {
               fontSize: "9px",
               letterSpacing: "0.1em",
               textTransform: "uppercase",
-              color: "var(--dawn-30)",
+              color: "var(--dawn-50)",
               flexShrink: 0,
               transitionDuration: "var(--duration-fast)",
             }}
@@ -135,7 +135,7 @@ export function RouteCard({ route }: RouteCardProps) {
             fontSize: "9px",
             letterSpacing: "0.05em",
             textTransform: "uppercase",
-            color: "var(--dawn-30)",
+            color: "var(--dawn-50)",
             borderTop: "1px solid var(--dawn-08)",
             paddingTop: "12px",
           }}

@@ -337,7 +337,7 @@ function CurriculumContent({
           <div className={styles.chapterTitle}>
             <span className={styles.chapterBearing}>{String(chIdx + 1).padStart(2, "0")}</span>
             {ch.title}
-            {ch.subtitle && <span style={{ color: "var(--dawn-15)", fontWeight: 400 }}> — {ch.subtitle}</span>}
+            {ch.subtitle && <span style={{ color: "var(--dawn-50)", fontWeight: 400 }}> — {ch.subtitle}</span>}
           </div>
           {ch.lessons.map((les) => (
             <Link key={les.id} href={`/journeys/${journeyId}/lessons/${les.id}`} className={styles.lessonItem}>

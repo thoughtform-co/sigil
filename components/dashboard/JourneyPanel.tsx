@@ -68,7 +68,7 @@ function SectionHeader({ bearing, label, action }: { bearing: string; label: str
       }}
     >
       <h2 className="sigil-section-label" style={{ margin: 0 }}>
-        <span style={{ color: "var(--dawn-30)", marginRight: "var(--space-xs)" }}>{bearing}</span>
+        <span style={{ color: "var(--dawn-50)", marginRight: "var(--space-xs)" }}>{bearing}</span>
         {label}
       </h2>
       {action}
@@ -281,7 +281,7 @@ export function JourneyPanel({
             style={{
               fontFamily: "var(--font-mono)",
               fontSize: "12px",
-              color: "var(--dawn-30)",
+              color: "var(--dawn-50)",
             }}
           >
             No journeys assigned
@@ -428,7 +428,7 @@ export function JourneyPanel({
           fontFamily: "var(--font-mono)",
           fontSize: "10px",
           letterSpacing: "0.06em",
-          color: "var(--dawn-30)",
+          color: "var(--dawn-50)",
           display: "flex",
           flexDirection: "column",
           gap: "var(--space-sm)",
@@ -552,7 +552,7 @@ export function JourneyPanel({
                   }}
                 >
                   <div>{t === "create" ? "Create" : "Learn"}</div>
-                  <div style={{ fontSize: "9px", color: "var(--dawn-30)", marginTop: 2 }}>
+                  <div style={{ fontSize: "9px", color: "var(--dawn-40)", marginTop: 2 }}>
                     {t === "create" ? "Direct image/video generation" : "Workshop with lessons"}
                   </div>
                 </button>

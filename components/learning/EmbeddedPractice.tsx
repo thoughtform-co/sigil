@@ -250,7 +250,7 @@ export function EmbeddedPractice({
                     fontFamily: "var(--font-mono)",
                     fontSize: "9px",
                     letterSpacing: "0.06em",
-                    color: "var(--dawn-30)",
+                    color: "var(--dawn-50)",
                   }}
                 >
                   (saved to your default route workspace)

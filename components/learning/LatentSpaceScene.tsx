@@ -239,7 +239,7 @@ export function LatentSpaceScene({
             fontSize: "9px",
             letterSpacing: "0.08em",
             textTransform: "uppercase",
-            color: "var(--dawn-30)",
+            color: "var(--dawn-50)",
             whiteSpace: "nowrap",
           }}
         >
@@ -264,7 +264,7 @@ export function LatentSpaceScene({
             fontSize: "9px",
             letterSpacing: "0.08em",
             textTransform: "uppercase",
-            color: "var(--dawn-30)",
+            color: "var(--dawn-50)",
             whiteSpace: "nowrap",
           }}
         >

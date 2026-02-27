@@ -146,7 +146,7 @@ export default function JourneyDetailPage() {
                   fontSize: "10px",
                   letterSpacing: "0.08em",
                   textTransform: "uppercase",
-                  color: "var(--dawn-30)",
+                  color: "var(--dawn-50)",
                 }}
               >
                 Loading journey...

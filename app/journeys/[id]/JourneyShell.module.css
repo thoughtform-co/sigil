@@ -42,7 +42,7 @@
   font-size: 9px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--dawn-30);
+  color: var(--dawn-50);
   margin-bottom: 6px;
   display: flex;
   align-items: center;
@@ -55,8 +55,8 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   padding: 1px 5px;
-  border: 1px solid var(--dawn-08);
-  color: var(--dawn-30);
+  border: 1px solid var(--dawn-15);
+  color: var(--dawn-50);
 }
 
 .modeBadgeLearn {
@@ -102,7 +102,7 @@
   font-size: 11px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--dawn-30);
+  color: var(--dawn-50);
   cursor: pointer;
   transition: color 120ms, border-color 120ms;
 }
@@ -150,7 +150,7 @@
   font-size: 9px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--dawn-30);
+  color: var(--dawn-50);
   margin-bottom: var(--space-sm);
 }
 
@@ -208,7 +208,7 @@
   font-size: 10px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--dawn-30);
+  color: var(--dawn-70);
   margin-bottom: var(--space-sm);
   display: flex;
   align-items: center;
@@ -250,8 +250,8 @@
 }
 
 .lessonDiamondPending {
-  background: var(--dawn-15);
-  border: 1px solid var(--dawn-15);
+  background: var(--dawn-30);
+  border: 1px solid var(--dawn-30);
 }
 
 .lessonDiamondExplored {
@@ -275,7 +275,7 @@
   font-family: var(--font-mono);
   font-size: 9px;
   letter-spacing: 0.06em;
-  color: var(--dawn-30);
+  color: var(--dawn-50);
   margin-top: 2px;
 }
 
@@ -348,7 +348,7 @@
   font-family: var(--font-mono);
   font-size: 9px;
   letter-spacing: 0.06em;
-  color: var(--dawn-30);
+  color: var(--dawn-50);
 }
 
 .openWorkspace {
@@ -406,7 +406,7 @@
   font-size: 9px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--dawn-30);
+  color: var(--dawn-50);
   margin-top: 4px;
 }
 
@@ -431,13 +431,13 @@
   font-size: 10px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--dawn-30);
+  color: var(--dawn-50);
 }
 
 .uploadHint {
   font-family: var(--font-sans);
   font-size: 11px;
-  color: var(--dawn-15);
+  color: var(--dawn-40);
 }
 
 /* ── Upgrade CTA ──────────────────────────────────────────── */
@@ -489,14 +489,14 @@
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--dawn-30);
+  color: var(--dawn-50);
   margin-bottom: var(--space-md);
 }
 
 .emptyRoutesBody {
   font-family: var(--font-sans);
   font-size: 12px;
-  color: var(--dawn-40);
+  color: var(--dawn-50);
   line-height: 1.6;
   margin-bottom: var(--space-lg);
 }

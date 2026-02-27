@@ -114,7 +114,7 @@
   font-family: var(--font-mono);
   font-size: 10px;
   line-height: 1.6;
-  color: var(--dawn-30);
+  color: var(--dawn-50);
   letter-spacing: 0.04em;
   margin-top: var(--space-xs);
   padding: var(--space-sm) var(--space-md);
@@ -306,7 +306,7 @@
   font-size: 9px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--dawn-30);
+  color: var(--dawn-50);
   margin-bottom: var(--space-md);
 }
 
@@ -322,7 +322,7 @@
   width: 100%;
   font-family: var(--font-sans);
   font-size: 11px;
-  color: var(--dawn-30);
+  color: var(--dawn-50);
   transition: color 120ms;
 }
 
@@ -343,7 +343,7 @@
 }
 
 .progressDiamondDefault {
-  background: var(--dawn-15);
+  background: var(--dawn-30);
 }
 
 .progressDiamondActive {
@@ -365,7 +365,7 @@
   font-size: 9px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--dawn-30);
+  color: var(--dawn-50);
   margin-bottom: 6px;
 }
 
@@ -390,7 +390,7 @@
   font-family: var(--font-mono);
   font-size: 9px;
   letter-spacing: 0.08em;
-  color: var(--dawn-30);
+  color: var(--dawn-50);
   margin-top: 8px;
 }
 
@@ -410,7 +410,7 @@
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--dawn-30);
+  color: var(--dawn-50);
   text-decoration: none;
   transition: color 120ms;
 }
