@@ -255,10 +255,31 @@ export default function JourneysOverviewPage() {
                   </button>
                   <button
                     type="button"
-                    className="sigil-btn-primary"
                     disabled={deleting}
                     onClick={() => void deleteJourney()}
-                    style={{ color: "var(--status-error)" }}
+                    style={{
+                      padding: "8px 16px",
+                      background: "transparent",
+                      border: "1px solid var(--gold)",
+                      color: "var(--gold)",
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "10px",
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                      cursor: deleting ? "not-allowed" : "pointer",
+                      opacity: deleting ? 0.4 : 1,
+                      transition: "background 120ms, color 120ms",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!deleting) {
+                        e.currentTarget.style.background = "var(--gold)";
+                        e.currentTarget.style.color = "var(--void)";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.color = "var(--gold)";
+                    }}
                   >
                     {deleting ? "deleting..." : "delete permanently"}
                   </button>
