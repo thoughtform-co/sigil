@@ -1,0 +1,81 @@
+<html>
+<head>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 12px;
+    color: #e0d8c8;
+    background: #0a0908;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  h1 {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #caa554;
+    margin-bottom: 4px;
+  }
+  p { color: #a09880; font-size: 11px; line-height: 1.5; }
+  button {
+    width: 100%;
+    padding: 10px 0;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #0a0908;
+    background: #caa554;
+    border: 1px solid #caa554;
+    cursor: pointer;
+    transition: background 80ms, color 80ms;
+  }
+  button:hover { background: #e0d8c8; border-color: #e0d8c8; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.secondary {
+    background: transparent;
+    color: #a09880;
+    border-color: rgba(224, 216, 200, 0.15);
+  }
+  button.secondary:hover { color: #e0d8c8; border-color: rgba(224, 216, 200, 0.3); }
+  #status { font-size: 10px; color: #a09880; min-height: 14px; }
+</style>
+</head>
+<body>
+  <h1>Sigil Design System</h1>
+  <p>Generate the Thoughtform design system on the "→ Design System" page.</p>
+  <button id="btn-generate" onclick="generate()">Generate Design System</button>
+  <button id="btn-styles" class="secondary" onclick="generateStyles()">Create Figma Styles Only</button>
+  <div id="status"></div>
+
+  <script>
+    function setStatus(msg) { document.getElementById("status").textContent = msg; }
+    function disable(id) { document.getElementById(id).disabled = true; }
+    function enable(id) { document.getElementById(id).disabled = false; }
+
+    function generate() {
+      disable("btn-generate");
+      setStatus("Generating frames...");
+      parent.postMessage({ pluginMessage: { type: "generate-design-system" } }, "*");
+    }
+
+    function generateStyles() {
+      disable("btn-styles");
+      setStatus("Creating Figma styles...");
+      parent.postMessage({ pluginMessage: { type: "generate-styles-only" } }, "*");
+    }
+
+    window.onmessage = (event) => {
+      const msg = event.data.pluginMessage;
+      if (msg.type === "status") setStatus(msg.text);
+      if (msg.type === "done") { enable("btn-generate"); enable("btn-styles"); setStatus(msg.text || "Done."); }
+      if (msg.type === "error") { enable("btn-generate"); enable("btn-styles"); setStatus("Error: " + msg.text); }
+    };
+  </script>
+</body>
+</html>

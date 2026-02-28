@@ -3,6 +3,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { AdminStatsPanel } from "@/components/dashboard/AdminStatsPanel";
 import { Dialog } from "@/components/ui/Dialog";
+import { Diamond } from "@/components/ui/Diamond";
+import { ParticleIcon } from "@/components/ui/ParticleIcon";
+import { SectionLabel } from "@/components/ui/SectionLabel";
 import type { ReactNode } from "react";
 
 export type JourneyPanelRoute = {
@@ -40,21 +43,6 @@ type JourneyPanelProps = {
   isAdmin?: boolean;
 };
 
-function Diamond({ active }: { active: boolean }) {
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        width: 6,
-        height: 6,
-        background: active ? "var(--gold)" : "var(--dawn-30)",
-        transform: "rotate(45deg)",
-        flexShrink: 0,
-      }}
-    />
-  );
-}
-
 function SectionHeader({ bearing, label, action }: { bearing: string; label: string; action?: ReactNode }) {
   return (
     <div
@@ -67,9 +55,8 @@ function SectionHeader({ bearing, label, action }: { bearing: string; label: str
         gap: "var(--space-sm)",
       }}
     >
-      <h2 className="sigil-section-label" style={{ margin: 0 }}>
-        <span style={{ color: "var(--dawn-50)", marginRight: "var(--space-xs)" }}>{bearing}</span>
-        {label}
+      <h2 style={{ margin: 0 }}>
+        <SectionLabel bearing={bearing}>{label}</SectionLabel>
       </h2>
       {action}
     </div>
@@ -86,19 +73,6 @@ function ThreeDotIcon() {
   );
 }
 
-function ParticleArrowIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-      <rect x="1" y="5" width="2" height="2" fill="currentColor" opacity="0.45" />
-      <rect x="3" y="5" width="2" height="2" fill="currentColor" opacity="0.6" />
-      <rect x="5" y="5" width="2" height="2" fill="currentColor" opacity="0.8" />
-      <rect x="7" y="3" width="2" height="2" fill="currentColor" />
-      <rect x="7" y="5" width="2" height="2" fill="currentColor" />
-      <rect x="7" y="7" width="2" height="2" fill="currentColor" />
-      <rect x="9" y="5" width="2" height="2" fill="currentColor" />
-    </svg>
-  );
-}
 
 function JourneyMenu({
   journeyId,
@@ -344,7 +318,7 @@ export function JourneyPanel({
                         paddingRight: 24,
                       }}
                     >
-                      <Diamond active={category === "learn"} />
+                      <Diamond active={category === "learn"} size="sm" />
                       {category}
                     </div>
 
@@ -384,7 +358,7 @@ export function JourneyPanel({
                           transition: "color 100ms",
                         }}
                       >
-                        <ParticleArrowIcon />
+                        <ParticleIcon glyph="arrow" size="sm" />
                       </span>
                     </div>
 

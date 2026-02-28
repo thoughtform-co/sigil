@@ -6,13 +6,60 @@
 :root {
   color-scheme: dark;
 
-  /* Spacing (8px grid) */
-  --space-xs: 8px;
-  --space-sm: 12px;
+  /* ── Spacing: numeric scale (4px quantum, Figma-aligned) ── */
+  --space-0: 0px;
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 8px;
+  --space-4: 12px;
+  --space-5: 16px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+  --space-10: 64px;
+  --space-11: 80px;
+  --space-12: 96px;
+  --space-13: 160px;
+
+  /* ── Spacing: semantic aliases (brand-spec aligned) ── */
+  --space-xs: 4px;
+  --space-sm: 8px;
   --space-md: 16px;
-  --space-lg: 20px;
-  --space-xl: 24px;
-  --space-2xl: 32px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+  --space-4xl: 96px;
+
+  /* ── Typography: size scale (UI + display tracks) ── */
+  --type-0: 12px;
+  --type-1: 14px;
+  --type-2: 16px;
+  --type-3: 20px;
+  --type-4: 24px;
+  --type-5: 34px;
+  --type-6: 48px;
+  --type-7: 60px;
+  --type-8: 96px;
+
+  /* ── Typography: line-height ── */
+  --leading-tight: 1.1;
+  --leading-ui: 1.3;
+  --leading-body: 1.5;
+
+  /* ── Typography: letter-spacing ── */
+  --tracking-normal: 0;
+  --tracking-ui: 0.0125em;
+  --tracking-caps: 0.04em;
+
+  /* ── Layout tokens ── */
+  --layout-sidebar: 300px;
+  --layout-content-sm: 960px;
+  --layout-content-md: 1200px;
+  --layout-content-lg: 1400px;
+  --layout-card-min: 200px;
+  --layout-card-min-wide: 260px;
 
   /* Backgrounds (Void — The Depths) */
   --void: #050403;
@@ -55,11 +102,11 @@
   --font-sans: "IBM Plex Sans", system-ui, sans-serif;
   --font-body: "IBM Plex Sans", system-ui, sans-serif;
 
-  /* Animation */
-  --ease-out: cubic-bezier(0.19, 1, 0.22, 1);
-  --duration-fast: 150ms;
-  --duration-base: 300ms;
-  --duration-slow: 500ms;
+  /* Animation (brand motion spec: mechanical, instant, tactical) */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 80ms;
+  --duration-base: 120ms;
+  --duration-slow: 150ms;
 
   /* Z-index hierarchy (one primary nav + one context anchor per viewport; cap fixed elements) */
   --z-base: 0;
