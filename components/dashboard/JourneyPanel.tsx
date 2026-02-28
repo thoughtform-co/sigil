@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { AdminStatsPanel } from "@/components/dashboard/AdminStatsPanel";
 import { Dialog } from "@/components/ui/Dialog";
 import type { ReactNode } from "react";
@@ -87,15 +86,16 @@ function ThreeDotIcon() {
   );
 }
 
-function ParticleOpenIcon({ active }: { active: boolean }) {
-  const color = active ? "var(--gold)" : "currentColor";
+function ParticleArrowIcon() {
   return (
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-      <rect x="5" y="1" width="2" height="2" fill={color} opacity="0.9" />
-      <rect x="1" y="5" width="2" height="2" fill={color} opacity="0.7" />
-      <rect x="9" y="5" width="2" height="2" fill={color} opacity="0.7" />
-      <rect x="5" y="9" width="2" height="2" fill={color} opacity="0.9" />
-      <rect x="5" y="5" width="2" height="2" fill={color} transform="rotate(45 6 6)" />
+      <rect x="1" y="5" width="2" height="2" fill="currentColor" opacity="0.45" />
+      <rect x="3" y="5" width="2" height="2" fill="currentColor" opacity="0.6" />
+      <rect x="5" y="5" width="2" height="2" fill="currentColor" opacity="0.8" />
+      <rect x="7" y="3" width="2" height="2" fill="currentColor" />
+      <rect x="7" y="5" width="2" height="2" fill="currentColor" />
+      <rect x="7" y="7" width="2" height="2" fill="currentColor" />
+      <rect x="9" y="5" width="2" height="2" fill="currentColor" />
     </svg>
   );
 }
@@ -179,7 +179,6 @@ export function JourneyPanel({
   adminStats,
   isAdmin,
 }: JourneyPanelProps) {
-  const router = useRouter();
   const totalGenerations = journeys.reduce((sum, j) => sum + j.generationCount, 0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [name, setName] = useState("");
@@ -302,11 +301,11 @@ export function JourneyPanel({
             No journeys assigned
           </p>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {journeys.map((journey) => {
               const isSelected = selectedJourneyId === journey.id;
               const isHovered = hoveredId === journey.id;
-              const showOpenJourneyAction = isHovered;
+              const category = journey.type === "learn" ? "learn" : "create";
               const showDots = isAdmin && (isHovered || menuOpenId === journey.id);
               return (
                 <div
@@ -320,152 +319,125 @@ export function JourneyPanel({
                     onClick={() => onSelectJourney(journey.id)}
                     style={{
                       display: "flex",
-                      alignItems: "flex-start",
-                      gap: 8,
+                      flexDirection: "column",
                       width: "100%",
-                      padding: "10px var(--space-md)",
-                      background: isSelected ? "var(--gold-10)" : isHovered ? "var(--dawn-04)" : "transparent",
+                      padding: "10px 14px 14px",
+                      background: isSelected ? "var(--gold-10)" : isHovered ? "var(--dawn-04)" : "var(--surface-0)",
                       border: "1px solid " + (isSelected ? "var(--gold-30, rgba(202,165,84,0.3))" : isHovered ? "var(--dawn-15)" : "var(--dawn-08)"),
-                      borderLeft: "2px solid " + (isSelected ? "var(--gold)" : isHovered ? "var(--dawn-15)" : "var(--dawn-08)"),
-                      color: isSelected ? "var(--gold)" : isHovered ? "var(--dawn)" : "var(--dawn-50)",
+                      color: "var(--dawn)",
                       fontFamily: "var(--font-mono)",
-                      fontSize: "12px",
-                      letterSpacing: "0.06em",
-                      textTransform: "uppercase",
                       textAlign: "left",
                       cursor: "pointer",
-                      transition: "color 100ms, background 100ms, border-color 100ms",
+                      transition: "background 100ms, border-color 100ms",
                     }}
                   >
-                    <span style={{ marginTop: 4 }}>
-                      <Diamond active={isSelected} />
-                    </span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div
+                    {/* Category row */}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        fontSize: "9px",
+                        letterSpacing: "0.1em",
+                        textTransform: "uppercase",
+                        color: "var(--dawn-40)",
+                        paddingRight: 24,
+                      }}
+                    >
+                      <Diamond active={category === "learn"} />
+                      {category}
+                    </div>
+
+                    {/* Divider */}
+                    <div style={{ borderTop: "1px solid var(--dawn-08)", marginTop: 8, marginBottom: 8 }} />
+
+                    {/* Title row with particle arrow */}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 8,
+                        marginBottom: 6,
+                      }}
+                    >
+                      <span
                         style={{
+                          fontSize: "12px",
+                          letterSpacing: "0.08em",
+                          textTransform: "uppercase",
+                          color: isSelected ? "var(--gold)" : "var(--dawn)",
                           whiteSpace: "nowrap",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
-                          lineHeight: 1.4,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
+                          transition: "color 100ms",
                         }}
                       >
                         {journey.name}
-                        {journey.type === "learn" && (
-                          <span
-                            style={{
-                              fontFamily: "var(--font-mono)",
-                              fontSize: "8px",
-                              letterSpacing: "0.1em",
-                              textTransform: "uppercase",
-                              color: "var(--gold)",
-                              border: "1px solid var(--gold-15)",
-                              padding: "1px 4px",
-                              flexShrink: 0,
-                            }}
-                          >
-                            learn
-                          </span>
-                        )}
-                      </div>
-                      <div
+                      </span>
+                      <span
                         style={{
-                          fontSize: "10px",
-                          letterSpacing: "0.04em",
-                          color: isSelected ? "var(--gold-50, var(--gold))" : "var(--dawn-30)",
-                          marginTop: 3,
-                          display: "flex",
-                          gap: 10,
+                          color: isSelected ? "var(--gold)" : isHovered ? "var(--gold)" : "var(--dawn-50)",
+                          flexShrink: 0,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          transition: "color 100ms",
                         }}
                       >
-                        <span>{journey.routeCount} routes</span>
-                        <span>{journey.generationCount} gen</span>
-                      </div>
+                        <ParticleArrowIcon />
+                      </span>
+                    </div>
+
+                    {/* Stats */}
+                    <div
+                      style={{
+                        fontSize: "9px",
+                        letterSpacing: "0.05em",
+                        textTransform: "uppercase",
+                        color: isSelected ? "var(--gold-50, var(--gold))" : "var(--dawn-50)",
+                        display: "flex",
+                        gap: 10,
+                        transition: "color 100ms",
+                      }}
+                    >
+                      <span>{journey.routeCount} routes</span>
+                      <span>{journey.generationCount} gen</span>
                     </div>
                   </button>
-                  {(showOpenJourneyAction || showDots) && (
-                    <div
+
+                  {/* Hover actions: three-dots menu */}
+                  {showDots && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMenuOpenId(menuOpenId === journey.id ? null : journey.id);
+                      }}
                       style={{
                         position: "absolute",
                         top: 8,
                         right: 8,
                         display: "flex",
-                        flexDirection: "column",
                         alignItems: "center",
-                        gap: 3,
+                        justifyContent: "center",
+                        width: 20,
+                        height: 20,
+                        padding: 0,
+                        background: menuOpenId === journey.id ? "var(--dawn-08)" : "transparent",
+                        border: "none",
+                        color: "var(--dawn-40)",
+                        cursor: "pointer",
+                        transition: "color 80ms ease, background 80ms ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.color = "var(--dawn)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.color = "var(--dawn-40)";
                       }}
                     >
-                      {showOpenJourneyAction && (
-                        <button
-                          type="button"
-                          title="Open journey"
-                          aria-label={`Open journey ${journey.name}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/journeys/${journey.id}`);
-                          }}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            width: 20,
-                            height: 20,
-                            padding: 0,
-                            background: "var(--dawn-04)",
-                            border: "none",
-                            color: "var(--dawn-40)",
-                            cursor: "pointer",
-                            flexShrink: 0,
-                            transition: "color 80ms ease, background 80ms ease",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.color = "var(--gold)";
-                            e.currentTarget.style.background = "var(--gold-10)";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.color = "var(--dawn-40)";
-                            e.currentTarget.style.background = "var(--dawn-04)";
-                          }}
-                        >
-                          <ParticleOpenIcon active={isSelected} />
-                        </button>
-                      )}
-                      {showDots && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setMenuOpenId(menuOpenId === journey.id ? null : journey.id);
-                          }}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            width: 20,
-                            height: 20,
-                            padding: 0,
-                            background: menuOpenId === journey.id ? "var(--dawn-08)" : "var(--dawn-04)",
-                            border: "none",
-                            color: "var(--dawn-40)",
-                            cursor: "pointer",
-                            flexShrink: 0,
-                            transition: "color 80ms ease, background 80ms ease",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.color = "var(--dawn)";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.color = "var(--dawn-40)";
-                            e.currentTarget.style.background =
-                              menuOpenId === journey.id ? "var(--dawn-08)" : "var(--dawn-04)";
-                          }}
-                        >
-                          <ThreeDotIcon />
-                        </button>
-                      )}
-                    </div>
+                      <ThreeDotIcon />
+                    </button>
                   )}
                   {menuOpenId === journey.id && (
                     <JourneyMenu

@@ -37,33 +37,6 @@
   margin-bottom: var(--space-lg);
 }
 
-.clientLabel {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--dawn-70);
-  margin-bottom: 6px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.modeBadge {
-  font-family: var(--font-mono);
-  font-size: 8px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  padding: 1px 5px;
-  border: 1px solid var(--dawn-30);
-  color: var(--dawn-70);
-}
-
-.modeBadgeLearn {
-  color: var(--gold);
-  border-color: var(--gold-15);
-}
-
 .journeyTitle {
   font-family: var(--font-mono);
   font-size: clamp(20px, 1.2rem + 1vw, 28px);
@@ -306,76 +279,6 @@
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
 }
 
-/* ── Route card (Artifacts tab style) ─────────────────────── */
-
-.routeLink {
-  display: block;
-  border: 1px solid var(--dawn-08);
-  padding: 16px;
-  background: var(--surface-0);
-  text-decoration: none;
-  color: inherit;
-  transition: border-color 120ms;
-  position: relative;
-}
-
-.routeLink:hover {
-  border-color: var(--dawn-15);
-}
-
-.routeLinkCorner {
-  position: absolute;
-  width: 12px;
-  height: 12px;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 120ms;
-}
-
-.routeLink:hover .routeLinkCorner {
-  opacity: 1;
-}
-
-.routeLinkCornerTL {
-  top: -1px;
-  left: -1px;
-  border-top: 1px solid var(--gold);
-  border-left: 1px solid var(--gold);
-}
-
-.routeLinkCornerBR {
-  bottom: -1px;
-  right: -1px;
-  border-bottom: 1px solid var(--gold);
-  border-right: 1px solid var(--gold);
-}
-
-.routeLinkName {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--dawn);
-  margin-bottom: 8px;
-}
-
-.routeLinkMeta {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.06em;
-  color: var(--dawn-70);
-}
-
-.openWorkspace {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--gold);
-  margin-top: 12px;
-  display: inline-block;
-}
-
 /* ── Resources tab ────────────────────────────────────────── */
 
 .resourcesList {
@@ -478,42 +381,6 @@
   font-family: var(--font-sans);
   font-size: 11px;
   color: var(--dawn-50);
-}
-
-/* ── Upgrade CTA ──────────────────────────────────────────── */
-
-.upgradeCta {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: var(--space-md);
-  border: 1px dashed var(--dawn-15);
-  margin-top: var(--space-xl);
-  cursor: pointer;
-  transition: border-color 120ms;
-  background: none;
-  width: 100%;
-  text-align: left;
-}
-
-.upgradeCta:hover {
-  border-color: var(--gold);
-}
-
-.upgradeCtaDiamond {
-  width: 6px;
-  height: 6px;
-  background: var(--gold);
-  transform: rotate(45deg);
-  flex-shrink: 0;
-}
-
-.upgradeCtaText {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--dawn-40);
 }
 
 /* ── Empty route state ────────────────────────────────────── */

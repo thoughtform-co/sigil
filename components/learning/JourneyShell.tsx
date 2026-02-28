@@ -99,7 +99,6 @@ export function JourneyShell({
   }, [profile?.theme.gradientDirection]);
 
   const heroUrl = profile?.theme.heroImageUrl;
-  const clientName = profile?.clientName;
   const subtitle = profile?.subtitle ?? journeyDescription;
 
   return (
@@ -112,105 +111,183 @@ export function JourneyShell({
         </div>
       )}
 
-      {/* Header (shared) */}
+      {/* Header */}
       <div className={styles.header}>
-        <div className={styles.clientLabel}>
-          {clientName ?? journeyName}
-          <span className={`${styles.modeBadge} ${isLearn ? styles.modeBadgeLearn : ""}`}>
-            {isLearn ? "learn" : "create"}
-          </span>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-md)" }}>
+          <h1 className={styles.journeyTitle}>{profile?.name ?? journeyName}</h1>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-sm)", flexShrink: 0 }}>
+            {!isLearn && isAdmin && onUpgradeToLearn && (
+              <button
+                type="button"
+                onClick={onUpgradeToLearn}
+                title="Add curriculum to this journey"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "6px 10px",
+                  background: "transparent",
+                  border: "1px solid var(--dawn-08)",
+                  color: "var(--dawn-40)",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "9px",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  cursor: "pointer",
+                  transition: "color 120ms, border-color 120ms",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "var(--gold)";
+                  e.currentTarget.style.borderColor = "var(--gold-15)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "var(--dawn-40)";
+                  e.currentTarget.style.borderColor = "var(--dawn-08)";
+                }}
+              >
+                <span style={{ width: 5, height: 5, background: "var(--gold)", transform: "rotate(45deg)", flexShrink: 0 }} />
+                + curriculum
+              </button>
+            )}
+            <button
+              type="button"
+              className="sigil-btn-secondary"
+              onClick={onCreateRoute}
+            >
+              + create route
+            </button>
+          </div>
         </div>
-        <h1 className={styles.journeyTitle}>{profile?.name ?? journeyName}</h1>
         {subtitle && <p className={styles.journeySubtitle}>{subtitle}</p>}
       </div>
 
-      {/* Tab bar (shared skeleton, mode-conditional tabs) */}
-      <div className={styles.tabBar}>
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            className={`${styles.tab} ${tab === t.id ? styles.tabActive : ""}`}
-            onClick={() => setTab(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      {isLearn ? (
+        <>
+          {/* Tab bar for learn-mode */}
+          <div className={styles.tabBar}>
+            {tabs.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                className={`${styles.tab} ${tab === t.id ? styles.tabActive : ""}`}
+                onClick={() => setTab(t.id)}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
 
-      {/* Tab content — wrapped in tabPanel to sit above the hero gradient overlay */}
-      <div className={styles.tabPanel}>
-        {tab === "overview" && (
-          <OverviewContent
-            isLearn={isLearn}
-            journeyId={journeyId}
-            journeyName={journeyName}
+          <div className={styles.tabPanel}>
+            {tab === "overview" && (
+              <OverviewContent
+                journeyId={journeyId}
+                journeyDescription={journeyDescription}
+                learningContent={learningContent}
+                chapters={chapters}
+                explored={explored}
+                totalLessons={totalLessons}
+                exploredCount={exploredCount}
+              />
+            )}
+            {tab === "curriculum" && (
+              <CurriculumContent
+                learningContent={learningContent}
+                journeyId={journeyId}
+                journeyName={journeyName}
+                explored={explored}
+              />
+            )}
+            {tab === "resources" && (
+              <ResourcesContent resources={resources} />
+            )}
+            {tab === "artifacts" && (
+              <ArtifactsContent routes={routes} onCreateRoute={onCreateRoute} />
+            )}
+          </div>
+        </>
+      ) : (
+        /* Create-mode: single unified view, no tabs */
+        <div className={styles.tabPanel}>
+          <CreateModeContent
             journeyDescription={journeyDescription}
-            learningContent={learningContent}
             routes={routes}
-            chapters={chapters}
-            explored={explored}
-            totalLessons={totalLessons}
-            exploredCount={exploredCount}
             onCreateRoute={onCreateRoute}
-            onUpgradeToLearn={onUpgradeToLearn}
-            isAdmin={isAdmin}
           />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Create-mode unified view (no tabs) ───────────────────── */
+
+function CreateModeContent({
+  journeyDescription,
+  routes,
+  onCreateRoute,
+}: {
+  journeyDescription: string | null;
+  routes: RouteItem[];
+  onCreateRoute: () => void;
+}) {
+  return (
+    <div className={`${styles.content} ${styles.contentSingle}`}>
+      <div className={styles.overviewPanel}>
+        {journeyDescription && (
+          <div>
+            <div className={styles.sectionLabel}>About</div>
+            <p className={styles.descriptionText}>{journeyDescription}</p>
+          </div>
         )}
-        {tab === "curriculum" && isLearn && (
-          <CurriculumContent
-            learningContent={learningContent}
-            journeyId={journeyId}
-            journeyName={journeyName}
-            explored={explored}
-          />
-        )}
-        {tab === "resources" && isLearn && (
-          <ResourcesContent resources={resources} />
-        )}
-        {tab === "artifacts" && (
-          <ArtifactsContent routes={routes} onCreateRoute={onCreateRoute} />
-        )}
+
+        <div>
+          <div className={styles.sectionLabel} style={{ marginBottom: "var(--space-md)" }}>
+            Routes ({routes.length})
+          </div>
+          {routes.length > 0 ? (
+            <div className={`${styles.routeGrid} ${styles.routeGridWide}`}>
+              {routes.map((route, index) => (
+                <div key={route.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 0.06}s` }}>
+                  <RouteCard route={route} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className={styles.emptyRoutes}>
+              <div className={styles.emptyRoutesLabel}>No routes yet</div>
+              <div className={styles.emptyRoutesBody}>Create a route to start generating images and videos.</div>
+              <button type="button" className="sigil-btn-primary" onClick={onCreateRoute}>+ create first route</button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-/* ── Overview ──────────────────────────────────────────────── */
+/* ── Learn-mode Overview ──────────────────────────────────── */
 
 function OverviewContent({
-  isLearn,
   journeyId,
-  journeyName,
   journeyDescription,
   learningContent,
-  routes,
   chapters,
   explored,
   totalLessons,
   exploredCount,
-  onCreateRoute,
-  onUpgradeToLearn,
-  isAdmin,
 }: {
-  isLearn: boolean;
   journeyId: string;
-  journeyName: string;
   journeyDescription: string | null;
   learningContent: JourneyContent | null;
-  routes: RouteItem[];
   chapters: JourneyContent["chapters"];
   explored: Set<string>;
   totalLessons: number;
   exploredCount: number;
-  onCreateRoute: () => void;
-  onUpgradeToLearn?: () => void;
-  isAdmin: boolean;
 }) {
   const profile = learningContent?.profile;
   const description = profile?.description ?? journeyDescription;
 
-  if (isLearn && learningContent) {
+  if (learningContent) {
     return (
       <div className={styles.content}>
         <div className={styles.overviewPanel}>
@@ -263,44 +340,9 @@ function OverviewContent({
       <div className={styles.overviewPanel}>
         {description && (
           <div>
-            <div className={styles.sectionLabel}>About this {isLearn ? "journey" : "project"}</div>
+            <div className={styles.sectionLabel}>About this journey</div>
             <p className={styles.descriptionText}>{description}</p>
           </div>
-        )}
-
-        {/* Route grid inline for create mode */}
-        <div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-md)" }}>
-            <div className={styles.sectionLabel} style={{ marginBottom: 0 }}>
-              Routes ({routes.length})
-            </div>
-            <button type="button" className="sigil-btn-secondary" onClick={onCreateRoute}>
-              + create route
-            </button>
-          </div>
-          {routes.length > 0 ? (
-            <div className={`${styles.routeGrid} ${styles.routeGridWide}`}>
-              {routes.map((route, index) => (
-                <div key={route.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 0.06}s` }}>
-                  <RouteCard route={route} />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className={styles.emptyRoutes}>
-              <div className={styles.emptyRoutesLabel}>No routes yet</div>
-              <div className={styles.emptyRoutesBody}>Create a route to start generating images and videos.</div>
-              <button type="button" className="sigil-btn-primary" onClick={onCreateRoute}>+ create first route</button>
-            </div>
-          )}
-        </div>
-
-        {/* Upgrade CTA for admin on create-mode journeys */}
-        {!isLearn && isAdmin && onUpgradeToLearn && (
-          <button type="button" className={styles.upgradeCta} onClick={onUpgradeToLearn}>
-            <span className={styles.upgradeCtaDiamond} />
-            <span className={styles.upgradeCtaText}>Add curriculum to this journey</span>
-          </button>
         )}
       </div>
     </div>
@@ -451,26 +493,15 @@ function ResourcesContent({ resources }: { resources: Resource[] }) {
 function ArtifactsContent({ routes, onCreateRoute }: { routes: RouteItem[]; onCreateRoute: () => void }) {
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-lg)" }}>
-        <div>
-          <div className={styles.sectionLabel}>Route workspaces</div>
-          <p style={{ fontFamily: "var(--font-sans)", fontSize: "12px", color: "var(--dawn-50)", lineHeight: 1.6, margin: 0 }}>
-            Your generated images and videos are stored in route workspaces.
-          </p>
-        </div>
-        <button type="button" className="sigil-btn-secondary" onClick={onCreateRoute}>+ create route</button>
+      <div className={styles.sectionLabel} style={{ marginBottom: "var(--space-md)" }}>
+        Routes ({routes.length})
       </div>
       {routes.length > 0 ? (
-        <div className={styles.routeGrid}>
-          {routes.map((route) => (
-            <Link key={route.id} href={`/routes/${route.id}/image`} className={styles.routeLink}>
-              <span className={`${styles.routeLinkCorner} ${styles.routeLinkCornerTL}`} />
-              <span className={`${styles.routeLinkCorner} ${styles.routeLinkCornerBR}`} />
-              <div className={styles.routeLinkName}>{route.name}</div>
-              <div className={styles.routeLinkMeta}>{route.waypointCount} waypoint{route.waypointCount !== 1 ? "s" : ""}</div>
-              <div className={styles.routeLinkMeta}>updated {new Date(route.updatedAt).toLocaleDateString()}</div>
-              <span className={styles.openWorkspace}>open workspace &rarr;</span>
-            </Link>
+        <div className={`${styles.routeGrid} ${styles.routeGridWide}`}>
+          {routes.map((route, index) => (
+            <div key={route.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 0.06}s` }}>
+              <RouteCard route={route} />
+            </div>
           ))}
         </div>
       ) : (
