@@ -2,13 +2,16 @@
 
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { NavSpineProvider, useNavSpine } from "@/context/NavSpineContext";
 import { SigilParticleLogo } from "./SigilParticleLogo";
 
 const THEME_KEY = "sigil-theme";
 const GRID = 3;
 const ICON_SIZE = 18;
+
+export type BreadcrumbSegment = { label: string; href?: string };
 
 type NavigationFrameProps = {
   children: ReactNode;
@@ -16,6 +19,8 @@ type NavigationFrameProps = {
   modeLabel?: string;
   /** When true, main uses hud-shell--workspace (full height, own scroll). */
   workspaceLayout?: boolean;
+  /** Override auto-detected breadcrumb with explicit segments. First segment becomes the back link. */
+  breadcrumbOverride?: BreadcrumbSegment[];
 };
 
 const RAIL_WIDTH = 48;
@@ -132,11 +137,22 @@ function ParticleIcon({ pixels, active = false, light = false }: { pixels: Pixel
   );
 }
 
-export function NavigationFrame({
+export function NavigationFrame(props: NavigationFrameProps) {
+  return (
+    <NavSpineProvider>
+      <NavigationFrameInner {...props} />
+    </NavSpineProvider>
+  );
+}
+
+function NavigationFrameInner({
   children,
   workspaceLayout = false,
+  breadcrumbOverride,
 }: NavigationFrameProps) {
+  const { portalRef } = useNavSpine();
   const pathname = usePathname();
+  const router = useRouter();
   const { isAdmin } = useAuth();
   const [isLight, setIsLight] = useState(false);
 
@@ -210,6 +226,50 @@ export function NavigationFrame({
       transition: "color var(--duration-fast)",
     };
   };
+
+  const breadcrumb = useMemo((): { backHref: string | null; segments: BreadcrumbSegment[] } | null => {
+    if (breadcrumbOverride && breadcrumbOverride.length > 0) {
+      const first = breadcrumbOverride[0];
+      return { backHref: first.href ?? null, segments: breadcrumbOverride };
+    }
+
+    const parts = pathname.split("/").filter(Boolean);
+    if (parts.length <= 1) return null;
+
+    if (parts[0] === "routes" && parts.length >= 3) {
+      const mode = parts[2];
+      return {
+        backHref: null,
+        segments: [{ label: "route" }, { label: mode }],
+      };
+    }
+
+    if (parts[0] === "journeys" && parts.length >= 2) {
+      if (parts.length >= 4 && parts[2] === "lessons") {
+        return {
+          backHref: `/journeys/${parts[1]}`,
+          segments: [
+            { label: "journey", href: `/journeys/${parts[1]}` },
+            { label: "lesson" },
+          ],
+        };
+      }
+      return {
+        backHref: "/journeys",
+        segments: [{ label: "journeys", href: "/journeys" }],
+      };
+    }
+
+    return null;
+  }, [pathname, breadcrumbOverride]);
+
+  const handleBack = useCallback(() => {
+    if (breadcrumb?.backHref) {
+      router.push(breadcrumb.backHref);
+    } else {
+      router.back();
+    }
+  }, [breadcrumb?.backHref, router]);
 
   return (
     <div className="relative min-h-screen bg-void text-dawn dot-grid-bg">
@@ -406,6 +466,151 @@ export function NavigationFrame({
           </Link>
         )}
       </div>
+
+      {/* Breadcrumb tree — aligned with top of left rail */}
+      {breadcrumb && (
+        <nav
+          aria-label="Breadcrumb"
+          className="nav-spine fixed z-40 pointer-events-auto animate-fade-in-up"
+          style={{
+            top: "calc(var(--hud-padding) + 32px)",
+            left: `calc(var(--hud-padding) + ${RAIL_WIDTH - 2}px)`,
+          }}
+        >
+          {breadcrumb.segments[0].href ? (
+            <Link
+              href={breadcrumb.segments[0].href}
+              style={{
+                display: "block",
+                fontFamily: "var(--font-mono)",
+                fontSize: "9px",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: breadcrumb.segments.length > 1 ? "var(--dawn-30)" : "var(--dawn-50)",
+                textDecoration: "none",
+                transition: "color 100ms ease",
+                cursor: "pointer",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "var(--gold)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color =
+                  breadcrumb!.segments.length > 1 ? "var(--dawn-30)" : "var(--dawn-50)";
+              }}
+            >
+              {breadcrumb.segments[0].label}
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={handleBack}
+              style={{
+                display: "block",
+                fontFamily: "var(--font-mono)",
+                fontSize: "9px",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "var(--dawn-30)",
+                textDecoration: "none",
+                background: "none",
+                border: "none",
+                padding: 0,
+                cursor: "pointer",
+                transition: "color 100ms ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "var(--gold)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "var(--dawn-30)";
+              }}
+            >
+              {breadcrumb.segments[0].label}
+            </button>
+          )}
+
+          {breadcrumb.segments.length > 1 && (
+            <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+              {breadcrumb.segments.slice(1).map((seg, i) => {
+                const isCurrent = i === breadcrumb.segments.length - 2; // last segment since we sliced 1
+                return (
+                  <li
+                    key={i}
+                    style={{
+                      position: "relative",
+                      paddingLeft: 12,
+                      marginTop: 3,
+                    }}
+                    aria-current={isCurrent ? "page" : undefined}
+                  >
+                    <svg
+                      aria-hidden
+                      width="8"
+                      height="12"
+                      viewBox="0 0 8 12"
+                      fill="none"
+                      style={{
+                        position: "absolute",
+                        left: 2,
+                        top: -3,
+                      }}
+                    >
+                      <path
+                        d="M0 0V11H7"
+                        stroke="var(--dawn-15)"
+                        strokeWidth="1"
+                        strokeLinecap="square"
+                        strokeLinejoin="miter"
+                        vectorEffect="non-scaling-stroke"
+                      />
+                    </svg>
+                    {seg.href ? (
+                      <Link
+                        href={seg.href}
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          fontSize: "9px",
+                          letterSpacing: "0.08em",
+                          textTransform: "uppercase",
+                          color: "var(--dawn-30)",
+                          textDecoration: "none",
+                          transition: "color 100ms ease",
+                          display: "block",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.color = "var(--dawn-50)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.color = "var(--dawn-30)";
+                        }}
+                      >
+                        {seg.label}
+                      </Link>
+                    ) : (
+                      <span
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          fontSize: "9px",
+                          letterSpacing: "0.08em",
+                          textTransform: "uppercase",
+                          color: "var(--dawn-50)",
+                          display: "block",
+                        }}
+                      >
+                        {seg.label}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          {/* Portal target for page-specific tree extensions (e.g. waypoints) */}
+          <div ref={portalRef} />
+        </nav>
+      )}
 
       <main
         className={`hud-shell ${workspaceLayout ? "hud-shell--workspace" : ""}`}

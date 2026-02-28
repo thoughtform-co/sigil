@@ -860,3 +860,38 @@ body {
 .sigil-particle-logo svg {
   animation: sigilParticlePulse 2s ease-in-out infinite;
 }
+
+/* ─── NAV SPINE & BREADCRUMB ─── */
+
+.nav-spine {
+  /* Keeps the nav spine fixed but allows it to be hidden on mobile */
+}
+
+@media (max-width: 980px) {
+  .nav-spine {
+    display: none !important;
+  }
+}
+
+.waypoint-branch-scroll::-webkit-scrollbar {
+  width: 2px;
+}
+
+.waypoint-branch-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.waypoint-branch-scroll::-webkit-scrollbar-thumb {
+  background: var(--dawn-15);
+}
+
+@keyframes spineTelemetryIn {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

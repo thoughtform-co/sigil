@@ -2,7 +2,6 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { NavigationFrame } from "@/components/hud/NavigationFrame";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { Dialog } from "@/components/ui/Dialog";
@@ -168,27 +167,6 @@ export default function JourneyDetailPage() {
             </div>
           ) : data ? (
             <>
-              <Link
-                href="/journeys"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "10px",
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                  color: "var(--dawn-40)",
-                  textDecoration: "none",
-                  marginBottom: "var(--space-md)",
-                  transition: "color 120ms",
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = "var(--gold)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = "var(--dawn-40)"; }}
-              >
-                <span style={{ fontSize: "12px", lineHeight: 1 }}>&larr;</span>
-                journeys
-              </Link>
               <JourneyShell
                 journeyId={id}
                 journeyName={data.journey.name}

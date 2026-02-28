@@ -1,9 +1,9 @@
 "use client";
 
+import { useMemo } from "react";
 import { useParams } from "next/navigation";
-import { NavigationFrame } from "@/components/hud/NavigationFrame";
+import { NavigationFrame, type BreadcrumbSegment } from "@/components/hud/NavigationFrame";
 import { RequireAuth } from "@/components/auth/RequireAuth";
-import { HudBreadcrumb } from "@/components/ui/hud";
 import { LessonView } from "@/components/learning/LessonView";
 import { EmbeddedPractice } from "@/components/learning/EmbeddedPractice";
 import { LatentSpaceScene } from "@/components/learning/LatentSpaceScene";
@@ -17,6 +17,14 @@ export default function LessonPage() {
 
   const content = getJourneyContentByWorkspaceId(journeyId);
   const found = content ? findLesson(content, lessonId) : null;
+
+  const breadcrumb = useMemo((): BreadcrumbSegment[] | undefined => {
+    if (!content || !found) return undefined;
+    return [
+      { label: content.profile.name, href: `/journeys/${journeyId}` },
+      { label: found.lesson.title },
+    ];
+  }, [content, found, journeyId]);
 
   if (!content || !found) {
     return (
@@ -44,20 +52,11 @@ export default function LessonPage() {
 
   return (
     <RequireAuth>
-      <NavigationFrame title="SIGIL" modeLabel="lesson">
+      <NavigationFrame title="SIGIL" modeLabel="lesson" breadcrumbOverride={breadcrumb}>
         <section
           className="w-full animate-fade-in-up"
           style={{ paddingTop: "var(--space-xl)" }}
         >
-          <div style={{ marginBottom: "var(--space-md)", maxWidth: 1100 }}>
-            <HudBreadcrumb
-              segments={[
-                { label: "journeys", href: "/journeys" },
-                { label: content.profile.name, href: `/journeys/${journeyId}` },
-                { label: lesson.title },
-              ]}
-            />
-          </div>
           <LessonView
             content={content}
             chapter={chapter}

@@ -6,7 +6,7 @@ import { NavigationFrame } from "@/components/hud/NavigationFrame";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { JourneyCard, type JourneyCardItem } from "@/components/journeys/JourneyCard";
 import { Dialog } from "@/components/ui/Dialog";
-import { HudPanel, HudPanelHeader, HudEmptyState, HudBreadcrumb } from "@/components/ui/hud";
+import { HudPanel, HudPanelHeader, HudEmptyState } from "@/components/ui/hud";
 
 type JourneysListData = {
   journeys: JourneyCardItem[];

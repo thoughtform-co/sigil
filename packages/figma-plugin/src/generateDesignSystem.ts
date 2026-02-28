@@ -6,16 +6,50 @@ import { createComponentFrame } from "./generators/components";
 import { createParticleGrammarFrame } from "./generators/particleGrammar";
 import { FONTS } from "./tokens/thoughtformTokens";
 
+const PLUGIN_TAG = "sigil-ds-generated";
+const SECTION_GAP = 200;
+const PAGE_NAME = "→ Design System";
+
+type SectionDef = {
+  name: string;
+  create: () => Promise<FrameNode>;
+};
+
+const SECTION_ORDER: SectionDef[] = [
+  { name: "Typography", create: createTypographyFrame },
+  { name: "Colors", create: createColorFrame },
+  { name: "Spacing", create: createSpacingFrame },
+  { name: "Buttons", create: createButtonFrame },
+  { name: "Components", create: createComponentFrame },
+  { name: "Particle Icon Grammar", create: createParticleGrammarFrame },
+];
+
 async function findOrCreateDesignSystemPage(): Promise<PageNode> {
-  const pages = figma.root.children;
-  for (const page of pages) {
-    if (page.name.includes("Design System")) {
-      return page;
-    }
+  for (const page of figma.root.children) {
+    if (page.name.includes("Design System")) return page;
   }
   const page = figma.createPage();
-  page.name = "→ Design System";
+  page.name = PAGE_NAME;
   return page;
+}
+
+function removeGeneratedNodes(page: PageNode): number {
+  const toRemove: SceneNode[] = [];
+  for (const child of page.children) {
+    if (child.getPluginData(PLUGIN_TAG) === "true") {
+      toRemove.push(child);
+    }
+  }
+  if (toRemove.length === 0) {
+    const knownNames = new Set(SECTION_ORDER.map((s) => s.name));
+    for (const child of page.children) {
+      if ("name" in child && knownNames.has(child.name)) {
+        toRemove.push(child);
+      }
+    }
+  }
+  for (const node of toRemove) node.remove();
+  return toRemove.length;
 }
 
 async function loadFonts(): Promise<void> {
@@ -35,51 +69,22 @@ export async function generateDesignSystem(): Promise<void> {
 
   const page = await findOrCreateDesignSystemPage();
   await page.loadAsync();
-  figma.currentPage = page;
+  await figma.setCurrentPageAsync(page);
 
-  let xOffset = 0;
-  const GAP = 200;
+  status("Cleaning previous output...");
+  removeGeneratedNodes(page);
 
-  status("Generating typography...");
-  const typo = await createTypographyFrame();
-  typo.x = xOffset;
-  typo.y = 0;
-  page.appendChild(typo);
-  xOffset += typo.width + GAP;
+  let yOffset = 0;
 
-  status("Generating spacing...");
-  const spacing = await createSpacingFrame();
-  spacing.x = xOffset;
-  spacing.y = 0;
-  page.appendChild(spacing);
-  xOffset += spacing.width + GAP;
-
-  status("Generating colors...");
-  const colors = await createColorFrame();
-  colors.x = xOffset;
-  colors.y = 0;
-  page.appendChild(colors);
-  xOffset += colors.width + GAP;
-
-  status("Generating buttons...");
-  const buttons = await createButtonFrame();
-  buttons.x = xOffset;
-  buttons.y = 0;
-  page.appendChild(buttons);
-  xOffset += buttons.width + GAP;
-
-  status("Generating components...");
-  const components = await createComponentFrame();
-  components.x = xOffset;
-  components.y = 0;
-  page.appendChild(components);
-  xOffset += components.width + GAP;
-
-  status("Generating particle grammar...");
-  const particles = await createParticleGrammarFrame();
-  particles.x = xOffset;
-  particles.y = 0;
-  page.appendChild(particles);
+  for (const section of SECTION_ORDER) {
+    status(`Generating ${section.name.toLowerCase()}...`);
+    const frame = await section.create();
+    frame.x = 0;
+    frame.y = yOffset;
+    frame.setPluginData(PLUGIN_TAG, "true");
+    page.appendChild(frame);
+    yOffset += frame.height + SECTION_GAP;
+  }
 
   status("Creating Figma styles...");
   await createColorStyles();

@@ -6,9 +6,9 @@ import useSWR from "swr";
 import useSWRInfinite from "swr/infinite";
 import type { GenerationItem, GenerationType, ModelItem, SessionItem } from "@/components/generation/types";
 import { useGenerationsRealtime } from "@/hooks/useGenerationsRealtime";
-import { ForgeSidebar } from "@/components/generation/ForgeSidebar";
 import { ForgeGallery } from "@/components/generation/ForgeGallery";
 import { ForgePromptBar } from "@/components/generation/ForgePromptBar";
+import { WaypointBranch } from "@/components/hud/WaypointBranch";
 
 import dynamic from "next/dynamic";
 import { CanvasSidebar } from "@/components/canvas/CanvasSidebar";
@@ -843,19 +843,17 @@ export function ProjectWorkspace({
 
   return (
     <div className={styles.container}>
+      <WaypointBranch
+        sessions={sessionsFiltered}
+        activeSessionId={selectedSessionId}
+        onSessionSelect={setSelectedSessionId}
+        onSessionCreate={createSession}
+        onSessionDelete={deleteSession}
+        mode={mode as "image" | "video"}
+        sessionThumbnails={sessionThumbnails}
+        busy={busy}
+      />
       <div className={styles.body}>
-        <ForgeSidebar
-          projectId={projectId}
-          projectName={projectName}
-          sessions={sessionsFiltered}
-          activeSessionId={selectedSessionId}
-          onSessionSelect={setSelectedSessionId}
-          onSessionCreate={createSession}
-          onSessionDelete={deleteSession}
-          mode={mode}
-          sessionThumbnails={sessionThumbnails}
-          busy={busy}
-        />
         <div className={styles.main}>
           <ForgeGallery
             generations={generationsVisible}
