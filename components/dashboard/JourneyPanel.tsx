@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { AdminStatsPanel } from "@/components/dashboard/AdminStatsPanel";
 import { Dialog } from "@/components/ui/Dialog";
 import type { ReactNode } from "react";
@@ -86,6 +87,19 @@ function ThreeDotIcon() {
   );
 }
 
+function ParticleOpenIcon({ active }: { active: boolean }) {
+  const color = active ? "var(--gold)" : "currentColor";
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+      <rect x="5" y="1" width="2" height="2" fill={color} opacity="0.9" />
+      <rect x="1" y="5" width="2" height="2" fill={color} opacity="0.7" />
+      <rect x="9" y="5" width="2" height="2" fill={color} opacity="0.7" />
+      <rect x="5" y="9" width="2" height="2" fill={color} opacity="0.9" />
+      <rect x="5" y="5" width="2" height="2" fill={color} transform="rotate(45 6 6)" />
+    </svg>
+  );
+}
+
 function JourneyMenu({
   journeyId,
   onRename,
@@ -165,6 +179,7 @@ export function JourneyPanel({
   adminStats,
   isAdmin,
 }: JourneyPanelProps) {
+  const router = useRouter();
   const totalGenerations = journeys.reduce((sum, j) => sum + j.generationCount, 0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [name, setName] = useState("");
@@ -291,6 +306,7 @@ export function JourneyPanel({
             {journeys.map((journey) => {
               const isSelected = selectedJourneyId === journey.id;
               const isHovered = hoveredId === journey.id;
+              const showOpenJourneyAction = isHovered;
               const showDots = isAdmin && (isHovered || menuOpenId === journey.id);
               return (
                 <div
@@ -368,41 +384,89 @@ export function JourneyPanel({
                         <span>{journey.generationCount} gen</span>
                       </div>
                     </div>
-                    {showDots && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setMenuOpenId(menuOpenId === journey.id ? null : journey.id);
-                        }}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          width: 22,
-                          height: 22,
-                          padding: 0,
-                          marginTop: 1,
-                          background: menuOpenId === journey.id ? "var(--dawn-08)" : "transparent",
-                          border: "1px solid transparent",
-                          color: "var(--dawn-40)",
-                          cursor: "pointer",
-                          flexShrink: 0,
-                          transition: "color 80ms ease, background 80ms ease",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.color = "var(--dawn)";
-                          e.currentTarget.style.borderColor = "var(--dawn-15)";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.color = "var(--dawn-40)";
-                          e.currentTarget.style.borderColor = "transparent";
-                        }}
-                      >
-                        <ThreeDotIcon />
-                      </button>
-                    )}
                   </button>
+                  {(showOpenJourneyAction || showDots) && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: 8,
+                        right: 8,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 3,
+                      }}
+                    >
+                      {showOpenJourneyAction && (
+                        <button
+                          type="button"
+                          title="Open journey"
+                          aria-label={`Open journey ${journey.name}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/journeys/${journey.id}`);
+                          }}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: 20,
+                            height: 20,
+                            padding: 0,
+                            background: "var(--dawn-04)",
+                            border: "none",
+                            color: "var(--dawn-40)",
+                            cursor: "pointer",
+                            flexShrink: 0,
+                            transition: "color 80ms ease, background 80ms ease",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = "var(--gold)";
+                            e.currentTarget.style.background = "var(--gold-10)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = "var(--dawn-40)";
+                            e.currentTarget.style.background = "var(--dawn-04)";
+                          }}
+                        >
+                          <ParticleOpenIcon active={isSelected} />
+                        </button>
+                      )}
+                      {showDots && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMenuOpenId(menuOpenId === journey.id ? null : journey.id);
+                          }}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: 20,
+                            height: 20,
+                            padding: 0,
+                            background: menuOpenId === journey.id ? "var(--dawn-08)" : "var(--dawn-04)",
+                            border: "none",
+                            color: "var(--dawn-40)",
+                            cursor: "pointer",
+                            flexShrink: 0,
+                            transition: "color 80ms ease, background 80ms ease",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = "var(--dawn)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = "var(--dawn-40)";
+                            e.currentTarget.style.background =
+                              menuOpenId === journey.id ? "var(--dawn-08)" : "var(--dawn-04)";
+                          }}
+                        >
+                          <ThreeDotIcon />
+                        </button>
+                      )}
+                    </div>
+                  )}
                   {menuOpenId === journey.id && (
                     <JourneyMenu
                       journeyId={journey.id}

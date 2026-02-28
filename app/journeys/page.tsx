@@ -56,8 +56,8 @@ function JourneyCardWithMenu({
           }}
           style={{
             position: "absolute",
-            top: "10px",
-            right: "10px",
+            top: "14px",
+            right: "12px",
             width: 22,
             height: 22,
             display: "flex",
@@ -82,8 +82,8 @@ function JourneyCardWithMenu({
           ref={menuRef}
           style={{
             position: "absolute",
-            top: "34px",
-            right: "10px",
+            top: "38px",
+            right: "12px",
             background: "var(--void)",
             border: "1px solid var(--dawn-15)",
             zIndex: 50,
@@ -136,24 +136,31 @@ export default function JourneysOverviewPage() {
   const [error, setError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<JourneyCardItem | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newJourneyName, setNewJourneyName] = useState("");
+  const [newJourneyDescription, setNewJourneyDescription] = useState("");
+  const [newJourneyType, setNewJourneyType] = useState<"learn" | "create">("create");
+  const [creating, setCreating] = useState(false);
+
+  async function loadJourneys() {
+    try {
+      setError(null);
+      const res = await fetch("/api/journeys", { cache: "no-store" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? "Failed to load journeys");
+      }
+      const json = (await res.json()) as JourneysListData;
+      setData(json);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load journeys");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    async function load() {
-      try {
-        const res = await fetch("/api/journeys", { cache: "no-store" });
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body.error ?? "Failed to load journeys");
-        }
-        const json = (await res.json()) as JourneysListData;
-        setData(json);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load journeys");
-      } finally {
-        setLoading(false);
-      }
-    }
-    void load();
+    void loadJourneys();
   }, []);
 
   async function deleteJourney() {
@@ -176,6 +183,36 @@ export default function JourneysOverviewPage() {
     }
   }
 
+  async function createJourney() {
+    if (!newJourneyName.trim() || creating) return;
+    setCreating(true);
+    try {
+      const res = await fetch("/api/admin/workspace-projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newJourneyName.trim(),
+          description: newJourneyDescription.trim() || undefined,
+          type: newJourneyType,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? "Failed to create journey");
+      }
+      setCreateOpen(false);
+      setNewJourneyName("");
+      setNewJourneyDescription("");
+      setNewJourneyType("create");
+      setLoading(true);
+      await loadJourneys();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create journey");
+    } finally {
+      setCreating(false);
+    }
+  }
+
   return (
     <RequireAuth>
       <NavigationFrame title="SIGIL" modeLabel="journeys">
@@ -184,7 +221,42 @@ export default function JourneysOverviewPage() {
           style={{ paddingTop: "var(--space-2xl)" }}
         >
           <HudPanel>
-            <HudPanelHeader title="Journeys" />
+            <HudPanelHeader
+              title="Journeys"
+              inlineActions={
+                isAdmin ? (
+                  <button
+                    type="button"
+                    onClick={() => setCreateOpen(true)}
+                    title="Create journey"
+                    aria-label="Create journey"
+                    style={{
+                      width: 24,
+                      height: 24,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: "transparent",
+                      border: "none",
+                      color: "var(--dawn-30)",
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "14px",
+                      lineHeight: 1,
+                      cursor: "pointer",
+                      transition: "color 120ms ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = "var(--gold)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = "var(--dawn-30)";
+                    }}
+                  >
+                    +
+                  </button>
+                ) : null
+              }
+            />
             {loading ? (
               <div className="flex items-center gap-3 py-12">
                 <div
@@ -299,6 +371,131 @@ export default function JourneysOverviewPage() {
                 journey and all member assignments. Routes and their generated
                 content will remain accessible.
               </p>
+            </Dialog>
+            <Dialog
+              open={createOpen}
+              onClose={() => setCreateOpen(false)}
+              title="create new journey"
+              footer={
+                <>
+                  <button
+                    type="button"
+                    className="sigil-btn-ghost"
+                    onClick={() => setCreateOpen(false)}
+                  >
+                    cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="sigil-btn-primary"
+                    disabled={creating || !newJourneyName.trim()}
+                    onClick={() => void createJourney()}
+                  >
+                    {creating ? "creating..." : "create"}
+                  </button>
+                </>
+              }
+            >
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
+                <div>
+                  <label
+                    htmlFor="journey-overview-name"
+                    style={{
+                      display: "block",
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "10px",
+                      letterSpacing: "0.1em",
+                      textTransform: "uppercase",
+                      color: "var(--dawn-40)",
+                      marginBottom: "var(--space-xs)",
+                    }}
+                  >
+                    Name
+                  </label>
+                  <input
+                    id="journey-overview-name"
+                    type="text"
+                    value={newJourneyName}
+                    onChange={(e) => setNewJourneyName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void createJourney();
+                    }}
+                    placeholder="e.g. Visual AI Workshop Two"
+                    autoFocus
+                    className="admin-input"
+                    style={{ width: "100%" }}
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="journey-overview-description"
+                    style={{
+                      display: "block",
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "10px",
+                      letterSpacing: "0.1em",
+                      textTransform: "uppercase",
+                      color: "var(--dawn-40)",
+                      marginBottom: "var(--space-xs)",
+                    }}
+                  >
+                    Description (optional)
+                  </label>
+                  <input
+                    id="journey-overview-description"
+                    type="text"
+                    value={newJourneyDescription}
+                    onChange={(e) => setNewJourneyDescription(e.target.value)}
+                    placeholder="Brief description"
+                    className="admin-input"
+                    style={{ width: "100%" }}
+                  />
+                </div>
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "10px",
+                      letterSpacing: "0.1em",
+                      textTransform: "uppercase",
+                      color: "var(--dawn-40)",
+                      marginBottom: "var(--space-xs)",
+                    }}
+                  >
+                    Type
+                  </label>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {(["create", "learn"] as const).map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setNewJourneyType(t)}
+                        style={{
+                          flex: 1,
+                          padding: "8px 12px",
+                          background: newJourneyType === t ? (t === "learn" ? "var(--gold-10)" : "var(--dawn-04)") : "transparent",
+                          border: `1px solid ${newJourneyType === t ? (t === "learn" ? "var(--gold)" : "var(--dawn-15)") : "var(--dawn-08)"}`,
+                          borderLeft: `2px solid ${newJourneyType === t ? (t === "learn" ? "var(--gold)" : "var(--dawn-30)") : "var(--dawn-08)"}`,
+                          color: newJourneyType === t ? (t === "learn" ? "var(--gold)" : "var(--dawn)") : "var(--dawn-40)",
+                          fontFamily: "var(--font-mono)",
+                          fontSize: "10px",
+                          letterSpacing: "0.08em",
+                          textTransform: "uppercase",
+                          cursor: "pointer",
+                          transition: "all 120ms",
+                          textAlign: "left",
+                        }}
+                      >
+                        <div>{t === "create" ? "Create" : "Learn"}</div>
+                        <div style={{ fontSize: "9px", color: "var(--dawn-40)", marginTop: 2 }}>
+                          {t === "create" ? "Direct image/video generation" : "Workshop with lessons"}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </Dialog>
           </HudPanel>
         </section>

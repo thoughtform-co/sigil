@@ -18,7 +18,23 @@ type JourneyCardProps = {
   journey: JourneyCardItem;
 };
 
+function ParticleArrowIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+      <rect x="1" y="5" width="2" height="2" fill="currentColor" opacity="0.45" />
+      <rect x="3" y="5" width="2" height="2" fill="currentColor" opacity="0.6" />
+      <rect x="5" y="5" width="2" height="2" fill="currentColor" opacity="0.8" />
+      <rect x="7" y="3" width="2" height="2" fill="currentColor" />
+      <rect x="7" y="5" width="2" height="2" fill="currentColor" />
+      <rect x="7" y="7" width="2" height="2" fill="currentColor" />
+      <rect x="9" y="5" width="2" height="2" fill="currentColor" />
+    </svg>
+  );
+}
+
 export function JourneyCard({ journey }: JourneyCardProps) {
+  const category = journey.type === "learn" ? "learn" : "create";
+
   return (
     <Link
       href={`/journeys/${journey.id}`}
@@ -26,7 +42,8 @@ export function JourneyCard({ journey }: JourneyCardProps) {
       style={{
         background: "var(--surface-0)",
         border: "1px solid var(--dawn-08)",
-        padding: "20px",
+        padding: "12px 20px 20px",
+        minHeight: 148,
         transitionDuration: "var(--duration-base)",
         transitionTimingFunction: "var(--ease-out)",
         display: "grid",
@@ -78,50 +95,60 @@ export function JourneyCard({ journey }: JourneyCardProps) {
       />
 
       {/* Left: metadata */}
-      <div style={{ minWidth: 0 }}>
-        <div className="mb-3 flex items-start justify-between gap-3">
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <h2
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: "13px",
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                color: "var(--dawn)",
-              }}
-            >
-              {journey.name}
-            </h2>
-            {journey.type === "learn" && (
-              <span
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "8px",
-                  letterSpacing: "0.1em",
-                  textTransform: "uppercase",
-                  color: "var(--gold)",
-                  border: "1px solid var(--gold-15)",
-                  padding: "1px 4px",
-                  flexShrink: 0,
-                }}
-              >
-                learn
-              </span>
-            )}
-          </div>
+      <div style={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            fontFamily: "var(--font-mono)",
+            fontSize: "9px",
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            color: "var(--dawn-40)",
+            paddingRight: 24,
+          }}
+        >
+          <span
+            style={{
+              width: 6,
+              height: 6,
+              background: category === "learn" ? "var(--gold)" : "var(--dawn-30)",
+              transform: "rotate(45deg)",
+              flexShrink: 0,
+            }}
+          />
+          {category}
+        </div>
+        <div style={{ borderTop: "1px solid var(--dawn-08)", marginTop: "10px", paddingTop: "10px" }} />
+
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "13px",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              color: "var(--dawn)",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {journey.name}
+          </h2>
           <span
             className="transition-colors group-hover:text-[var(--gold)]"
             style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "9px",
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              color: "var(--dawn-70)",
+              color: "var(--dawn-50)",
               flexShrink: 0,
+              display: "inline-flex",
+              alignItems: "center",
               transitionDuration: "var(--duration-fast)",
             }}
+            aria-hidden="true"
           >
-            open &rarr;
+            <ParticleArrowIcon />
           </span>
         </div>
 
@@ -132,7 +159,7 @@ export function JourneyCard({ journey }: JourneyCardProps) {
               fontSize: "12px",
               lineHeight: "1.6",
               color: "var(--dawn-50)",
-              marginBottom: "16px",
+              marginBottom: "12px",
             }}
           >
             {journey.description}
@@ -146,8 +173,7 @@ export function JourneyCard({ journey }: JourneyCardProps) {
             letterSpacing: "0.05em",
             textTransform: "uppercase",
             color: "var(--dawn-70)",
-            borderTop: "1px solid var(--dawn-08)",
-            paddingTop: "12px",
+            marginTop: "auto",
           }}
         >
           <span style={{ display: "block", marginBottom: "4px" }}>
