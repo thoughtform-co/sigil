@@ -88,14 +88,13 @@ Tokens and component specs live in the Thoughtform design skills. The Figma plug
 
 ## Reliability
 
-Auth gating via Supabase, role-based access control, environment variable discipline, Prisma schema validation. Follows the Sentinel pattern across the codebase.
+Auth gating, role-based access control, configuration discipline, Prisma schema validation. Follows the Sentinel pattern across the codebase.
 
 ## Getting started
 
 ```bash
 npm install
-cp .env.example .env
-# Fill in DATABASE_URL, DIRECT_URL, SUPABASE_URL, SUPABASE_ANON_KEY, ANTHROPIC_API_KEY
+# Configure local project settings with database, auth, and AI provider credentials
 npx prisma db push
 npx prisma db seed   # optional
 npm run dev
@@ -103,13 +102,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000). The app redirects to `/dashboard`.
 
-| Variable | Purpose |
-|----------|---------|
-| `DATABASE_URL` | Prisma connection string (pooled) |
-| `DIRECT_URL` | Prisma direct connection (migrations) |
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous key |
-| `ANTHROPIC_API_KEY` | Claude API key for prompt enhancement |
+Required configuration categories: database connection (pooled + direct), auth/storage credentials, and AI provider access. See the repo's configuration example for the full list of required fields.
 
 | Command | Purpose |
 |---------|---------|
