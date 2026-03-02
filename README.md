@@ -6,7 +6,7 @@ I have been doing keynotes and workshops since 2023. For two years, all of them 
 
 A conversation with a fellow creative made me realize I had everything I needed to build a dedicated platform. Not a generic LMS. A creation and learning surface tailored per client, per workshop, per module, all inside the Thoughtform brand world.
 
-Sigil started as the Thoughtform version of Vesper (the image/video generation tool I built for Loop Earplugs), but it has grown into something different: a dual-mode platform where the same infrastructure serves both guided learning journeys and direct creative work.
+Sigil started as the Thoughtform version of a generation platform I built at Loop Earplugs, but it has grown into something different: a dual-mode platform where the same infrastructure serves both guided learning journeys and direct creative work.
 
 ## What this enables
 
@@ -36,7 +36,7 @@ The generation suite supports multiple models (Gemini, Replicate, FAL.ai) with p
 
 ## The constellation
 
-Sigil is the fourth Thoughtform core repo, and it draws from everything that came before. The Navigation HUD and design system from Thoughtform.co. The particle system from Atlas (via Thoughtform.co). The embedding and generation pipeline patterns from Astrolabe. The prompt enhancement architecture that originated with the Atlas Archivist. And the generation infrastructure (model adapters, gallery, prompt bar) directly inherited from Vesper.
+Sigil is the fourth Thoughtform core repo, and it draws from everything that came before. The Navigation HUD and design system from Thoughtform.co. The particle system from Atlas (via Thoughtform.co). The embedding and generation pipeline patterns from Astrolabe. The prompt enhancement architecture that originated with the Atlas Archivist. And the generation infrastructure (model adapters, gallery, prompt bar) directly inherited from a similar platform I built at Loop Earplugs.
 
 What Sigil contributes forward is the most refined version of the Thoughtform brand architecture, evolving toward a scalable design system via a Figma plugin that generates colors, typography, spacing, and components. The dual-mode journey system is a reusable pattern for client-specific experiences. The scroll-driven lesson pages with embedded practice represent a new kind of workshop delivery.
 
