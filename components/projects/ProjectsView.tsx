@@ -26,7 +26,7 @@ export function ProjectsView() {
   useEffect(() => {
     async function loadProjects() {
       try {
-        const response = await fetch("/api/projects", { cache: "no-store" });
+        const response = await fetch("/api/projects");
         if (!response.ok) {
           const body = await response.json().catch(() => ({}));
           throw new Error(body.error ?? "Failed to load routes");

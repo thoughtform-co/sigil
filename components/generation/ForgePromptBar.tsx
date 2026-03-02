@@ -250,6 +250,7 @@ export function ForgePromptBar({
             <div className={styles.modeBar}>
               <Link
                 href={`/routes/${projectId}/image`}
+                prefetch={false}
                 className={`${styles.modeButton} ${generationType === "image" ? styles.modeButtonActive : ""}`}
                 title="Image mode"
               >
@@ -261,6 +262,7 @@ export function ForgePromptBar({
               </Link>
               <Link
                 href={`/routes/${projectId}/video`}
+                prefetch={false}
                 className={`${styles.modeButton} ${generationType === "video" ? styles.modeButtonActive : ""}`}
                 title="Video mode"
               >
@@ -270,6 +272,7 @@ export function ForgePromptBar({
               </Link>
               <Link
                 href={`/routes/${projectId}/canvas`}
+                prefetch={false}
                 className={`${styles.modeButton} ${generationType === "canvas" ? styles.modeButtonActive : ""}`}
                 title="Canvas workflow"
               >
@@ -519,6 +522,7 @@ export function ForgePromptBar({
           <div className={styles.modeBar}>
             <Link
               href={`/routes/${projectId}/image`}
+              prefetch={false}
               className={`${styles.modeButton} ${generationType === "image" ? styles.modeButtonActive : ""}`}
               title="Image mode"
             >
@@ -530,6 +534,7 @@ export function ForgePromptBar({
             </Link>
             <Link
               href={`/routes/${projectId}/video`}
+              prefetch={false}
               className={`${styles.modeButton} ${generationType === "video" ? styles.modeButtonActive : ""}`}
               title="Video mode"
             >
@@ -539,6 +544,7 @@ export function ForgePromptBar({
             </Link>
             <Link
               href={`/routes/${projectId}/canvas`}
+              prefetch={false}
               className={`${styles.modeButton} ${generationType === "canvas" ? styles.modeButtonActive : ""}`}
               title="Canvas workflow"
             >

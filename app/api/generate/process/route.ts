@@ -16,7 +16,9 @@ import { classifyError, userFacingMessage } from "@/lib/errors/classification";
 import { unauthorized, notFound, badRequest } from "@/lib/api/errors";
 import { json } from "@/lib/api/responses";
 
-const HEARTBEAT_INTERVAL_MS = 10_000;
+export const maxDuration = 300;
+
+const HEARTBEAT_INTERVAL_MS = 30_000;
 
 async function broadcastUpdatedGeneration(sessionId: string, generationId: string): Promise<void> {
   try {

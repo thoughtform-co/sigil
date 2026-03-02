@@ -1,7 +1,11 @@
 "use client";
 
-import { useVideoIterations } from "@/hooks/useVideoIterations";
 import styles from "./VideoIterationsStackHint.module.css";
+
+type IterationStatus = {
+  count: number;
+  hasProcessing: boolean;
+};
 
 type VideoIterationsStackHintProps = {
   outputId: string;
@@ -11,8 +15,7 @@ type VideoIterationsStackHintProps = {
 const STACK_LAYERS = 3;
 const GLOW_COLOR = "202, 165, 84"; /* --gold #caa554 */
 
-export function VideoIterationsStackGlow({ outputId }: { outputId: string }) {
-  const { count, hasProcessing } = useVideoIterations(outputId, { limit: 10, enabled: true });
+export function VideoIterationsStackGlow({ count, hasProcessing }: IterationStatus) {
   const showStackEffect = count > 0 || hasProcessing;
 
   if (!showStackEffect) return null;
@@ -52,8 +55,7 @@ export function VideoIterationsStackGlow({ outputId }: { outputId: string }) {
   );
 }
 
-export function VideoIterationsBarButton({ outputId, onClick }: VideoIterationsStackHintProps) {
-  const { count, hasProcessing } = useVideoIterations(outputId, { limit: 10, enabled: true });
+export function VideoIterationsBarButton({ count, hasProcessing, onClick }: IterationStatus & { onClick?: () => void }) {
   const hasVideos = count > 0;
 
   return (
@@ -66,9 +68,9 @@ export function VideoIterationsBarButton({ outputId, onClick }: VideoIterationsS
       }}
       title={
         hasProcessing
-          ? "Video generating…"
+          ? "Video generating\u2026"
           : hasVideos
-            ? `${count} video${count !== 1 ? "s" : ""} – Click to view`
+            ? `${count} video${count !== 1 ? "s" : ""} \u2013 Click to view`
             : "Convert to video"
       }
       aria-label={hasVideos || hasProcessing ? "Convert to video or view iterations" : "Convert to video"}
@@ -88,10 +90,11 @@ export function VideoIterationsBarButton({ outputId, onClick }: VideoIterationsS
 
 /** @deprecated Use VideoIterationsStackGlow + VideoIterationsBarButton instead */
 export function VideoIterationsStackHint({ outputId, onClick }: VideoIterationsStackHintProps) {
+  void outputId;
   return (
     <>
-      <VideoIterationsStackGlow outputId={outputId} />
-      <VideoIterationsBarButton outputId={outputId} onClick={onClick} />
+      <VideoIterationsStackGlow count={0} hasProcessing={false} />
+      <VideoIterationsBarButton count={0} hasProcessing={false} onClick={onClick} />
     </>
   );
 }

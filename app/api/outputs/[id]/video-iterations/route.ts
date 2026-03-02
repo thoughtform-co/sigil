@@ -8,6 +8,7 @@ type RouteContext = {
 };
 
 export async function GET(request: Request, context: RouteContext) {
+  const t0 = Date.now();
   const user = await getAuthedUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -29,13 +30,16 @@ export async function GET(request: Request, context: RouteContext) {
 
   const projectId = output.generation.session.projectId;
 
-  const generations = await prisma.generation.findMany({
+  const iterations = await prisma.generation.findMany({
     where: {
       session: {
         type: "video",
         projectId,
-        project: accessFilter,
       },
+      OR: [
+        { parameters: { path: ["sourceOutputId"], equals: outputId } },
+        { parameters: { path: ["referenceImageId"], equals: outputId } },
+      ],
     },
     orderBy: { createdAt: "desc" },
     take: limit,
@@ -60,34 +64,18 @@ export async function GET(request: Request, context: RouteContext) {
     },
   });
 
-  const params = (p: unknown): Record<string, unknown> =>
-    typeof p === "object" && p !== null ? (p as Record<string, unknown>) : {};
-  const bySource = generations.filter(
-    (g) =>
-      params(g.parameters).sourceOutputId === outputId ||
-      params(g.parameters).referenceImageId === outputId
-  );
-
-  const iterations = bySource.map((g) => ({
-    id: g.id,
-    prompt: g.prompt,
-    parameters: g.parameters,
-    status: g.status,
-    modelId: g.modelId,
-    createdAt: g.createdAt,
-    outputs: g.outputs,
-  }));
-
   const hasProcessing = iterations.some(
     (i) => i.status === "processing" || i.status === "processing_locked"
   );
   const latestStatus = iterations[0]?.status ?? null;
 
-  return NextResponse.json({
+  const response = NextResponse.json({
     iterations,
     count: iterations.length,
     hasProcessing,
     latestStatus,
     sourceOutputId: outputId,
   });
+  response.headers.set("Server-Timing", `total;dur=${Date.now() - t0}`);
+  return response;
 }

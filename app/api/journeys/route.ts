@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthedUser } from "@/lib/auth/server";
+import { withCacheHeaders } from "@/lib/api/cache-headers";
 
 const THUMBNAILS_PER_JOURNEY = 6;
 
 export async function GET() {
+  const t0 = Date.now();
   const user = await getAuthedUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -28,48 +30,37 @@ export async function GET() {
           name: true,
           updatedAt: true,
           _count: { select: { sessions: true } },
-          sessions: {
-            select: { _count: { select: { generations: true } } },
-          },
         },
       },
     },
   });
 
   const wpIds = workspaceProjects.map((wp) => wp.id);
+
   const recentOutputs =
     wpIds.length === 0
       ? []
       : await prisma.output.findMany({
-    where: {
-      generation: {
-        session: {
-          project: {
-            workspaceProjectId: { in: wpIds },
-          },
-        },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 300,
-    select: {
-      id: true,
-      fileUrl: true,
-      fileType: true,
-      width: true,
-      height: true,
-      createdAt: true,
-      generation: {
-        select: {
-          session: {
-            select: {
-              project: { select: { workspaceProjectId: true } },
+          where: {
+            generation: {
+              session: { project: { workspaceProjectId: { in: wpIds } } },
             },
           },
-        },
-      },
-    },
-  });
+          orderBy: { createdAt: "desc" },
+          take: wpIds.length * THUMBNAILS_PER_JOURNEY,
+          select: {
+            id: true,
+            fileUrl: true,
+            fileType: true,
+            width: true,
+            height: true,
+            generation: {
+              select: {
+                session: { select: { project: { select: { workspaceProjectId: true } } } },
+              },
+            },
+          },
+        });
 
   const thumbnailsByWpId = new Map<
     string,
@@ -94,32 +85,23 @@ export async function GET() {
     }
   }
 
-  const journeys = workspaceProjects.map((wp) => {
-    const totalGenerations = wp.briefings.reduce(
-      (sum, b) =>
-        sum +
-        b.sessions.reduce(
-          (s, sess) => s + sess._count.generations,
-          0
-        ),
-      0
-    );
-    return {
-      id: wp.id,
-      name: wp.name,
-      description: wp.description,
-      type: (wp as unknown as { type?: string }).type ?? "create",
-      routeCount: wp._count.briefings,
-      generationCount: totalGenerations,
-      routes: wp.briefings.map((b) => ({
-        id: b.id,
-        name: b.name,
-        updatedAt: b.updatedAt,
-        waypointCount: b._count.sessions,
-      })),
-      thumbnails: thumbnailsByWpId.get(wp.id) ?? [],
-    };
-  });
+  const journeys = workspaceProjects.map((wp) => ({
+    id: wp.id,
+    name: wp.name,
+    description: wp.description,
+    type: (wp as unknown as { type?: string }).type ?? "create",
+    routeCount: wp._count.briefings,
+    generationCount: 0,
+    routes: wp.briefings.map((b) => ({
+      id: b.id,
+      name: b.name,
+      updatedAt: b.updatedAt,
+      waypointCount: b._count.sessions,
+    })),
+    thumbnails: thumbnailsByWpId.get(wp.id) ?? [],
+  }));
 
-  return NextResponse.json({ journeys });
+  const response = NextResponse.json({ journeys });
+  response.headers.set("Server-Timing", `total;dur=${Date.now() - t0}`);
+  return withCacheHeaders(response, "private-short");
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { NavigationFrame } from "@/components/hud/NavigationFrame";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { Dialog } from "@/components/ui/Dialog";
@@ -33,6 +33,11 @@ export default function JourneyDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
+  const mountMarked = useRef(false);
+  if (!mountMarked.current) {
+    mountMarked.current = true;
+    if (typeof performance !== "undefined") performance.mark("sigil:journey-mount");
+  }
   const [data, setData] = useState<JourneyData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +50,7 @@ export default function JourneyDetailPage() {
   const loadJourney = useCallback(async () => {
     if (!id) return;
     try {
-      const res = await fetch(`/api/journeys/${id}`, { cache: "no-store" });
+      const res = await fetch(`/api/journeys/${id}`);
       if (!res.ok) {
         if (res.status === 404) { setError("Journey not found"); return; }
         if (res.status === 403) { setError("You don't have access to this journey"); return; }
@@ -67,6 +72,17 @@ export default function JourneyDetailPage() {
     setLoading(true);
     void loadJourney();
   }, [loadJourney]);
+
+  const dataReadyMarked = useRef(false);
+  useEffect(() => {
+    if (!dataReadyMarked.current && data) {
+      dataReadyMarked.current = true;
+      performance.mark("sigil:journey-data-ready");
+      if (performance.getEntriesByName("sigil:journey-mount").length > 0) {
+        performance.measure("sigil:journey-ttdr", "sigil:journey-mount", "sigil:journey-data-ready");
+      }
+    }
+  }, [data]);
 
   async function createRoute() {
     if (!newRouteName.trim() || !id) return;

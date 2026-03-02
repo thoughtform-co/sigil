@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getAuthedUser } from "@/lib/auth/server";
 import { projectAccessFilter } from "@/lib/auth/project-access";
+import { withCacheHeaders } from "@/lib/api/cache-headers";
 
 const createSessionSchema = z.object({
   projectId: z.string().uuid(),
@@ -11,6 +12,7 @@ const createSessionSchema = z.object({
 });
 
 export async function GET(request: Request) {
+  const t0 = Date.now();
   const user = await getAuthedUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -64,7 +66,9 @@ export async function GET(request: Request) {
     thumbnailUrl: session.generations[0]?.outputs[0]?.fileUrl ?? null,
   }));
 
-  return NextResponse.json({ sessions });
+  const response = NextResponse.json({ sessions });
+  response.headers.set("Server-Timing", `total;dur=${Date.now() - t0}`);
+  return withCacheHeaders(response, "private-short");
 }
 
 export async function POST(request: Request) {

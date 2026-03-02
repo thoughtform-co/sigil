@@ -145,7 +145,7 @@ export default function JourneysOverviewPage() {
   async function loadJourneys() {
     try {
       setError(null);
-      const res = await fetch("/api/journeys", { cache: "no-store" });
+      const res = await fetch("/api/journeys");
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error ?? "Failed to load journeys");

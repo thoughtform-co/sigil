@@ -6,6 +6,7 @@ import type { SessionItem, GenerationItem } from "@/components/generation/types"
 const PREFETCH_LIMIT = 20;
 
 export type PrefetchedWorkspaceData = {
+  projectName: string;
   sessions: SessionItem[];
   generationsPage: { generations: GenerationItem[]; nextCursor: string | null };
 } | null;
@@ -20,7 +21,7 @@ export async function prefetchWorkspaceData(
     const accessFilter = await projectAccessFilter(user.id);
     const project = await prisma.project.findFirst({
       where: { id: projectId, ...accessFilter },
-      select: { id: true },
+      select: { id: true, name: true },
     });
     if (!project) return null;
 
@@ -100,6 +101,7 @@ export async function prefetchWorkspaceData(
     }));
 
     return {
+      projectName: project.name,
       sessions,
       generationsPage: { generations, nextCursor },
     };

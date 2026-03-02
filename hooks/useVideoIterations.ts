@@ -51,7 +51,7 @@ export function useVideoIterations(
     setError(null);
     try {
       const url = `/api/outputs/${outputId}/video-iterations${limit ? `?limit=${limit}` : ""}`;
-      const res = await fetch(url, { cache: "no-store" });
+      const res = await fetch(url);
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(data.error ?? "Failed to load iterations");

@@ -35,7 +35,6 @@ function createHttpProcessor(): GenerationProcessor {
             method: "POST",
             headers,
             body: JSON.stringify({ generationId }),
-            cache: "no-store",
           });
           if (res.ok) return;
           const responseText = await res.text().catch(() => "");

@@ -1,7 +1,7 @@
 "use client";
 
 import useSWR from "swr";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { JourneyPanel } from "@/components/dashboard/JourneyPanel";
 import { RouteCardsPanel } from "@/components/dashboard/RouteCardsPanel";
@@ -53,6 +53,12 @@ async function adminStatsFetcher(url: string): Promise<{ adminStats: AdminStatRo
 
 export function DashboardView() {
   const { isAdmin } = useAuth();
+  const perfMarked = useRef<boolean | null>(null);
+  if (perfMarked.current == null) {
+    perfMarked.current = true;
+    if (typeof performance !== "undefined") performance.mark("sigil:dashboard-mount");
+  }
+
   const { data, error, isLoading, mutate } = useSWR("/api/dashboard", dashboardFetcher, {
     revalidateOnFocus: false,
     dedupingInterval: 10_000,
@@ -63,6 +69,17 @@ export function DashboardView() {
     { revalidateOnFocus: false, dedupingInterval: 30_000 }
   );
   const [selectedJourneyId, setSelectedJourneyId] = useState<string | null>(null);
+
+  const dataReadyMarked = useRef(false);
+  useEffect(() => {
+    if (!dataReadyMarked.current && data) {
+      dataReadyMarked.current = true;
+      performance.mark("sigil:dashboard-data-ready");
+      if (performance.getEntriesByName("sigil:dashboard-mount").length > 0) {
+        performance.measure("sigil:dashboard-ttdr", "sigil:dashboard-mount", "sigil:dashboard-data-ready");
+      }
+    }
+  }, [data]);
 
   useEffect(() => {
     if (!data?.journeys?.length) return;

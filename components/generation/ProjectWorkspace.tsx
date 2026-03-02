@@ -40,7 +40,7 @@ type GenerationsPage = {
 };
 
 const jsonFetcher = <T,>(url: string): Promise<T> =>
-  fetch(url, { cache: "no-store" }).then((r) => {
+  fetch(url).then((r) => {
     if (!r.ok) throw new Error(`Fetch failed: ${r.status}`);
     return r.json() as Promise<T>;
   });
@@ -84,6 +84,8 @@ export function ProjectWorkspace({
   const [selectedWorkflow, setSelectedWorkflow] = useState<WorkflowItem | null>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const hasPrefetch = Boolean(prefetchedData);
+
   // --- SWR: sessions (stable, rarely changes) ---
   const { data: sessionsData, mutate: mutateSessions } = useSWR<{ sessions: SessionItem[] }>(
     `/api/sessions?projectId=${projectId}`,
@@ -91,6 +93,7 @@ export function ProjectWorkspace({
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
+      revalidateOnMount: !hasPrefetch,
       dedupingInterval: 30_000,
       fallbackData: prefetchedData?.sessions
         ? { sessions: prefetchedData.sessions }
@@ -129,6 +132,7 @@ export function ProjectWorkspace({
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
       revalidateFirstPage: false,
+      revalidateOnMount: !hasPrefetch,
       dedupingInterval: 5_000,
       fallbackData: prefetchedData?.generationsPage
         ? [prefetchedData.generationsPage]
@@ -167,15 +171,19 @@ export function ProjectWorkspace({
   }, []);
 
   useEffect(() => {
+    if (prefetchedData?.projectName) {
+      setProjectName(prefetchedData.projectName);
+      return;
+    }
     async function loadProject() {
-      const response = await fetch("/api/projects", { cache: "no-store" });
+      const response = await fetch("/api/projects");
       if (!response.ok) return;
       const data = (await response.json()) as { projects: Array<{ id: string; name: string }> };
       const found = data.projects.find((p) => p.id === projectId);
       if (found) setProjectName(found.name);
     }
     void loadProject();
-  }, [projectId]);
+  }, [projectId, prefetchedData?.projectName]);
 
   useEffect(() => {
     if (!models.length) return;

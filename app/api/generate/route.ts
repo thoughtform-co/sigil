@@ -11,6 +11,8 @@ import { checkRateLimit } from "@/lib/api/rate-limit";
 import { getProcessor } from "@/lib/models/processor";
 import { projectAccessFilter } from "@/lib/auth/project-access";
 
+export const maxDuration = 30;
+
 export async function POST(request: Request) {
   try {
     const user = await getAuthedUser();

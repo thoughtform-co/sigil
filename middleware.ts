@@ -15,6 +15,20 @@ const AUTH_BYPASS =
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  if (AUTH_BYPASS) {
+    return NextResponse.next({ request });
+  }
+
+  if (isPublicPath(pathname)) {
+    return NextResponse.next({ request });
+  }
+
+  // API routes enforce their own auth via getAuthedUser(); skip the
+  // expensive supabase.auth.getUser() roundtrip here to avoid duplication.
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.next({ request });
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -48,30 +62,16 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (AUTH_BYPASS) {
-    return response;
-  }
-
   if (pathname === "/login" && user) {
     const url = request.nextUrl.clone();
     url.pathname = "/projects";
     return NextResponse.redirect(url);
   }
 
-  if (isPublicPath(pathname)) {
-    return response;
-  }
-
   if (!user) {
-    if (!pathname.startsWith("/api/")) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/login";
-      return NextResponse.redirect(url);
-    }
-    return NextResponse.json(
-      { error: "Authentication required" },
-      { status: 401 },
-    );
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
   }
 
   return response;

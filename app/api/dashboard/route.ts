@@ -11,18 +11,11 @@ export async function GET() {
   }
   const afterAuth = Date.now();
 
-  const [profile, wpMemberships] = await Promise.all([
-    prisma.profile.findUnique({
-      where: { id: user.id },
-      select: { role: true },
-    }),
-    prisma.workspaceProjectMember.findMany({
-      where: { userId: user.id },
-      select: { workspaceProjectId: true },
-    }),
-  ]);
+  const profile = await prisma.profile.findUnique({
+    where: { id: user.id },
+    select: { role: true },
+  });
   const isAdmin = profile?.role === "admin";
-  const wpIds = wpMemberships.map((m) => m.workspaceProjectId);
 
   const journeyWhere = isAdmin ? {} : { members: { some: { userId: user.id } } };
 
@@ -49,50 +42,53 @@ export async function GET() {
 
   const briefingIds = workspaceProjects.flatMap((wp) => wp.briefings.map((b) => b.id));
 
-  const thumbnailResults =
-    briefingIds.length === 0
-      ? []
-      : await Promise.all(
-          briefingIds.map((projectId) =>
-            prisma.output.findMany({
-              where: {
-                generation: {
-                  session: { projectId },
-                },
-              },
-              orderBy: { createdAt: "desc" },
-              take: 8,
-              select: {
-                id: true,
-                fileUrl: true,
-                fileType: true,
-                width: true,
-                height: true,
-                generation: { select: { sessionId: true } },
-              },
-            })
-          )
-        );
-  const afterThumbnails = Date.now();
-
+  const THUMBS_PER_ROUTE = 8;
   const thumbnailsByProjectId = new Map<
     string,
     { id: string; fileUrl: string; fileType: string; width: number | null; height: number | null; sessionId: string }[]
   >();
-  briefingIds.forEach((projectId, i) => {
-    const outputs = thumbnailResults[i] ?? [];
-    thumbnailsByProjectId.set(
-      projectId,
-      outputs.map((o) => ({
-        id: o.id,
-        fileUrl: o.fileUrl,
-        fileType: o.fileType,
-        width: o.width,
-        height: o.height,
-        sessionId: o.generation.sessionId,
-      }))
-    );
-  });
+
+  if (briefingIds.length > 0) {
+    const recentOutputs = await prisma.output.findMany({
+      where: {
+        generation: {
+          session: {
+            projectId: { in: briefingIds },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: briefingIds.length * THUMBS_PER_ROUTE,
+      select: {
+        id: true,
+        fileUrl: true,
+        fileType: true,
+        width: true,
+        height: true,
+        generation: { select: { sessionId: true, session: { select: { projectId: true } } } },
+      },
+    });
+
+    for (const o of recentOutputs) {
+      const pid = o.generation.session.projectId;
+      let list = thumbnailsByProjectId.get(pid);
+      if (!list) {
+        list = [];
+        thumbnailsByProjectId.set(pid, list);
+      }
+      if (list.length < THUMBS_PER_ROUTE) {
+        list.push({
+          id: o.id,
+          fileUrl: o.fileUrl,
+          fileType: o.fileType,
+          width: o.width,
+          height: o.height,
+          sessionId: o.generation.sessionId,
+        });
+      }
+    }
+  }
+  const afterThumbnails = Date.now();
 
   const journeys = workspaceProjects.map((wp) => {
     const totalGenerations = wp.briefings.reduce(

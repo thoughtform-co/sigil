@@ -23,7 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function hydrateFromMe() {
     try {
-      const response = await fetch("/api/me", { cache: "no-store" });
+      const response = await fetch("/api/me");
       if (!response.ok) {
         setRole(null);
         setUser(null);
@@ -46,14 +46,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const supabase = createClient();
+    let hydrated = false;
 
     supabase.auth.getSession().then(({ data }) => {
       if (data.session?.user) {
         setSession(data.session);
         setUser(data.session.user);
-        void hydrateFromMe();
-      } else {
-        void hydrateFromMe();
+        if (!hydrated) {
+          hydrated = true;
+          void hydrateFromMe();
+        }
       }
       setLoading(false);
     });
@@ -63,9 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange((_event, currentSession) => {
       setSession(currentSession ?? null);
       setUser(currentSession?.user ?? null);
-      if (currentSession?.user) {
-        void hydrateFromMe();
-      } else {
+      if (!currentSession?.user) {
         setRole(null);
       }
       setLoading(false);

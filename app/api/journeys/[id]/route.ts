@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthedUser } from "@/lib/auth/server";
+import { withCacheHeaders } from "@/lib/api/cache-headers";
 
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const t0 = Date.now();
   const user = await getAuthedUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -93,7 +95,7 @@ export async function GET(
     thumbnailUrl: thumbnailByProjectId.get(r.id) ?? null,
   }));
 
-  return NextResponse.json({
+  const response = NextResponse.json({
     journey: {
       id: journey.id,
       name: journey.name,
@@ -103,4 +105,6 @@ export async function GET(
       routes: routesWithThumbnails,
     },
   });
+  response.headers.set("Server-Timing", `total;dur=${Date.now() - t0}`);
+  return withCacheHeaders(response, "private-short");
 }

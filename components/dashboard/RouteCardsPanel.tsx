@@ -55,8 +55,6 @@ export function RouteCardsPanel({ routes, journeyId, onRouteCreated }: RouteCard
   useEffect(() => {
     if (!focusedRouteId) return;
     router.prefetch(`/routes/${focusedRouteId}/image`);
-    void fetch(`/api/generations?projectId=${focusedRouteId}`).catch(() => {});
-    void fetch(`/api/sessions?projectId=${focusedRouteId}`).catch(() => {});
   }, [focusedRouteId, router]);
 
   async function handleCreate() {

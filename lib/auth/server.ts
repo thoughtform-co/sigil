@@ -11,21 +11,26 @@ const AUTH_BYPASS =
 const BYPASS_USER_ID = "dcd1da5c-773c-4029-910c-e360fa415fd0";
 const BYPASS_USER_EMAIL = "vince@thoughtform.co";
 
+let bypassEnsured = false;
+
 export async function getAuthedUser(): Promise<AuthedUser | null> {
   if (AUTH_BYPASS) {
-    await prisma.profile.upsert({
-      where: { id: BYPASS_USER_ID },
-      update: {
-        role: "admin",
-        displayName: "Sigil Local",
-      },
-      create: {
-        id: BYPASS_USER_ID,
-        username: "sigil-local",
-        displayName: "Sigil Local",
-        role: "admin",
-      },
-    });
+    if (!bypassEnsured) {
+      bypassEnsured = true;
+      await prisma.profile.upsert({
+        where: { id: BYPASS_USER_ID },
+        update: {
+          role: "admin",
+          displayName: "Sigil Local",
+        },
+        create: {
+          id: BYPASS_USER_ID,
+          username: "sigil-local",
+          displayName: "Sigil Local",
+          role: "admin",
+        },
+      });
+    }
     return { id: BYPASS_USER_ID, email: BYPASS_USER_EMAIL };
   }
 
