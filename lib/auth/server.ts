@@ -14,7 +14,6 @@ const BYPASS_USER_EMAIL = "vince@thoughtform.co";
 let bypassEnsured = false;
 
 export async function getAuthedUser(): Promise<AuthedUser | null> {
-  const authStart = Date.now();
   if (AUTH_BYPASS) {
     if (!bypassEnsured) {
       bypassEnsured = true;
@@ -32,9 +31,6 @@ export async function getAuthedUser(): Promise<AuthedUser | null> {
         },
       });
     }
-    // #region agent log
-    void fetch('http://127.0.0.1:7607/ingest/a5f326c6-d7b4-482d-b1ae-86a7f55d4947',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0e67a0'},body:JSON.stringify({sessionId:'0e67a0',runId:'baseline',hypothesisId:'H4',location:'lib/auth/server.ts:bypass',message:'Auth bypass branch used',data:{elapsedMs:Date.now()-authStart,bypassEnsured},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     return { id: BYPASS_USER_ID, email: BYPASS_USER_EMAIL };
   }
 
@@ -44,9 +40,6 @@ export async function getAuthedUser(): Promise<AuthedUser | null> {
     error,
   } = await supabase.auth.getUser();
 
-  // #region agent log
-  void fetch('http://127.0.0.1:7607/ingest/a5f326c6-d7b4-482d-b1ae-86a7f55d4947',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0e67a0'},body:JSON.stringify({sessionId:'0e67a0',runId:'baseline',hypothesisId:'H1',location:'lib/auth/server.ts:get-user',message:'Supabase auth.getUser completed',data:{elapsedMs:Date.now()-authStart,hasUser:Boolean(user),hasError:Boolean(error)},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   if (error || !user) return null;
   return { id: user.id, email: user.email ?? null };
 }

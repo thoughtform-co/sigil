@@ -130,9 +130,11 @@ function JourneyCardWithMenu({
 export function JourneysOverviewContent({
   initialJourneys,
   initialIsAdmin,
+  initialDataIncludesThumbnails = true,
 }: {
   initialJourneys?: JourneyCardItem[];
   initialIsAdmin?: boolean;
+  initialDataIncludesThumbnails?: boolean;
 }) {
   const { isAdmin: authIsAdmin } = useAuth();
   const isAdmin = initialIsAdmin ?? authIsAdmin;
@@ -149,7 +151,7 @@ export function JourneysOverviewContent({
   const [newJourneyType, setNewJourneyType] = useState<"learn" | "create">("create");
   const [creating, setCreating] = useState(false);
 
-  const skipInitialFetch = useRef(!!initialJourneys);
+  const skipInitialFetch = useRef(!!initialJourneys && initialDataIncludesThumbnails);
 
   async function loadJourneys() {
     try {
