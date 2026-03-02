@@ -34,9 +34,12 @@ export async function POST(request: Request, context: RouteContext) {
   });
 
   const processUrl = new URL("/api/generate/process", request.url);
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const cookie = request.headers.get("cookie");
+  if (cookie) headers.Cookie = cookie;
   void fetch(processUrl, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify({ generationId: id }),
     cache: "no-store",
   }).catch(() => {

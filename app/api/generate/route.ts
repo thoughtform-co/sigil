@@ -74,7 +74,9 @@ export async function POST(request: Request) {
     });
 
     const baseUrl = new URL(request.url).origin;
-    void getProcessor().enqueue(generation.id, baseUrl);
+    void getProcessor().enqueue(generation.id, baseUrl, {
+      cookie: request.headers.get("cookie"),
+    });
 
     return json({ generation }, 202);
   } catch (error) {

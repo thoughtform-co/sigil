@@ -7,25 +7,41 @@ const MAX_ENQUEUE_RETRIES = 2;
 const RETRY_DELAY_MS = 1000;
 
 export interface GenerationProcessor {
-  enqueue(generationId: string, baseUrl: string): Promise<void>;
+  enqueue(
+    generationId: string,
+    baseUrl: string,
+    options?: { cookie?: string | null }
+  ): Promise<void>;
 }
 
 function createHttpProcessor(): GenerationProcessor {
   return {
-    async enqueue(generationId: string, baseUrl: string): Promise<void> {
+    async enqueue(
+      generationId: string,
+      baseUrl: string,
+      options?: { cookie?: string | null }
+    ): Promise<void> {
       const processUrl = new URL("/api/generate/process", baseUrl);
       let lastError: unknown;
 
       for (let attempt = 0; attempt <= MAX_ENQUEUE_RETRIES; attempt++) {
         try {
+          const headers: Record<string, string> = { "Content-Type": "application/json" };
+          if (options?.cookie) {
+            headers.Cookie = options.cookie;
+          }
+
           const res = await fetch(processUrl, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers,
             body: JSON.stringify({ generationId }),
             cache: "no-store",
           });
-          if (res.ok || res.status < 500) return;
-          lastError = new Error(`Process endpoint returned ${res.status}`);
+          if (res.ok) return;
+          const responseText = await res.text().catch(() => "");
+          lastError = new Error(
+            `Process endpoint returned ${res.status}${responseText ? `: ${responseText.slice(0, 200)}` : ""}`
+          );
         } catch (err) {
           lastError = err;
         }
