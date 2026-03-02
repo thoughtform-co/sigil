@@ -22,8 +22,7 @@ async function createDiamondSpecimens(): Promise<FrameNode> {
 
     const nameLabel = await createLabel({ text: c.name, fontSize: 9, color: COLORS.dawn });
     nameLabel.opacity = 0.4;
-    nameLabel.resize(64, nameLabel.height);
-    nameLabel.textAutoResize = "NONE";
+    nameLabel.textAutoResize = "WIDTH_AND_HEIGHT";
     row.appendChild(nameLabel);
 
     for (const sz of sizes) {
@@ -69,6 +68,7 @@ async function createCardFrameSpecimen(): Promise<FrameNode> {
   divider.resize(260, 1);
   divider.fills = [solidPaint(COLORS.dawn.r, COLORS.dawn.g, COLORS.dawn.b, 0.08)];
   card.appendChild(divider);
+  try { divider.layoutSizingHorizontal = "FILL"; } catch (_) { /* ok */ }
 
   const titleLabel = await createLabel({ text: "Journey Title", fontSize: 13, color: COLORS.dawn, letterSpacing: 1.04 });
   card.appendChild(titleLabel);

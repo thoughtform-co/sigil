@@ -29,7 +29,14 @@ export function createAutoLayoutFrame(opts: FrameOpts): FrameNode {
     frame.paddingLeft = opts.padding.left ?? 0;
   }
 
-  if (opts.width) { frame.resize(opts.width, opts.height ?? 100); frame.primaryAxisSizingMode = "FIXED"; }
+  if (opts.width) {
+    frame.resize(opts.width, opts.height || 100);
+    if (frame.layoutMode === "VERTICAL") {
+      frame.counterAxisSizingMode = "FIXED";
+    } else {
+      frame.primaryAxisSizingMode = "FIXED";
+    }
+  }
   if (opts.fill) {
     frame.fills = [{ type: "SOLID", color: opts.fill, opacity: opts.fillOpacity ?? 1 }];
   } else {

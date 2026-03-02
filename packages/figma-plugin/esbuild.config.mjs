@@ -7,7 +7,7 @@ const config = {
   bundle: true,
   outfile: "code.js",
   format: "iife",
-  target: "es2020",
+  target: "es2017",
   logLevel: "info",
 };
 

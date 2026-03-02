@@ -70,7 +70,7 @@ export async function createColorFrame(): Promise<FrameNode> {
   container.appendChild(primaryLabel);
 
   const primaryGrid = createAutoLayoutFrame({ name: "primary-grid", direction: "HORIZONTAL", spacing: 24 });
-  primaryGrid.layoutWrap = "WRAP";
+  try { primaryGrid.layoutWrap = "WRAP"; } catch (_) { /* older API */ }
   for (const s of PRIMARY_SWATCHES) {
     const row = await createSwatchRow(s, 80);
     primaryGrid.appendChild(row);

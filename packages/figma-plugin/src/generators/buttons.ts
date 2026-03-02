@@ -105,8 +105,7 @@ export async function createButtonFrame(): Promise<FrameNode> {
       row.counterAxisAlignItems = "CENTER";
 
       const sizeLabel = await createLabel({ text: size, fontSize: 9, color: COLORS.dawn, letterSpacing: 0.72 });
-      sizeLabel.resize(32, sizeLabel.height);
-      sizeLabel.textAutoResize = "NONE";
+      sizeLabel.textAutoResize = "WIDTH_AND_HEIGHT";
       sizeLabel.opacity = 0.4;
       row.appendChild(sizeLabel);
 

@@ -39,8 +39,8 @@ export async function createTypographyFrame(): Promise<FrameNode> {
       color: COLORS.dawn,
       uppercase: false,
     });
-    specimen.layoutSizingHorizontal = "FILL";
     row.appendChild(specimen);
+    specimen.layoutSizingHorizontal = "FILL";
 
     const meta = createAutoLayoutFrame({ name: "meta", direction: "VERTICAL", spacing: 4 });
     const details = [

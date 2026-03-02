@@ -7,7 +7,12 @@ export async function prefetchDashboard(
   userId: string,
   options: { includeThumbnails?: boolean } = {},
 ): Promise<{ data: DashboardData; isAdmin: boolean } | null> {
+  const prefetchStart = Date.now();
+  const runId = `prefetch-${prefetchStart}`;
   const includeThumbnails = options.includeThumbnails ?? true;
+  // #region agent log
+  void fetch('http://127.0.0.1:7607/ingest/a5f326c6-d7b4-482d-b1ae-86a7f55d4947',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0e67a0'},body:JSON.stringify({sessionId:'0e67a0',runId,hypothesisId:'H3',location:'lib/prefetch/dashboard.ts:start',message:'prefetchDashboard started',data:{includeThumbnails,userIdPresent:Boolean(userId)},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
   try {
     const profile = await prisma.profile.findUnique({
       where: { id: userId },
@@ -35,6 +40,9 @@ export async function prefetchDashboard(
         },
       },
     });
+    // #region agent log
+    void fetch('http://127.0.0.1:7607/ingest/a5f326c6-d7b4-482d-b1ae-86a7f55d4947',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0e67a0'},body:JSON.stringify({sessionId:'0e67a0',runId,hypothesisId:'H2',location:'lib/prefetch/dashboard.ts:after-workspace',message:'Workspace projects query completed',data:{elapsedMs:Date.now()-prefetchStart,projectCount:workspaceProjects.length,isAdmin},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
 
     const briefingIds = workspaceProjects.flatMap((wp) =>
       wp.briefings.map((b) => b.id),
@@ -139,6 +147,9 @@ export async function prefetchDashboard(
           }
         }
       }
+      // #region agent log
+      void fetch('http://127.0.0.1:7607/ingest/a5f326c6-d7b4-482d-b1ae-86a7f55d4947',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0e67a0'},body:JSON.stringify({sessionId:'0e67a0',runId,hypothesisId:'H3',location:'lib/prefetch/dashboard.ts:after-thumbnails',message:'Thumbnail hydration completed',data:{elapsedMs:Date.now()-prefetchStart,sessionCount:sessionIdToProjectId.size,generationCount:generationIds.length,outputCount:recentOutputs.length},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
     }
 
     const journeys = workspaceProjects.map((wp) => {
@@ -171,9 +182,15 @@ export async function prefetchDashboard(
         }),
       };
     });
+    // #region agent log
+    void fetch('http://127.0.0.1:7607/ingest/a5f326c6-d7b4-482d-b1ae-86a7f55d4947',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0e67a0'},body:JSON.stringify({sessionId:'0e67a0',runId,hypothesisId:'H5',location:'lib/prefetch/dashboard.ts:done',message:'prefetchDashboard finished',data:{elapsedMs:Date.now()-prefetchStart,journeyCount:journeys.length},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
 
     return { data: { journeys }, isAdmin };
-  } catch {
+  } catch (error) {
+    // #region agent log
+    void fetch('http://127.0.0.1:7607/ingest/a5f326c6-d7b4-482d-b1ae-86a7f55d4947',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0e67a0'},body:JSON.stringify({sessionId:'0e67a0',runId,hypothesisId:'H5',location:'lib/prefetch/dashboard.ts:catch',message:'prefetchDashboard failed',data:{elapsedMs:Date.now()-prefetchStart,error:error instanceof Error?error.message:'unknown'},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     return null;
   }
 }

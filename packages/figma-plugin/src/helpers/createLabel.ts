@@ -24,7 +24,7 @@ export async function createLabel(opts: LabelOpts): Promise<TextNode> {
     (opts.color ?? COLORS.dawn).g,
     (opts.color ?? COLORS.dawn).b,
   )];
-  node.textAutoResize = "HEIGHT";
+  node.textAutoResize = "WIDTH_AND_HEIGHT";
 
   if (opts.letterSpacing !== undefined) {
     node.letterSpacing = { value: opts.letterSpacing, unit: "PIXELS" };

@@ -39,8 +39,10 @@ export async function createSpacingFrame(): Promise<FrameNode> {
       color: COLORS.dawn,
       letterSpacing: 0.88,
     });
+    labelNode.textAutoResize = "WIDTH_AND_HEIGHT";
     labelNode.resize(120, labelNode.height);
     labelNode.textAutoResize = "NONE";
+    labelNode.textTruncation = "DISABLED";
     row.appendChild(labelNode);
 
     const bar = figma.createRectangle();
