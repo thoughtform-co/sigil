@@ -63,9 +63,11 @@ async function adminStatsFetcher(url: string): Promise<{ adminStats: AdminStatRo
 export function DashboardView({
   initialData,
   initialIsAdmin,
+  initialDataIncludesThumbnails = true,
 }: {
   initialData?: DashboardData;
   initialIsAdmin?: boolean;
+  initialDataIncludesThumbnails?: boolean;
 } = {}) {
   const { isAdmin: authIsAdmin } = useAuth();
   const isAdmin = initialIsAdmin ?? authIsAdmin;
@@ -79,7 +81,7 @@ export function DashboardView({
     fallbackData: initialData,
     revalidateOnFocus: false,
     dedupingInterval: 60_000,
-    revalidateOnMount: !initialData,
+    revalidateOnMount: !initialData || !initialDataIncludesThumbnails,
   });
   const { data: adminStatsData } = useSWR(
     isAdmin ? "/api/admin/dashboard-stats" : null,
@@ -89,6 +91,7 @@ export function DashboardView({
   const [selectedJourneyId, setSelectedJourneyId] = useState<string | null>(null);
 
   const dataReadyMarked = useRef(false);
+
   useEffect(() => {
     if (!dataReadyMarked.current && data) {
       dataReadyMarked.current = true;
@@ -106,7 +109,7 @@ export function DashboardView({
     }
   }, [data, selectedJourneyId]);
 
-  if (isLoading) {
+  if (isLoading && !data) {
     return (
       <div className="flex items-center gap-3 py-12">
         <div
