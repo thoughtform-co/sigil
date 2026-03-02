@@ -1,6 +1,6 @@
 # Sigil
 
-> Visual AI creation and learning platform. Where workshops become navigable journeys and image generation becomes a creation suite.
+> Thoughtform is the discipline of navigating the intelligence between thought and form. As the Navigator, I use Sigil to turn that practice into client-specific learning journeys and a creation suite.
 
 I have been doing keynotes and workshops since 2023. For two years, all of them were organized by third parties: someone pays me to show up at a location and teach. That model works until you run out of headspace for prospecting. When the volume faltered in the second half of 2025, I decided to own the format entirely: Thoughtform Home Sessions, small groups of eight people in my living room, covering everything from LLM thinking to image and video model navigation.
 
