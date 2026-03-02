@@ -94,7 +94,7 @@ export function ProjectWorkspace({
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
       revalidateOnMount: !hasPrefetch,
-      dedupingInterval: 30_000,
+      dedupingInterval: 60_000,
       fallbackData: prefetchedData?.sessions
         ? { sessions: prefetchedData.sessions }
         : undefined,

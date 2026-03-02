@@ -1,13 +1,21 @@
+import { redirect } from "next/navigation";
 import { NavigationFrame } from "@/components/hud/NavigationFrame";
-import { RequireAuth } from "@/components/auth/RequireAuth";
 import { DashboardView } from "@/components/dashboard/DashboardView";
+import { getAuthedUser } from "@/lib/auth/server";
+import { prefetchDashboard } from "@/lib/prefetch/dashboard";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const user = await getAuthedUser();
+  if (!user) redirect("/login");
+
+  const result = await prefetchDashboard(user.id);
+
   return (
-    <RequireAuth>
-      <NavigationFrame title="SIGIL" modeLabel="dashboard" workspaceLayout>
-        <DashboardView />
-      </NavigationFrame>
-    </RequireAuth>
+    <NavigationFrame title="SIGIL" modeLabel="dashboard" workspaceLayout>
+      <DashboardView
+        initialData={result?.data}
+        initialIsAdmin={result?.isAdmin}
+      />
+    </NavigationFrame>
   );
 }

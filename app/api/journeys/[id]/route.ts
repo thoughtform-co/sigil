@@ -15,31 +15,33 @@ export async function GET(
 
   const { id } = await params;
 
-  const profile = await prisma.profile.findUnique({
-    where: { id: user.id },
-    select: { role: true },
-  });
-  const isAdmin = profile?.role === "admin";
-
-  const journey = await prisma.workspaceProject.findUnique({
-    where: { id },
-    include: {
-      briefings: {
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          updatedAt: true,
-          _count: { select: { sessions: true } },
+  const [profile, journey] = await Promise.all([
+    prisma.profile.findUnique({
+      where: { id: user.id },
+      select: { role: true },
+    }),
+    prisma.workspaceProject.findUnique({
+      where: { id },
+      include: {
+        briefings: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            updatedAt: true,
+            _count: { select: { sessions: true } },
+          },
+          orderBy: { updatedAt: "desc" },
         },
-        orderBy: { updatedAt: "desc" },
       },
-    },
-  });
+    }),
+  ]);
 
   if (!journey) {
     return NextResponse.json({ error: "Journey not found" }, { status: 404 });
   }
+
+  const isAdmin = profile?.role === "admin";
 
   if (!isAdmin) {
     const membership = await prisma.workspaceProjectMember.findUnique({

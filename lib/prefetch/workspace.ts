@@ -18,14 +18,51 @@ export async function prefetchWorkspaceData(
     const user = await getAuthedUser();
     if (!user) return null;
 
-    const accessFilter = await projectAccessFilter(user.id);
-    const project = await prisma.project.findFirst({
-      where: { id: projectId, ...accessFilter },
-      select: { id: true, name: true },
-    });
-    if (!project) return null;
+    const [profile, accessFilter] = await Promise.all([
+      prisma.profile.findUnique({
+        where: { id: user.id },
+        select: { role: true },
+      }),
+      projectAccessFilter(user.id),
+    ]);
 
-    const [sessionsRaw, generationsRaw] = await Promise.all([
+    const isAdmin = profile?.role === "admin";
+    const projectWhere = isAdmin
+      ? { id: projectId }
+      : { id: projectId, ...accessFilter };
+
+    const generationSelect = {
+      id: true,
+      sessionId: true,
+      prompt: true,
+      negativePrompt: true,
+      parameters: true,
+      status: true,
+      modelId: true,
+      createdAt: true,
+      source: true,
+      errorMessage: true,
+      errorCategory: true,
+      errorRetryable: true,
+      lastHeartbeatAt: true,
+      outputs: {
+        select: {
+          id: true,
+          fileUrl: true,
+          fileType: true,
+          isApproved: true,
+          width: true,
+          height: true,
+          duration: true,
+        },
+      },
+    } as const;
+
+    const [project, sessionsRaw, generationsRaw] = await Promise.all([
+      prisma.project.findFirst({
+        where: projectWhere,
+        select: { id: true, name: true },
+      }),
       prisma.session.findMany({
         where: { projectId },
         orderBy: { createdAt: "desc" },
@@ -35,34 +72,11 @@ export async function prefetchWorkspaceData(
         where: { session: { projectId } },
         orderBy: { createdAt: "asc" },
         take: PREFETCH_LIMIT + 1,
-        select: {
-          id: true,
-          sessionId: true,
-          prompt: true,
-          negativePrompt: true,
-          parameters: true,
-          status: true,
-          modelId: true,
-          createdAt: true,
-          source: true,
-          errorMessage: true,
-          errorCategory: true,
-          errorRetryable: true,
-          lastHeartbeatAt: true,
-          outputs: {
-            select: {
-              id: true,
-              fileUrl: true,
-              fileType: true,
-              isApproved: true,
-              width: true,
-              height: true,
-              duration: true,
-            },
-          },
-        },
+        select: generationSelect,
       }),
     ]);
+
+    if (!project) return null;
 
     const sessions: SessionItem[] = sessionsRaw.map((s) => ({
       id: s.id,

@@ -1,10 +1,19 @@
 "use client";
 
 import useSWR from "swr";
+import dynamic from "next/dynamic";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { JourneyPanel } from "@/components/dashboard/JourneyPanel";
-import { RouteCardsPanel } from "@/components/dashboard/RouteCardsPanel";
+
+const JourneyPanel = dynamic(
+  () => import("@/components/dashboard/JourneyPanel").then((m) => m.JourneyPanel),
+  { ssr: false },
+);
+
+const RouteCardsPanel = dynamic(
+  () => import("@/components/dashboard/RouteCardsPanel").then((m) => m.RouteCardsPanel),
+  { ssr: false },
+);
 
 export type DashboardRouteItem = {
   id: string;
@@ -51,8 +60,15 @@ async function adminStatsFetcher(url: string): Promise<{ adminStats: AdminStatRo
   return res.json();
 }
 
-export function DashboardView() {
-  const { isAdmin } = useAuth();
+export function DashboardView({
+  initialData,
+  initialIsAdmin,
+}: {
+  initialData?: DashboardData;
+  initialIsAdmin?: boolean;
+} = {}) {
+  const { isAdmin: authIsAdmin } = useAuth();
+  const isAdmin = initialIsAdmin ?? authIsAdmin;
   const perfMarked = useRef<boolean | null>(null);
   if (perfMarked.current == null) {
     perfMarked.current = true;
@@ -60,8 +76,10 @@ export function DashboardView() {
   }
 
   const { data, error, isLoading, mutate } = useSWR("/api/dashboard", dashboardFetcher, {
+    fallbackData: initialData,
     revalidateOnFocus: false,
-    dedupingInterval: 10_000,
+    dedupingInterval: 60_000,
+    revalidateOnMount: !initialData,
   });
   const { data: adminStatsData } = useSWR(
     isAdmin ? "/api/admin/dashboard-stats" : null,

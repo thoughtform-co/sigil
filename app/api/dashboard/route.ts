@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getAuthedUser } from "@/lib/auth/server";
 import { withCacheHeaders } from "@/lib/api/cache-headers";
 
+const THUMBS_PER_ROUTE = 8;
+
 export async function GET() {
   const start = Date.now();
   const user = await getAuthedUser();
@@ -16,33 +18,31 @@ export async function GET() {
     select: { role: true },
   });
   const isAdmin = profile?.role === "admin";
-
   const journeyWhere = isAdmin ? {} : { members: { some: { userId: user.id } } };
 
   const workspaceProjects = await prisma.workspaceProject.findMany({
     where: journeyWhere,
     orderBy: { updatedAt: "desc" },
-      include: {
-        _count: { select: { briefings: true } },
-        briefings: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            updatedAt: true,
-            _count: { select: { sessions: true } },
-            sessions: {
-              select: { _count: { select: { generations: true } } },
-            },
+    include: {
+      _count: { select: { briefings: true } },
+      briefings: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          updatedAt: true,
+          _count: { select: { sessions: true } },
+          sessions: {
+            select: { _count: { select: { generations: true } } },
           },
         },
       },
+    },
   });
   const afterWorkspace = Date.now();
 
   const briefingIds = workspaceProjects.flatMap((wp) => wp.briefings.map((b) => b.id));
 
-  const THUMBS_PER_ROUTE = 8;
   const thumbnailsByProjectId = new Map<
     string,
     { id: string; fileUrl: string; fileType: string; width: number | null; height: number | null; sessionId: string }[]
@@ -136,5 +136,5 @@ export async function GET() {
   if (process.env.NODE_ENV === "development") {
     console.log(`[dashboard] auth=${afterAuth - start}ms workspace=${afterWorkspace - afterAuth}ms thumbnails=${afterThumbnails - afterWorkspace}ms total=${total}ms`);
   }
-  return withCacheHeaders(response, "short");
+  return withCacheHeaders(response, "private-short");
 }

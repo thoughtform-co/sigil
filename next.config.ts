@@ -16,6 +16,24 @@ const nextConfig: NextConfig = {
         hostname: "replicate.delivery",
       },
     ],
+    formats: ["image/webp", "image/avif"],
+  },
+  experimental: {
+    optimizePackageImports: ["@xyflow/react"],
+  },
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        net: false,
+        tls: false,
+        fs: false,
+        dns: false,
+        child_process: false,
+        canvas: false,
+      };
+    }
+    return config;
   },
   async headers() {
     return [
