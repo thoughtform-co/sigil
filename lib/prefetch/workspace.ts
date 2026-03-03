@@ -7,8 +7,10 @@ const PREFETCH_LIMIT = 20;
 
 export type PrefetchedWorkspaceData = {
   projectName: string;
+  journeyId?: string;
+  journeyName?: string;
   sessions: SessionItem[];
-  generationsPage: { generations: GenerationItem[]; nextCursor: string | null };
+  generationsPage?: { generations: GenerationItem[]; nextCursor: string | null };
   includesGenerationOutputs: boolean;
 } | null;
 
@@ -62,7 +64,11 @@ export async function prefetchWorkspaceData(
     const [project, sessionsRaw, generationsRaw] = await Promise.all([
       prisma.project.findFirst({
         where: projectWhere,
-        select: { id: true, name: true },
+        select: {
+          id: true,
+          name: true,
+          workspaceProject: { select: { id: true, name: true } },
+        },
       }),
       prisma.session.findMany({
         where: { projectId },
@@ -115,13 +121,77 @@ export async function prefetchWorkspaceData(
       })),
     }));
 
-    const payload = {
+    const payload: NonNullable<PrefetchedWorkspaceData> = {
       projectName: project.name,
+      journeyId: project.workspaceProject?.id,
+      journeyName: project.workspaceProject?.name,
       sessions,
       generationsPage: { generations, nextCursor },
       includesGenerationOutputs: true,
     };
     return payload;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Lightweight prefetch for the route layout — fetches only project info
+ * (including parent journey) and sessions. Generations are deferred to the
+ * client via SWR, keeping navigation instant.
+ */
+export async function prefetchWorkspaceShell(
+  projectId: string,
+): Promise<PrefetchedWorkspaceData> {
+  try {
+    const user = await getAuthedUser();
+    if (!user) return null;
+
+    const [profile, accessFilter] = await Promise.all([
+      prisma.profile.findUnique({
+        where: { id: user.id },
+        select: { role: true },
+      }),
+      projectAccessFilter(user.id),
+    ]);
+
+    const isAdmin = profile?.role === "admin";
+    const projectWhere = isAdmin
+      ? { id: projectId }
+      : { id: projectId, ...accessFilter };
+
+    const [project, sessionsRaw] = await Promise.all([
+      prisma.project.findFirst({
+        where: projectWhere,
+        select: {
+          id: true,
+          name: true,
+          workspaceProject: { select: { id: true, name: true } },
+        },
+      }),
+      prisma.session.findMany({
+        where: { projectId },
+        orderBy: { createdAt: "desc" },
+        select: { id: true, name: true, type: true, updatedAt: true },
+      }),
+    ]);
+
+    if (!project) return null;
+
+    const sessions: SessionItem[] = sessionsRaw.map((s) => ({
+      id: s.id,
+      name: s.name,
+      type: s.type,
+      updatedAt: s.updatedAt.toISOString(),
+    }));
+
+    return {
+      projectName: project.name,
+      journeyId: project.workspaceProject?.id,
+      journeyName: project.workspaceProject?.name,
+      sessions,
+      includesGenerationOutputs: false,
+    };
   } catch {
     return null;
   }

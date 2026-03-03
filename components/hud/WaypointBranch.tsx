@@ -5,8 +5,14 @@ import { useNavSpine } from "@/context/NavSpineContext";
 import type { SessionItem } from "@/components/generation/types";
 import { useEffect, useState } from "react";
 
-const THUMB = 48;
-const INDENT = 24;
+const THUMB = 64;
+const INDENT = 40;
+
+const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X",
+  "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX"];
+function toRoman(n: number): string {
+  return ROMAN[n - 1] ?? String(n);
+}
 
 type WaypointBranchProps = {
   sessions: SessionItem[];
@@ -36,7 +42,7 @@ export function WaypointBranch({
   if (!mounted || !portalRef.current) return null;
 
   const content = (
-    <div style={{ paddingLeft: INDENT, marginTop: 4 }}>
+    <div style={{ paddingLeft: INDENT, marginTop: 12 }}>
       <ul
         style={{
           listStyle: "none",
@@ -44,7 +50,7 @@ export function WaypointBranch({
           padding: 0,
           display: "flex",
           flexDirection: "column",
-          gap: 5,
+          gap: 12,
           maxHeight: "50vh",
           overflowY: "auto",
           overflowX: "hidden",
@@ -60,7 +66,7 @@ export function WaypointBranch({
               letterSpacing: "0.1em",
               textTransform: "uppercase",
               color: "var(--dawn-30)",
-              paddingLeft: 14,
+              paddingLeft: 18,
               animation: "spineTelemetryIn 300ms ease forwards",
             }}
           >
@@ -77,7 +83,7 @@ export function WaypointBranch({
               key={session.id}
               style={{
                 position: "relative",
-                paddingLeft: 14,
+                paddingLeft: 18,
                 opacity: 0,
                 animation: `spineTelemetryIn 250ms ease ${idx * 60}ms forwards`,
               }}
@@ -85,18 +91,18 @@ export function WaypointBranch({
               {/* Tree connector (L-shape) */}
               <svg
                 aria-hidden
-                width="14"
-                height={THUMB / 2 + 6}
-                viewBox={`0 0 14 ${THUMB / 2 + 6}`}
+                width="18"
+                height={THUMB / 2 + 8}
+                viewBox={`0 0 18 ${THUMB / 2 + 8}`}
                 fill="none"
                 style={{
                   position: "absolute",
                   left: 2,
-                  top: -5,
+                  top: -7,
                 }}
               >
                 <path
-                  d={`M0 0V${THUMB / 2 + 5}H13`}
+                  d={`M0 0V${THUMB / 2 + 7}H17`}
                   stroke="var(--dawn-15)"
                   strokeWidth="1"
                   strokeLinecap="square"
@@ -112,7 +118,7 @@ export function WaypointBranch({
                     position: "absolute",
                     left: 2,
                     top: THUMB / 2,
-                    bottom: -5,
+                    bottom: -7,
                     width: 1,
                     background: "var(--dawn-15)",
                   }}
@@ -126,6 +132,7 @@ export function WaypointBranch({
                 onSelect={() => onSessionSelect(session.id)}
                 onDelete={() => onSessionDelete(session.id)}
                 busy={busy}
+                index={idx + 1}
               />
             </li>
           );
@@ -135,25 +142,25 @@ export function WaypointBranch({
         <li
           style={{
             position: "relative",
-            paddingLeft: 14,
+            paddingLeft: 18,
             opacity: 0,
             animation: `spineTelemetryIn 250ms ease ${sessions.length * 60}ms forwards`,
           }}
         >
           <svg
             aria-hidden
-            width="14"
-            height="26"
-            viewBox="0 0 14 26"
+            width="18"
+            height="30"
+            viewBox="0 0 18 30"
             fill="none"
             style={{
               position: "absolute",
               left: 2,
-              top: -5,
+              top: -7,
             }}
           >
             <path
-              d="M0 0V25H13"
+              d="M0 0V29H17"
               stroke="var(--dawn-15)"
               strokeWidth="1"
               strokeLinecap="square"
@@ -219,6 +226,7 @@ function WaypointThumb({
   onSelect,
   onDelete,
   busy,
+  index,
 }: {
   session: SessionItem;
   thumbUrl?: string;
@@ -226,7 +234,9 @@ function WaypointThumb({
   onSelect: () => void;
   onDelete: () => void;
   busy: boolean;
+  index: number;
 }) {
+  const label = `Waypoint ${toRoman(index)}`;
   return (
     <div
       style={{ position: "relative", width: THUMB, height: THUMB }}
@@ -262,7 +272,7 @@ function WaypointThumb({
         onMouseLeave={(e) => {
           if (!isActive) e.currentTarget.style.borderColor = "var(--dawn-08)";
         }}
-        aria-label={session.name}
+        aria-label={label}
       >
         {thumbUrl ? (
           thumbUrl.match(/\.(webm|mp4|mov)$/i) ? (
@@ -347,7 +357,7 @@ function WaypointThumb({
             e.currentTarget.style.borderColor = "var(--dawn-15)";
             e.currentTarget.style.color = "var(--dawn-50)";
           }}
-          aria-label={`Delete ${session.name}`}
+          aria-label={`Delete ${label}`}
         >
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -385,16 +395,7 @@ function WaypointThumb({
             color: "var(--dawn)",
           }}
         >
-          {session.name}
-        </span>
-        <span
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: "8px",
-            color: "var(--dawn-30)",
-          }}
-        >
-          {session.type}
+          {label}
         </span>
       </div>
     </div>

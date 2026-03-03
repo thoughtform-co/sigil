@@ -885,6 +885,11 @@ body {
   background: var(--dawn-15);
 }
 
+/* Right rail major ticks — visible only while scrolling */
+.rail-scrolling .rail-major-tick {
+  opacity: 1 !important;
+}
+
 @keyframes spineTelemetryIn {
   from {
     opacity: 0;

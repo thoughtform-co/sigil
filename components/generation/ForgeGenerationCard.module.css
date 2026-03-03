@@ -63,6 +63,24 @@
   word-break: break-word;
   max-height: 120px;
   overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--dawn-15) transparent;
+}
+
+.promptText::-webkit-scrollbar {
+  width: 3px;
+}
+
+.promptText::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.promptText::-webkit-scrollbar-thumb {
+  background: var(--dawn-15);
+}
+
+.promptText::-webkit-scrollbar-thumb:hover {
+  background: var(--dawn-30);
 }
 
 .copiedBadge {

@@ -21,6 +21,10 @@ type NavigationFrameProps = {
   workspaceLayout?: boolean;
   /** Override auto-detected breadcrumb with explicit segments. First segment becomes the back link. */
   breadcrumbOverride?: BreadcrumbSegment[];
+  /** Route workspace context — used to enrich the breadcrumb with journey/route names. */
+  journeyName?: string;
+  journeyId?: string;
+  routeName?: string;
 };
 
 const RAIL_WIDTH = 48;
@@ -149,6 +153,9 @@ function NavigationFrameInner({
   children,
   workspaceLayout = false,
   breadcrumbOverride,
+  journeyName,
+  journeyId,
+  routeName,
 }: NavigationFrameProps) {
   const { portalRef } = useNavSpine();
   const pathname = usePathname();
@@ -184,21 +191,23 @@ function NavigationFrameInner({
     }
   }
 
-  const [isScrolling, setIsScrolling] = useState(false);
+  const rightRailRef = useRef<HTMLElement>(null);
   const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const handleScroll = useCallback(() => {
-    setIsScrolling(true);
-    if (scrollTimer.current) clearTimeout(scrollTimer.current);
-    scrollTimer.current = setTimeout(() => setIsScrolling(false), 800);
-  }, []);
 
   useEffect(() => {
-    window.addEventListener("scroll", handleScroll, { passive: true });
+    function onScroll() {
+      rightRailRef.current?.classList.add("rail-scrolling");
+      if (scrollTimer.current) clearTimeout(scrollTimer.current);
+      scrollTimer.current = setTimeout(() => {
+        rightRailRef.current?.classList.remove("rail-scrolling");
+      }, 800);
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
-      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("scroll", onScroll);
       if (scrollTimer.current) clearTimeout(scrollTimer.current);
     };
-  }, [handleScroll]);
+  }, []);
 
   const settingsPx = useMemo(() => settingsPixels(), []);
   const themePx = useMemo(() => themePixels(isLight), [isLight]);
@@ -238,10 +247,17 @@ function NavigationFrameInner({
 
     if (parts[0] === "routes" && parts.length >= 3) {
       const mode = parts[2];
-      return {
-        backHref: null,
-        segments: [{ label: "route" }, { label: mode }],
-      };
+      const segments: BreadcrumbSegment[] = [];
+      if (journeyName) {
+        segments.push({
+          label: `journey: ${journeyName}`,
+          href: journeyId ? `/journeys/${journeyId}` : undefined,
+        });
+      }
+      segments.push({ label: routeName ? `route: ${routeName}` : "route" });
+      segments.push({ label: mode });
+      const backHref = journeyId ? `/journeys/${journeyId}` : null;
+      return { backHref, segments };
     }
 
     if (parts[0] === "journeys" && parts.length >= 2) {
@@ -261,7 +277,7 @@ function NavigationFrameInner({
     }
 
     return null;
-  }, [pathname, breadcrumbOverride]);
+  }, [pathname, breadcrumbOverride, journeyName, journeyId, routeName]);
 
   const handleBack = useCallback(() => {
     if (breadcrumb?.backHref) {
@@ -328,6 +344,7 @@ function NavigationFrameInner({
 
       {/* Right rail */}
       <aside
+        ref={rightRailRef}
         data-hud-rail="right"
         className="hud-rail-tick fixed z-30 pointer-events-none"
         style={{
@@ -350,11 +367,12 @@ function NavigationFrameInner({
             return (
               <div
                 key={i}
+                className={isMajor ? "rail-major-tick" : undefined}
                 style={{
                   height: 1,
                   width: isMajor ? 20 : 10,
                   background: isMajor ? "var(--gold)" : "var(--gold-30)",
-                  opacity: isMajor ? (isScrolling ? 1 : 0) : 1,
+                  opacity: isMajor ? 0 : 1,
                   transition: isMajor ? "opacity 400ms ease" : undefined,
                 }}
               />
@@ -467,97 +485,104 @@ function NavigationFrameInner({
         )}
       </div>
 
-      {/* Breadcrumb tree — aligned with top of left rail */}
+      {/* Breadcrumb tree — aligned with first tick of left rail */}
       {breadcrumb && (
         <nav
           aria-label="Breadcrumb"
           className="nav-spine fixed z-40 pointer-events-auto animate-fade-in-up"
           style={{
             top: "calc(var(--hud-padding) + 32px)",
-            left: `calc(var(--hud-padding) + ${RAIL_WIDTH - 2}px)`,
+            left: `calc(var(--hud-padding) + ${RAIL_WIDTH + 8}px)`,
           }}
         >
-          {breadcrumb.segments[0].href ? (
-            <Link
-              href={breadcrumb.segments[0].href}
-              style={{
-                display: "block",
-                fontFamily: "var(--font-mono)",
-                fontSize: "9px",
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                color: breadcrumb.segments.length > 1 ? "var(--dawn-30)" : "var(--dawn-50)",
-                textDecoration: "none",
-                transition: "color 100ms ease",
-                cursor: "pointer",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "var(--gold)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color =
-                  breadcrumb!.segments.length > 1 ? "var(--dawn-30)" : "var(--dawn-50)";
-              }}
-            >
-              {breadcrumb.segments[0].label}
-            </Link>
-          ) : (
-            <button
-              type="button"
-              onClick={handleBack}
-              style={{
-                display: "block",
-                fontFamily: "var(--font-mono)",
-                fontSize: "9px",
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                color: "var(--dawn-30)",
-                textDecoration: "none",
-                background: "none",
-                border: "none",
-                padding: 0,
-                cursor: "pointer",
-                transition: "color 100ms ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "var(--gold)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "var(--dawn-30)";
-              }}
-            >
-              {breadcrumb.segments[0].label}
-            </button>
-          )}
+          <div style={{ display: "flex", alignItems: "center" }}>
+            {breadcrumb.segments[0].href ? (
+              <Link
+                href={breadcrumb.segments[0].href}
+                style={{
+                  display: "block",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: breadcrumb.segments.length > 1 ? "var(--dawn-50)" : "var(--dawn-70)",
+                  textDecoration: "none",
+                  transition: "color 100ms ease",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "var(--gold)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color =
+                    breadcrumb!.segments.length > 1 ? "var(--dawn-50)" : "var(--dawn-70)";
+                }}
+              >
+                {breadcrumb.segments[0].label}
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={handleBack}
+                style={{
+                  display: "block",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: "var(--dawn-50)",
+                  textDecoration: "none",
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  cursor: "pointer",
+                  transition: "color 100ms ease",
+                  whiteSpace: "nowrap",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "var(--gold)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "var(--dawn-50)";
+                }}
+              >
+                {breadcrumb.segments[0].label}
+              </button>
+            )}
+          </div>
 
           {breadcrumb.segments.length > 1 && (
             <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
               {breadcrumb.segments.slice(1).map((seg, i) => {
-                const isCurrent = i === breadcrumb.segments.length - 2; // last segment since we sliced 1
+                const isCurrent = i === breadcrumb.segments.length - 2;
                 return (
                   <li
                     key={i}
                     style={{
                       position: "relative",
-                      paddingLeft: 12,
-                      marginTop: 3,
+                      paddingLeft: 16,
+                      marginLeft: 10 * i,
+                      marginTop: 8,
                     }}
                     aria-current={isCurrent ? "page" : undefined}
                   >
                     <svg
                       aria-hidden
-                      width="8"
-                      height="12"
-                      viewBox="0 0 8 12"
+                      width="12"
+                      height="16"
+                      viewBox="0 0 12 16"
                       fill="none"
                       style={{
                         position: "absolute",
                         left: 2,
-                        top: -3,
+                        top: -7,
                       }}
                     >
                       <path
-                        d="M0 0V11H7"
+                        d="M0 0V15H11"
                         stroke="var(--dawn-15)"
                         strokeWidth="1"
                         strokeLinecap="square"
@@ -570,7 +595,7 @@ function NavigationFrameInner({
                         href={seg.href}
                         style={{
                           fontFamily: "var(--font-mono)",
-                          fontSize: "9px",
+                          fontSize: "11px",
                           letterSpacing: "0.08em",
                           textTransform: "uppercase",
                           color: "var(--dawn-30)",
@@ -591,7 +616,7 @@ function NavigationFrameInner({
                       <span
                         style={{
                           fontFamily: "var(--font-mono)",
-                          fontSize: "9px",
+                          fontSize: "11px",
                           letterSpacing: "0.08em",
                           textTransform: "uppercase",
                           color: "var(--dawn-50)",
