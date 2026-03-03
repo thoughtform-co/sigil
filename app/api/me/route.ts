@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthedUser } from "@/lib/auth/server";
+import { withCacheHeaders } from "@/lib/api/cache-headers";
 
 export async function GET() {
   const user = await getAuthedUser();
@@ -11,23 +12,9 @@ export async function GET() {
     select: { id: true, role: true, username: true, displayName: true },
   });
 
-  if (!profile) {
-    await prisma.profile.create({
-      data: {
-        id: user.id,
-        username: user.email?.split("@")[0] ?? `user-${user.id.slice(0, 8)}`,
-        displayName: user.email ?? "Sigil User",
-      },
-    });
-    const created = await prisma.profile.findUnique({
-      where: { id: user.id },
-      select: { id: true, role: true, username: true, displayName: true },
-    });
-    return NextResponse.json({ user: { id: user.id, email: user.email }, profile: created });
-  }
-
-  return NextResponse.json({
+  const response = NextResponse.json({
     user: { id: user.id, email: user.email },
-    profile,
+    profile: profile ?? { id: user.id, role: "user", username: null, displayName: null },
   });
+  return withCacheHeaders(response, "private-short");
 }

@@ -8,6 +8,7 @@ type CardFrameProps = {
   children: ReactNode;
   className?: string;
   style?: CSSProperties;
+  prefetch?: boolean;
 };
 
 const CORNER_STYLE: CSSProperties = {
@@ -31,6 +32,7 @@ export function CardFrame({
   children,
   className,
   style,
+  prefetch,
 }: CardFrameProps) {
   const baseStyle: CSSProperties = {
     position: "relative",
@@ -51,6 +53,7 @@ export function CardFrame({
     style: baseStyle,
     ...(href ? { href } : {}),
     ...(onClick ? { onClick } : {}),
+    ...(prefetch !== undefined ? { prefetch } : {}),
   };
 
   return (

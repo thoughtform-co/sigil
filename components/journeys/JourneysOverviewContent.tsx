@@ -151,7 +151,7 @@ export function JourneysOverviewContent({
   const [newJourneyType, setNewJourneyType] = useState<"learn" | "create">("create");
   const [creating, setCreating] = useState(false);
 
-  const skipInitialFetch = useRef(!!initialJourneys && initialDataIncludesThumbnails);
+  const skipInitialFetch = useRef(!!initialJourneys);
 
   async function loadJourneys() {
     try {
