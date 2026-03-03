@@ -7,18 +7,17 @@ import { prefetchDashboard } from "@/lib/prefetch/dashboard";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const includeThumbnails = process.env.NODE_ENV === "production";
   const user = await getAuthedUser();
   if (!user) redirect("/login");
 
-  const result = await prefetchDashboard(user.id, { includeThumbnails });
+  const result = await prefetchDashboard(user.id, { includeThumbnails: false });
 
   return (
     <NavigationFrame title="SIGIL" modeLabel="dashboard" workspaceLayout>
       <DashboardView
         initialData={result?.data}
         initialIsAdmin={result?.isAdmin}
-        initialDataIncludesThumbnails={includeThumbnails}
+        initialDataIncludesThumbnails={false}
       />
     </NavigationFrame>
   );
