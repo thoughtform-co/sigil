@@ -4,6 +4,8 @@ import { DashboardView } from "@/components/dashboard/DashboardView";
 import { getAuthedUser } from "@/lib/auth/server";
 import { prefetchDashboard } from "@/lib/prefetch/dashboard";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const includeThumbnails = process.env.NODE_ENV === "production";
   const user = await getAuthedUser();

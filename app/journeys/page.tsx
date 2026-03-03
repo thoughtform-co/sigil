@@ -4,6 +4,8 @@ import { JourneysOverviewContent } from "@/components/journeys/JourneysOverviewC
 import { getAuthedUser } from "@/lib/auth/server";
 import { prefetchJourneysList } from "@/lib/prefetch/journeys";
 
+export const dynamic = "force-dynamic";
+
 export default async function JourneysPage() {
   const includeThumbnails = false;
   const user = await getAuthedUser();
