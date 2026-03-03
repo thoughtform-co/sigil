@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { AdminStatsPanel } from "@/components/dashboard/AdminStatsPanel";
 import { Dialog } from "@/components/ui/Dialog";
 import { Diamond } from "@/components/ui/Diamond";
@@ -63,85 +63,20 @@ function SectionHeader({ bearing, label, action }: { bearing: string; label: str
   );
 }
 
-function ThreeDotIcon() {
+function PencilIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <circle cx="3" cy="7" r="1.2" fill="currentColor" />
-      <circle cx="7" cy="7" r="1.2" fill="currentColor" />
-      <circle cx="11" cy="7" r="1.2" fill="currentColor" />
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+      <path d="M8.5 1.5L10.5 3.5L4 10H2V8L8.5 1.5Z" stroke="currentColor" strokeWidth="1" strokeLinejoin="round" />
+      <path d="M7 3L9 5" stroke="currentColor" strokeWidth="1" />
     </svg>
   );
 }
 
-
-function JourneyMenu({
-  journeyId,
-  onRename,
-  onClose,
-}: {
-  journeyId: string;
-  onRename: (id: string) => void;
-  onClose: () => void;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        onClose();
-      }
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [onClose]);
-
+function TrashIcon() {
   return (
-    <div
-      ref={ref}
-      style={{
-        position: "absolute",
-        right: 0,
-        top: "100%",
-        marginTop: 4,
-        background: "var(--void)",
-        border: "1px solid var(--dawn-15)",
-        zIndex: 50,
-        minWidth: 120,
-      }}
-    >
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onRename(journeyId);
-          onClose();
-        }}
-        style={{
-          display: "block",
-          width: "100%",
-          padding: "8px 12px",
-          background: "transparent",
-          border: "none",
-          color: "var(--dawn-70)",
-          fontFamily: "var(--font-mono)",
-          fontSize: "11px",
-          letterSpacing: "0.06em",
-          textAlign: "left",
-          cursor: "pointer",
-          transition: "background 80ms ease, color 80ms ease",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = "var(--dawn-08)";
-          e.currentTarget.style.color = "var(--dawn)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = "transparent";
-          e.currentTarget.style.color = "var(--dawn-70)";
-        }}
-      >
-        rename
-      </button>
-    </div>
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+      <path d="M2 3H10M4.5 3V2C4.5 1.45 4.95 1 5.5 1H6.5C7.05 1 7.5 1.45 7.5 2V3M3 3L3.5 10C3.5 10.55 3.95 11 4.5 11H7.5C8.05 11 8.5 10.55 8.5 10L9 3" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 
@@ -160,12 +95,11 @@ export function JourneyPanel({
   const [journeyType, setJourneyType] = useState<"learn" | "create">("create");
   const [creating, setCreating] = useState(false);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [renameId, setRenameId] = useState<string | null>(null);
   const [renameName, setRenameName] = useState("");
   const [renaming, setRenaming] = useState(false);
-
-  const closeMenu = useCallback(() => setMenuOpenId(null), []);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   function openRenameDialog(id: string) {
     const journey = journeys.find((j) => j.id === id);
@@ -190,6 +124,24 @@ export function JourneyPanel({
       }
     } finally {
       setRenaming(false);
+    }
+  }
+
+  function openDeleteDialog(id: string) {
+    setDeleteId(id);
+  }
+
+  async function handleDelete() {
+    if (!deleteId || deleting) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/workspace-projects/${deleteId}`, { method: "DELETE" });
+      if (res.ok) {
+        setDeleteId(null);
+        onJourneyCreated?.();
+      }
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -280,7 +232,7 @@ export function JourneyPanel({
               const isSelected = selectedJourneyId === journey.id;
               const isHovered = hoveredId === journey.id;
               const category = journey.type === "learn" ? "learn" : "create";
-              const showDots = isAdmin && (isHovered || menuOpenId === journey.id);
+              const showActions = isAdmin && isHovered;
               return (
                 <div
                   key={journey.id}
@@ -379,46 +331,79 @@ export function JourneyPanel({
                     </div>
                   </button>
 
-                  {/* Hover actions: three-dots menu */}
-                  {showDots && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setMenuOpenId(menuOpenId === journey.id ? null : journey.id);
-                      }}
+                  {showActions && (
+                    <div
                       style={{
                         position: "absolute",
                         top: 8,
                         right: 8,
                         display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        width: 20,
-                        height: 20,
-                        padding: 0,
-                        background: menuOpenId === journey.id ? "var(--dawn-08)" : "transparent",
-                        border: "none",
-                        color: "var(--dawn-40)",
-                        cursor: "pointer",
-                        transition: "color 80ms ease, background 80ms ease",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.color = "var(--dawn)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.color = "var(--dawn-40)";
+                        gap: 2,
                       }}
                     >
-                      <ThreeDotIcon />
-                    </button>
-                  )}
-                  {menuOpenId === journey.id && (
-                    <JourneyMenu
-                      journeyId={journey.id}
-                      onRename={openRenameDialog}
-                      onClose={closeMenu}
-                    />
+                      <button
+                        type="button"
+                        title="Rename journey"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openRenameDialog(journey.id);
+                        }}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          width: 22,
+                          height: 22,
+                          padding: 0,
+                          background: "transparent",
+                          border: "none",
+                          color: "var(--dawn-30)",
+                          cursor: "pointer",
+                          transition: "color 80ms ease, background 80ms ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.color = "var(--dawn)";
+                          e.currentTarget.style.background = "var(--dawn-08)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.color = "var(--dawn-30)";
+                          e.currentTarget.style.background = "transparent";
+                        }}
+                      >
+                        <PencilIcon />
+                      </button>
+                      <button
+                        type="button"
+                        title="Delete journey"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openDeleteDialog(journey.id);
+                        }}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          width: 22,
+                          height: 22,
+                          padding: 0,
+                          background: "transparent",
+                          border: "none",
+                          color: "var(--dawn-30)",
+                          cursor: "pointer",
+                          transition: "color 80ms ease, background 80ms ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.color = "var(--status-error, #c17f59)";
+                          e.currentTarget.style.background = "var(--dawn-08)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.color = "var(--dawn-30)";
+                          e.currentTarget.style.background = "transparent";
+                        }}
+                      >
+                        <TrashIcon />
+                      </button>
+                    </div>
                   )}
                 </div>
               );
@@ -615,6 +600,61 @@ export function JourneyPanel({
             style={{ width: "100%" }}
           />
         </div>
+      </Dialog>
+
+      <Dialog
+        open={deleteId !== null}
+        onClose={() => setDeleteId(null)}
+        title="delete journey"
+        footer={
+          <>
+            <button className="sigil-btn-ghost" onClick={() => setDeleteId(null)}>cancel</button>
+            <button
+              type="button"
+              disabled={deleting}
+              onClick={() => void handleDelete()}
+              style={{
+                padding: "8px 16px",
+                background: "transparent",
+                border: "1px solid var(--gold)",
+                color: "var(--gold)",
+                fontFamily: "var(--font-mono)",
+                fontSize: "10px",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                cursor: deleting ? "not-allowed" : "pointer",
+                opacity: deleting ? 0.4 : 1,
+                transition: "background 120ms, color 120ms",
+              }}
+              onMouseEnter={(e) => {
+                if (!deleting) {
+                  e.currentTarget.style.background = "var(--gold)";
+                  e.currentTarget.style.color = "var(--void)";
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.color = "var(--gold)";
+              }}
+            >
+              {deleting ? "deleting..." : "delete permanently"}
+            </button>
+          </>
+        }
+      >
+        <p
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "13px",
+            color: "var(--dawn-70)",
+            lineHeight: 1.6,
+          }}
+        >
+          Are you sure you want to delete{" "}
+          <strong>{journeys.find((j) => j.id === deleteId)?.name}</strong>?
+          This will remove the journey and all member assignments. Routes and
+          their generated content will remain accessible.
+        </p>
       </Dialog>
     </div>
   );
