@@ -4,8 +4,6 @@ import { JourneysOverviewContent } from "@/components/journeys/JourneysOverviewC
 import { getAuthedUser } from "@/lib/auth/server";
 import { prefetchJourneysList } from "@/lib/prefetch/journeys";
 
-export const dynamic = "force-dynamic";
-
 export default async function JourneysPage() {
   const user = await getAuthedUser();
   if (!user) redirect("/login");
@@ -17,7 +15,6 @@ export default async function JourneysPage() {
       <JourneysOverviewContent
         initialJourneys={result?.journeys}
         initialIsAdmin={result?.isAdmin}
-        initialDataIncludesThumbnails={true}
       />
     </NavigationFrame>
   );

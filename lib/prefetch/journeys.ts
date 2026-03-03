@@ -24,32 +24,38 @@ export async function prefetchJourneysList(
   userId: string,
 ): Promise<{ journeys: JourneyListItem[]; isAdmin: boolean } | null> {
   try {
-    const profile = await prisma.profile.findUnique({
-      where: { id: userId },
-      select: { role: true },
-    });
-    const isAdmin = profile?.role === "admin";
-    const journeyWhere = isAdmin ? {} : { members: { some: { userId } } };
-
-    const workspaceProjects = await prisma.workspaceProject.findMany({
-      where: journeyWhere,
-      orderBy: { updatedAt: "desc" },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        type: true,
-        _count: { select: { briefings: true } },
-        briefings: {
-          select: {
-            id: true,
-            name: true,
-            updatedAt: true,
-            _count: { select: { sessions: true } },
+    const [profile, allWorkspaceProjects] = await Promise.all([
+      prisma.profile.findUnique({
+        where: { id: userId },
+        select: { role: true },
+      }),
+      prisma.workspaceProject.findMany({
+        orderBy: { updatedAt: "desc" },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          type: true,
+          _count: { select: { briefings: true } },
+          briefings: {
+            select: {
+              id: true,
+              name: true,
+              updatedAt: true,
+              _count: { select: { sessions: true } },
+            },
+          },
+          members: {
+            where: { userId },
+            select: { userId: true },
           },
         },
-      },
-    });
+      }),
+    ]);
+    const isAdmin = profile?.role === "admin";
+    const workspaceProjects = isAdmin
+      ? allWorkspaceProjects
+      : allWorkspaceProjects.filter((wp) => wp.members.length > 0);
 
     const wpIds = workspaceProjects.map((wp) => wp.id);
     const thumbnailsByWpId = new Map<

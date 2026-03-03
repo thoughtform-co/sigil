@@ -13,13 +13,27 @@ type AuthContextValue = {
   signOut: () => Promise<void>;
 };
 
+export type InitialAuthUser = {
+  id: string;
+  email: string | null;
+  role: "admin" | "user";
+};
+
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+export function AuthProvider({
+  children,
+  initialUser,
+}: {
+  children: React.ReactNode;
+  initialUser?: InitialAuthUser | null;
+}) {
+  const [user, setUser] = useState<User | null>(
+    initialUser ? ({ id: initialUser.id, email: initialUser.email } as User) : null,
+  );
   const [session, setSession] = useState<Session | null>(null);
-  const [role, setRole] = useState<"admin" | "user" | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [role, setRole] = useState<"admin" | "user" | null>(initialUser?.role ?? null);
+  const [loading, setLoading] = useState(!initialUser);
 
   async function hydrateFromMe() {
     try {
@@ -46,14 +60,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const supabase = createClient();
-    let hydrated = false;
 
     supabase.auth.getSession().then(({ data }) => {
       if (data.session?.user) {
         setSession(data.session);
         setUser(data.session.user);
-        if (!hydrated) {
-          hydrated = true;
+        if (!initialUser) {
           void hydrateFromMe();
         }
       }
@@ -74,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const value = useMemo<AuthContextValue>(
     () => ({

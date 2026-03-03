@@ -1,5 +1,6 @@
 "use client";
 
+import useSWR from "swr";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { JourneyCard, type JourneyCardItem } from "@/components/journeys/JourneyCard";
@@ -9,6 +10,15 @@ import { HudPanel, HudPanelHeader, HudEmptyState } from "@/components/ui/hud";
 type JourneysListData = {
   journeys: JourneyCardItem[];
 };
+
+async function journeysFetcher(url: string): Promise<JourneysListData> {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error((body as { error?: string }).error ?? "Failed to load journeys");
+  }
+  return res.json() as Promise<JourneysListData>;
+}
 
 function JourneyCardWithMenu({
   journey,
@@ -130,19 +140,26 @@ function JourneyCardWithMenu({
 export function JourneysOverviewContent({
   initialJourneys,
   initialIsAdmin,
-  initialDataIncludesThumbnails = true,
 }: {
   initialJourneys?: JourneyCardItem[];
   initialIsAdmin?: boolean;
-  initialDataIncludesThumbnails?: boolean;
 }) {
   const { isAdmin: authIsAdmin } = useAuth();
   const isAdmin = initialIsAdmin ?? authIsAdmin;
-  const [data, setData] = useState<JourneysListData | null>(
-    initialJourneys ? { journeys: initialJourneys } : null,
+
+  const fallbackData = initialJourneys ? { journeys: initialJourneys } : undefined;
+  const { data, error: fetchError, isLoading, mutate } = useSWR(
+    "/api/journeys",
+    journeysFetcher,
+    {
+      fallbackData,
+      revalidateOnMount: !initialJourneys,
+      revalidateOnFocus: false,
+      dedupingInterval: 60_000,
+    },
   );
-  const [loading, setLoading] = useState(!initialJourneys);
-  const [error, setError] = useState<string | null>(null);
+
+  const [actionError, setActionError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<JourneyCardItem | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -151,32 +168,7 @@ export function JourneysOverviewContent({
   const [newJourneyType, setNewJourneyType] = useState<"learn" | "create">("create");
   const [creating, setCreating] = useState(false);
 
-  const skipInitialFetch = useRef(!!initialJourneys);
-
-  async function loadJourneys() {
-    try {
-      setError(null);
-      const res = await fetch("/api/journeys");
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? "Failed to load journeys");
-      }
-      const json = (await res.json()) as JourneysListData;
-      setData(json);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load journeys");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    if (skipInitialFetch.current) {
-      skipInitialFetch.current = false;
-      return;
-    }
-    void loadJourneys();
-  }, []);
+  const error = actionError ?? (fetchError ? fetchError.message : null);
 
   async function deleteJourney() {
     if (!deleteTarget) return;
@@ -187,12 +179,13 @@ export function JourneysOverviewContent({
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error ?? "Failed to delete journey");
       }
-      setData((prev) =>
-        prev ? { journeys: prev.journeys.filter((j) => j.id !== deleteTarget.id) } : prev,
+      await mutate(
+        (current) => current ? { journeys: current.journeys.filter((j) => j.id !== deleteTarget.id) } : current,
+        { revalidate: false },
       );
       setDeleteTarget(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete journey");
+      setActionError(err instanceof Error ? err.message : "Failed to delete journey");
     } finally {
       setDeleting(false);
     }
@@ -219,10 +212,9 @@ export function JourneysOverviewContent({
       setNewJourneyName("");
       setNewJourneyDescription("");
       setNewJourneyType("create");
-      setLoading(true);
-      await loadJourneys();
+      await mutate();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create journey");
+      setActionError(err instanceof Error ? err.message : "Failed to create journey");
     } finally {
       setCreating(false);
     }
@@ -270,7 +262,7 @@ export function JourneysOverviewContent({
             ) : null
           }
         />
-        {loading ? (
+        {isLoading && !data ? (
           <div className="flex items-center gap-3 py-12">
             <div
               style={{
