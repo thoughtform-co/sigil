@@ -17,6 +17,7 @@ export async function GET() {
 
   const prompts = await prisma.promptEnhancementPrompt.findMany({
     orderBy: { updatedAt: "desc" },
+    take: 100,
   });
   return NextResponse.json(prompts);
 }

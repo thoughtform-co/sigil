@@ -14,6 +14,7 @@ import { projectAccessFilter } from "@/lib/auth/project-access";
 export const maxDuration = 30;
 
 export async function POST(request: Request) {
+  const t0 = performance.now();
   try {
     const user = await getAuthedUser();
     if (!user) return unauthorized();
@@ -80,7 +81,9 @@ export async function POST(request: Request) {
       cookie: request.headers.get("cookie"),
     });
 
-    return json({ generation }, 202);
+    const response = json({ generation }, 202);
+    response.headers.set("Server-Timing", `total;dur=${Math.round(performance.now() - t0)}`);
+    return response;
   } catch (error) {
     console.error("Generate route error:", error);
     const msg = error instanceof Error ? error.message : "Internal server error";

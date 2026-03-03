@@ -36,6 +36,7 @@ export async function GET(request: Request) {
   const sessionsRaw = await prisma.session.findMany({
     where: { projectId },
     orderBy: { updatedAt: "desc" },
+    take: 200,
     select: {
       id: true,
       name: true,

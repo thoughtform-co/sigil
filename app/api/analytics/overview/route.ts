@@ -10,65 +10,78 @@ function daysAgo(count: number) {
 }
 
 export async function GET() {
+  const t0 = performance.now();
   const user = await getAuthedUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const accessFilter = await projectAccessFilter(user.id);
 
-  const recentGenerations = await prisma.generation.findMany({
-    where: {
-      createdAt: { gte: daysAgo(30) },
-      session: { project: accessFilter },
-    },
-    select: {
-      id: true,
-      status: true,
-      modelId: true,
-      cost: true,
-      createdAt: true,
-      outputs: {
-        select: { id: true },
-      },
-    },
-    orderBy: { createdAt: "asc" },
-  });
+  const since = daysAgo(30);
+
+  const [statusRows, modelRows, dailyRows, totalsRow] = await Promise.all([
+    prisma.$queryRaw<{ status: string; count: bigint }[]>`
+      SELECT g.status, COUNT(*)::bigint AS count
+      FROM generations g
+      INNER JOIN sessions s ON s.id = g.session_id
+      INNER JOIN projects p ON p.id = s.project_id
+      WHERE g.created_at >= ${since}
+      GROUP BY g.status
+    `,
+    prisma.$queryRaw<{ model_id: string; count: bigint }[]>`
+      SELECT g.model_id, COUNT(*)::bigint AS count
+      FROM generations g
+      INNER JOIN sessions s ON s.id = g.session_id
+      INNER JOIN projects p ON p.id = s.project_id
+      WHERE g.created_at >= ${since}
+      GROUP BY g.model_id
+      ORDER BY count DESC
+      LIMIT 8
+    `,
+    prisma.$queryRaw<{ day: string; count: bigint }[]>`
+      SELECT DATE(g.created_at)::text AS day, COUNT(*)::bigint AS count
+      FROM generations g
+      INNER JOIN sessions s ON s.id = g.session_id
+      INNER JOIN projects p ON p.id = s.project_id
+      WHERE g.created_at >= ${since}
+      GROUP BY day
+      ORDER BY day
+    `,
+    prisma.$queryRaw<{ gen_count: bigint; output_count: bigint; total_cost: number }[]>`
+      SELECT
+        COUNT(DISTINCT g.id)::bigint AS gen_count,
+        COUNT(DISTINCT o.id)::bigint AS output_count,
+        COALESCE(SUM(g.cost), 0)::float AS total_cost
+      FROM generations g
+      INNER JOIN sessions s ON s.id = g.session_id
+      INNER JOIN projects p ON p.id = s.project_id
+      LEFT JOIN outputs o ON o.generation_id = g.id
+      WHERE g.created_at >= ${since}
+    `,
+  ]);
 
   const statusCounts: Record<string, number> = {};
-  const modelCounts: Record<string, number> = {};
-  const dailyCounts: Record<string, number> = {};
-  let totalCost = 0;
-  let outputCount = 0;
+  for (const r of statusRows) statusCounts[r.status] = Number(r.count);
 
-  for (const generation of recentGenerations) {
-    statusCounts[generation.status] = (statusCounts[generation.status] ?? 0) + 1;
-    modelCounts[generation.modelId] = (modelCounts[generation.modelId] ?? 0) + 1;
-    outputCount += generation.outputs.length;
-    totalCost += Number(generation.cost ?? 0);
-    const dayKey = generation.createdAt.toISOString().slice(0, 10);
-    dailyCounts[dayKey] = (dailyCounts[dayKey] ?? 0) + 1;
-  }
+  const topModels = modelRows.map((r) => ({ modelId: r.model_id, count: Number(r.count) }));
 
-  const topModels = Object.entries(modelCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 8)
-    .map(([modelId, count]) => ({ modelId, count }));
-
+  const dailyMap = new Map(dailyRows.map((r) => [r.day, Number(r.count)]));
   const last7Days = Array.from({ length: 7 }, (_, index) => {
     const day = daysAgo(6 - index).toISOString().slice(0, 10);
-    return {
-      day,
-      count: dailyCounts[day] ?? 0,
-    };
+    return { day, count: dailyMap.get(day) ?? 0 };
   });
 
-  return NextResponse.json({
+  const t = totalsRow[0] ?? { gen_count: 0n, output_count: 0n, total_cost: 0 };
+
+  const response = NextResponse.json({
     totals: {
-      generations30d: recentGenerations.length,
-      outputs30d: outputCount,
-      estimatedCost30d: Number(totalCost.toFixed(4)),
+      generations30d: Number(t.gen_count),
+      outputs30d: Number(t.output_count),
+      estimatedCost30d: Number(Number(t.total_cost).toFixed(4)),
     },
     statusCounts,
     topModels,
     last7Days,
   });
+  response.headers.set("Server-Timing", `total;dur=${Math.round(performance.now() - t0)}`);
+  return response;
 }

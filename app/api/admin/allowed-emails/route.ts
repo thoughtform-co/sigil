@@ -9,6 +9,7 @@ export async function GET() {
 
   const list = await prisma.allowedEmail.findMany({
     orderBy: { createdAt: "desc" },
+    take: 500,
     select: {
       id: true,
       email: true,

@@ -10,40 +10,38 @@ export type AdminDashboardStatRow = {
 };
 
 export async function GET() {
+  const t0 = performance.now();
   const result = await requireAdmin();
   if ("error" in result) return result.error;
 
-  const outputsWithUser = await prisma.output.findMany({
-    where: {
-      OR: [
-        { fileType: { startsWith: "image" } },
-        { fileType: { startsWith: "video" } },
-      ],
-    },
-    select: {
-      fileType: true,
-      generation: { select: { userId: true } },
-    },
-  });
+  const rows = await prisma.$queryRaw<
+    { user_id: string; file_type_prefix: string; count: bigint }[]
+  >`
+    SELECT g.user_id,
+           CASE WHEN o.file_type LIKE 'image%' THEN 'image' ELSE 'video' END AS file_type_prefix,
+           COUNT(*)::bigint AS count
+    FROM outputs o
+    INNER JOIN generations g ON g.id = o.generation_id
+    WHERE o.file_type LIKE 'image%' OR o.file_type LIKE 'video%'
+    GROUP BY g.user_id, file_type_prefix
+  `;
 
-  const userCounts = new Map<
-    string,
-    { imageCount: number; videoCount: number }
-  >();
-  for (const o of outputsWithUser) {
-    const uid = o.generation.userId;
-    if (!userCounts.has(uid))
-      userCounts.set(uid, { imageCount: 0, videoCount: 0 });
-    const c = userCounts.get(uid)!;
-    if (o.fileType.startsWith("image")) c.imageCount++;
-    else if (o.fileType.startsWith("video")) c.videoCount++;
+  const userCounts = new Map<string, { imageCount: number; videoCount: number }>();
+  for (const row of rows) {
+    if (!userCounts.has(row.user_id))
+      userCounts.set(row.user_id, { imageCount: 0, videoCount: 0 });
+    const c = userCounts.get(row.user_id)!;
+    if (row.file_type_prefix === "image") c.imageCount = Number(row.count);
+    else c.videoCount = Number(row.count);
   }
 
   const profileIds = Array.from(userCounts.keys());
-  const profiles = await prisma.profile.findMany({
-    where: { id: { in: profileIds } },
-    select: { id: true, displayName: true, username: true },
-  });
+  const profiles = profileIds.length > 0
+    ? await prisma.profile.findMany({
+        where: { id: { in: profileIds } },
+        select: { id: true, displayName: true, username: true },
+      })
+    : [];
 
   const adminStats: AdminDashboardStatRow[] = profiles.map((p) => {
     const c = userCounts.get(p.id) ?? { imageCount: 0, videoCount: 0 };
@@ -55,9 +53,10 @@ export async function GET() {
   });
   adminStats.sort(
     (a, b) =>
-      b.imageCount + b.videoCount - (a.imageCount + a.videoCount)
+      b.imageCount + b.videoCount - (a.imageCount + a.videoCount),
   );
 
   const response = json({ adminStats });
+  response.headers.set("Server-Timing", `total;dur=${Math.round(performance.now() - t0)}`);
   return withCacheHeaders(response, "short");
 }

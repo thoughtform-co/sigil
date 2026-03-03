@@ -10,6 +10,7 @@ export async function GET() {
   const [profiles, authResponse] = await Promise.all([
     prisma.profile.findMany({
       orderBy: { createdAt: "desc" },
+      take: 500,
       select: {
         id: true,
         username: true,

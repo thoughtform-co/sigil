@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { CookieOptions } from "@supabase/ssr";
+import { withCorrelationId } from "@/lib/api/correlation";
 
 const PUBLIC_PREFIXES = ["/auth/", "/api/auth/"];
 
@@ -18,17 +19,15 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (AUTH_BYPASS || PUBLIC_DEMO) {
-    return NextResponse.next({ request });
+    return withCorrelationId(request, NextResponse.next({ request }));
   }
 
   if (isPublicPath(pathname)) {
-    return NextResponse.next({ request });
+    return withCorrelationId(request, NextResponse.next({ request }));
   }
 
-  // API routes enforce their own auth via getAuthedUser(); skip the
-  // expensive supabase.auth.getUser() roundtrip here to avoid duplication.
   if (pathname.startsWith("/api/")) {
-    return NextResponse.next({ request });
+    return withCorrelationId(request, NextResponse.next({ request }));
   }
 
   let response = NextResponse.next({ request });
@@ -61,22 +60,22 @@ export async function middleware(request: NextRequest) {
   );
 
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  if (pathname === "/login" && user) {
+  if (pathname === "/login" && session?.user) {
     const url = request.nextUrl.clone();
     url.pathname = "/projects";
     return NextResponse.redirect(url);
   }
 
-  if (!user) {
+  if (!session?.user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  return response;
+  return withCorrelationId(request, response);
 }
 
 export const config = {

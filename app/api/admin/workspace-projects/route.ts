@@ -16,6 +16,7 @@ export async function GET() {
 
   const workspaceProjects = await prisma.workspaceProject.findMany({
     orderBy: { updatedAt: "desc" },
+    take: 200,
     include: {
       members: {
         include: {

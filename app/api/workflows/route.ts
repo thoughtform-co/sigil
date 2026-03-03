@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getAuthedUser } from "@/lib/auth/server";
 import { projectAccessFilter } from "@/lib/auth/project-access";
+import { withCacheHeaders } from "@/lib/api/cache-headers";
 
 const defaultGraphData: Prisma.InputJsonValue = {
   nodes: [],
@@ -35,6 +36,7 @@ export async function GET(request: Request) {
   const workflows = await prisma.workflow.findMany({
     where: { projectId },
     orderBy: { updatedAt: "desc" },
+    take: 100,
     select: {
       id: true,
       name: true,
@@ -45,7 +47,7 @@ export async function GET(request: Request) {
     },
   });
 
-  return NextResponse.json({ workflows });
+  return withCacheHeaders(NextResponse.json({ workflows }), "private-short");
 }
 
 const createWorkflowSchema = z.object({

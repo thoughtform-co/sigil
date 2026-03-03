@@ -18,6 +18,7 @@ export const generateRequestSchema = z.object({
     .refine((p) => Object.keys(p).length <= 64, { message: "Too many parameters" }),
   source: z.enum(["session", "workflow"]).optional(),
   workflowExecutionId: z.string().uuid().optional(),
+  // clientRequestId: z.string().max(128).optional(), // TODO: enable after ALTER TABLE generations ADD COLUMN client_request_id VARCHAR(128)
 });
 
 export type GenerateRequest = z.infer<typeof generateRequestSchema>;

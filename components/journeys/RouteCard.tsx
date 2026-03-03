@@ -32,7 +32,7 @@ export function RouteCard({ route }: RouteCardProps) {
   return (
     <Link
       href={`/routes/${route.id}/image`}
-      prefetch={false}
+      prefetch={true}
       className="group relative block overflow-hidden transition-all"
       style={{
         background: "var(--surface-0)",

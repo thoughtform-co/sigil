@@ -217,24 +217,7 @@ export async function POST(request: Request) {
           });
           return { ...output, url: platformUrl };
         } catch {
-          if (fileType === "image") {
-            try {
-              const safeFallbackUrl = getSafeFetchUrl(output.url, { allowGsToGoogleStorage: true });
-              if (safeFallbackUrl) {
-                const fallbackResponse = await fetch(safeFallbackUrl);
-                if (fallbackResponse.ok) {
-                  const contentType = fallbackResponse.headers.get("content-type") || "image/png";
-                  const buffer = Buffer.from(await fallbackResponse.arrayBuffer());
-                  if (buffer.length <= 8 * 1024 * 1024) {
-                    const dataUrl = `data:${contentType};base64,${buffer.toString("base64")}`;
-                    return { ...output, url: dataUrl };
-                  }
-                }
-              }
-            } catch {
-              // keep provider URL fallback
-            }
-          }
+          console.warn(`[generate/process] Storage upload failed for output ${index}, keeping provider URL`);
           return output;
         }
       }),

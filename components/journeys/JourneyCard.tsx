@@ -28,7 +28,7 @@ export function JourneyCard({ journey }: JourneyCardProps) {
     <CardFrame
       as={Link}
       href={`/journeys/${journey.id}`}
-      prefetch={false}
+      prefetch={true}
       className="transition-all"
       style={{
         minHeight: 148,

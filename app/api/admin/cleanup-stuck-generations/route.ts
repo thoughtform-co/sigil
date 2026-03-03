@@ -22,6 +22,7 @@ export async function POST() {
       ],
     },
     select: { id: true, modelId: true, createdAt: true, lastHeartbeatAt: true },
+    take: 200,
   });
 
   if (stuck.length === 0) {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { ensureProfile, getAuthedUser } from "@/lib/auth/server";
+import { withCacheHeaders } from "@/lib/api/cache-headers";
 
 const createProjectSchema = z.object({
   name: z.string().min(1),
@@ -30,6 +31,7 @@ export async function GET() {
       ],
     },
     orderBy: { updatedAt: "desc" },
+    take: 200,
     select: {
       id: true,
       name: true,
@@ -39,7 +41,7 @@ export async function GET() {
     },
   });
 
-  return NextResponse.json({ projects });
+  return withCacheHeaders(NextResponse.json({ projects }), "private-short");
 }
 
 export async function POST(request: Request) {
