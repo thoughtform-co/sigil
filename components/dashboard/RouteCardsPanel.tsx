@@ -12,6 +12,8 @@ type RouteCardsPanelProps = {
   routes: DashboardRouteItem[];
   journeyId: string | null;
   onRouteCreated: () => void;
+  onRouteDeleted?: (routeId: string) => void;
+  onRouteRenamed?: (routeId: string, name: string) => void;
 };
 
 function SectionHeader({ bearing, label, action }: { bearing: string; label: string; action?: ReactNode }) {
@@ -35,7 +37,7 @@ function SectionHeader({ bearing, label, action }: { bearing: string; label: str
   );
 }
 
-export function RouteCardsPanel({ routes, journeyId, onRouteCreated }: RouteCardsPanelProps) {
+export function RouteCardsPanel({ routes, journeyId, onRouteCreated, onRouteDeleted, onRouteRenamed }: RouteCardsPanelProps) {
   const router = useRouter();
   const [focusedRouteId, setFocusedRouteId] = useState<string | null>(null);
 
@@ -43,6 +45,13 @@ export function RouteCardsPanel({ routes, journeyId, onRouteCreated }: RouteCard
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [creating, setCreating] = useState(false);
+
+  const [renameId, setRenameId] = useState<string | null>(null);
+  const [renameName, setRenameName] = useState("");
+  const [renaming, setRenaming] = useState(false);
+
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     setFocusedRouteId((prev) => {
@@ -56,6 +65,53 @@ export function RouteCardsPanel({ routes, journeyId, onRouteCreated }: RouteCard
     if (!focusedRouteId) return;
     router.prefetch(`/routes/${focusedRouteId}/image`);
   }, [focusedRouteId, router]);
+
+  function openRenameDialog(id: string) {
+    const route = routes.find((r) => r.id === id);
+    if (!route) return;
+    setRenameId(id);
+    setRenameName(route.name);
+  }
+
+  async function handleRename() {
+    if (!renameId || !renameName.trim() || renaming) return;
+    setRenaming(true);
+    try {
+      const res = await fetch(`/api/projects/${renameId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: renameName.trim() }),
+      });
+      if (res.ok) {
+        const savedId = renameId;
+        const savedName = renameName.trim();
+        setRenameId(null);
+        setRenameName("");
+        onRouteRenamed?.(savedId, savedName);
+      }
+    } finally {
+      setRenaming(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!deleteId || deleting) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/projects/${deleteId}`, { method: "DELETE" });
+      if (res.ok) {
+        const savedId = deleteId;
+        setDeleteId(null);
+        if (focusedRouteId === savedId) {
+          const remaining = routes.filter((r) => r.id !== savedId);
+          setFocusedRouteId(remaining[0]?.id ?? null);
+        }
+        onRouteDeleted?.(savedId);
+      }
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   async function handleCreate() {
     if (!name.trim() || creating || !journeyId) return;
@@ -210,6 +266,8 @@ export function RouteCardsPanel({ routes, journeyId, onRouteCreated }: RouteCard
                   isActive={focusedRouteId === route.id}
                   onSelect={() => setFocusedRouteId(route.id)}
                   onNavigate={() => router.push(`/routes/${route.id}/image`)}
+                  onRename={() => openRenameDialog(route.id)}
+                  onDelete={() => setDeleteId(route.id)}
                 />
               ))}
             </div>
@@ -288,6 +346,105 @@ export function RouteCardsPanel({ routes, journeyId, onRouteCreated }: RouteCard
             />
           </div>
         </div>
+      </Dialog>
+
+      <Dialog
+        open={renameId !== null}
+        onClose={() => { setRenameId(null); setRenameName(""); }}
+        title="rename route"
+        footer={
+          <>
+            <button className="sigil-btn-ghost" onClick={() => { setRenameId(null); setRenameName(""); }}>cancel</button>
+            <button
+              className="sigil-btn-primary"
+              disabled={renaming || !renameName.trim()}
+              onClick={() => void handleRename()}
+            >
+              {renaming ? "saving..." : "save"}
+            </button>
+          </>
+        }
+      >
+        <div>
+          <label
+            htmlFor="rename-route"
+            style={{
+              display: "block",
+              fontFamily: "var(--font-mono)",
+              fontSize: "10px",
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              color: "var(--dawn-40)",
+              marginBottom: "var(--space-xs)",
+            }}
+          >
+            Name
+          </label>
+          <input
+            id="rename-route"
+            type="text"
+            value={renameName}
+            onChange={(e) => setRenameName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") void handleRename(); }}
+            autoFocus
+            className="admin-input"
+            style={{ width: "100%" }}
+          />
+        </div>
+      </Dialog>
+
+      <Dialog
+        open={deleteId !== null}
+        onClose={() => setDeleteId(null)}
+        title="delete route"
+        footer={
+          <>
+            <button className="sigil-btn-ghost" onClick={() => setDeleteId(null)}>cancel</button>
+            <button
+              type="button"
+              disabled={deleting}
+              onClick={() => void handleDelete()}
+              style={{
+                padding: "8px 16px",
+                background: "transparent",
+                border: "1px solid var(--gold)",
+                color: "var(--gold)",
+                fontFamily: "var(--font-mono)",
+                fontSize: "10px",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                cursor: deleting ? "not-allowed" : "pointer",
+                opacity: deleting ? 0.4 : 1,
+                transition: "background 120ms, color 120ms",
+              }}
+              onMouseEnter={(e) => {
+                if (!deleting) {
+                  e.currentTarget.style.background = "var(--gold)";
+                  e.currentTarget.style.color = "var(--void)";
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.color = "var(--gold)";
+              }}
+            >
+              {deleting ? "deleting..." : "delete permanently"}
+            </button>
+          </>
+        }
+      >
+        <p
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "13px",
+            color: "var(--dawn-70)",
+            lineHeight: 1.6,
+          }}
+        >
+          Are you sure you want to delete{" "}
+          <strong>{routes.find((r) => r.id === deleteId)?.name}</strong>?
+          This will permanently remove the route and all its waypoints and generations.
+        </p>
       </Dialog>
     </div>
   );

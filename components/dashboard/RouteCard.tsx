@@ -9,6 +9,8 @@ type RouteCardProps = {
   isActive: boolean;
   onSelect: () => void;
   onNavigate: () => void;
+  onRename?: () => void;
+  onDelete?: () => void;
 };
 
 const CHAMFER = 14;
@@ -23,7 +25,24 @@ function formatDate(iso: string): string {
 
 const NOISE_SVG = `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
 
-export function RouteCard({ route, isActive, onSelect, onNavigate }: RouteCardProps) {
+function PencilIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+      <path d="M8.5 1.5L10.5 3.5L4 10H2V8L8.5 1.5Z" stroke="currentColor" strokeWidth="1" strokeLinejoin="round" />
+      <path d="M7 3L9 5" stroke="currentColor" strokeWidth="1" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+      <path d="M2 3H10M4.5 3V2C4.5 1.45 4.95 1 5.5 1H6.5C7.05 1 7.5 1.45 7.5 2V3M3 3L3.5 10C3.5 10.55 3.95 11 4.5 11H7.5C8.05 11 8.5 10.55 8.5 10L9 3" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function RouteCard({ route, isActive, onSelect, onNavigate, onRename, onDelete }: RouteCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [hovered, setHovered] = useState(false);
 
@@ -350,6 +369,79 @@ export function RouteCard({ route, isActive, onSelect, onNavigate }: RouteCardPr
         </div>
       </div>
 
+      {(onRename || onDelete) && hovered && (
+        <div
+          style={{
+            position: "absolute",
+            top: 10,
+            left: 10,
+            display: "flex",
+            gap: 2,
+            zIndex: 4,
+          }}
+        >
+          {onRename && (
+            <button
+              type="button"
+              title="Rename route"
+              onClick={(e) => { e.stopPropagation(); onRename(); }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 24,
+                height: 24,
+                padding: 0,
+                background: "var(--void)",
+                border: "1px solid var(--dawn-15)",
+                color: "var(--dawn-40)",
+                cursor: "pointer",
+                transition: "color 80ms ease, border-color 80ms ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "var(--dawn)";
+                e.currentTarget.style.borderColor = "var(--dawn-30)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "var(--dawn-40)";
+                e.currentTarget.style.borderColor = "var(--dawn-15)";
+              }}
+            >
+              <PencilIcon />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              type="button"
+              title="Delete route"
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 24,
+                height: 24,
+                padding: 0,
+                background: "var(--void)",
+                border: "1px solid var(--dawn-15)",
+                color: "var(--dawn-40)",
+                cursor: "pointer",
+                transition: "color 80ms ease, border-color 80ms ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "var(--status-error, #c17f59)";
+                e.currentTarget.style.borderColor = "var(--dawn-30)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "var(--dawn-40)";
+                e.currentTarget.style.borderColor = "var(--dawn-15)";
+              }}
+            >
+              <TrashIcon />
+            </button>
+          )}
+        </div>
+      )}
     </article>
   );
 }

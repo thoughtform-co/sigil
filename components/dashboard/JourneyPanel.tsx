@@ -39,6 +39,8 @@ type JourneyPanelProps = {
   selectedJourneyId: string | null;
   onSelectJourney: (id: string) => void;
   onJourneyCreated?: () => void;
+  onJourneyDeleted?: (id: string) => void;
+  onJourneyRenamed?: (id: string, name: string) => void;
   adminStats?: AdminStatRow[] | null;
   isAdmin?: boolean;
 };
@@ -85,6 +87,8 @@ export function JourneyPanel({
   selectedJourneyId,
   onSelectJourney,
   onJourneyCreated,
+  onJourneyDeleted,
+  onJourneyRenamed,
   adminStats,
   isAdmin,
 }: JourneyPanelProps) {
@@ -118,9 +122,11 @@ export function JourneyPanel({
         body: JSON.stringify({ name: renameName.trim() }),
       });
       if (res.ok) {
+        const savedId = renameId;
+        const savedName = renameName.trim();
         setRenameId(null);
         setRenameName("");
-        onJourneyCreated?.();
+        onJourneyRenamed?.(savedId, savedName);
       }
     } finally {
       setRenaming(false);
@@ -137,8 +143,9 @@ export function JourneyPanel({
     try {
       const res = await fetch(`/api/admin/workspace-projects/${deleteId}`, { method: "DELETE" });
       if (res.ok) {
+        const savedId = deleteId;
         setDeleteId(null);
-        onJourneyCreated?.();
+        onJourneyDeleted?.(savedId);
       }
     } finally {
       setDeleting(false);

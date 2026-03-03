@@ -2,7 +2,7 @@
 
 import useSWR from "swr";
 import dynamic from "next/dynamic";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 
 const JourneyPanel = dynamic(
@@ -88,6 +88,46 @@ export function DashboardView({
     { revalidateOnFocus: false, dedupingInterval: 30_000 }
   );
   const [selectedJourneyId, setSelectedJourneyId] = useState<string | null>(null);
+
+  const handleJourneyDeleted = useCallback((id: string) => {
+    void mutate(
+      (cur) => cur ? { journeys: cur.journeys.filter((j) => j.id !== id) } : cur,
+      { revalidate: false },
+    );
+    setSelectedJourneyId((prev) => prev === id ? null : prev);
+  }, [mutate]);
+
+  const handleJourneyRenamed = useCallback((id: string, name: string) => {
+    void mutate(
+      (cur) => cur ? { journeys: cur.journeys.map((j) => j.id === id ? { ...j, name } : j) } : cur,
+      { revalidate: false },
+    );
+  }, [mutate]);
+
+  const handleRouteDeleted = useCallback((routeId: string) => {
+    void mutate(
+      (cur) => cur ? {
+        journeys: cur.journeys.map((j) => ({
+          ...j,
+          routes: j.routes.filter((r) => r.id !== routeId),
+          routeCount: j.routes.some((r) => r.id === routeId) ? j.routeCount - 1 : j.routeCount,
+        })),
+      } : cur,
+      { revalidate: false },
+    );
+  }, [mutate]);
+
+  const handleRouteRenamed = useCallback((routeId: string, name: string) => {
+    void mutate(
+      (cur) => cur ? {
+        journeys: cur.journeys.map((j) => ({
+          ...j,
+          routes: j.routes.map((r) => r.id === routeId ? { ...r, name } : r),
+        })),
+      } : cur,
+      { revalidate: false },
+    );
+  }, [mutate]);
 
   const dataReadyMarked = useRef(false);
 
@@ -177,6 +217,8 @@ export function DashboardView({
           selectedJourneyId={selectedJourneyId}
           onSelectJourney={setSelectedJourneyId}
           onJourneyCreated={() => void mutate()}
+          onJourneyDeleted={handleJourneyDeleted}
+          onJourneyRenamed={handleJourneyRenamed}
           adminStats={adminStatsData?.adminStats ?? undefined}
           isAdmin={isAdmin}
         />
@@ -195,6 +237,8 @@ export function DashboardView({
           routes={routes}
           journeyId={selectedJourneyId}
           onRouteCreated={() => void mutate()}
+          onRouteDeleted={handleRouteDeleted}
+          onRouteRenamed={handleRouteRenamed}
         />
       </div>
     </section>
