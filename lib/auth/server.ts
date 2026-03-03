@@ -8,13 +8,19 @@ export type AuthedUser = {
 
 const AUTH_BYPASS =
   process.env.NODE_ENV === "development" && process.env.SIGIL_AUTH_BYPASS === "true";
+const PUBLIC_DEMO = process.env.SIGIL_PUBLIC_DEMO === "true";
 const BYPASS_USER_ID = "dcd1da5c-773c-4029-910c-e360fa415fd0";
 const BYPASS_USER_EMAIL = "vince@thoughtform.co";
 
 let bypassEnsured = false;
+let demoWarned = false;
 
 export async function getAuthedUser(): Promise<AuthedUser | null> {
-  if (AUTH_BYPASS) {
+  if (AUTH_BYPASS || PUBLIC_DEMO) {
+    if (PUBLIC_DEMO && !demoWarned) {
+      demoWarned = true;
+      console.warn("[SIGIL] PUBLIC_DEMO mode active — all visitors treated as demo admin. Disable SIGIL_PUBLIC_DEMO before production use.");
+    }
     if (!bypassEnsured) {
       bypassEnsured = true;
       await prisma.profile.upsert({

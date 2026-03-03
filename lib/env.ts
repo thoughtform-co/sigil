@@ -8,6 +8,7 @@ const envSchema = z.object({
   DIRECT_URL: z.string().min(1).optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
   SIGIL_AUTH_BYPASS: z.string().optional(),
+  SIGIL_PUBLIC_DEMO: z.string().optional(),
   GEMINI_API_KEY: z.string().optional(),
   REPLICATE_API_TOKEN: z.string().optional(),
   REPLICATE_API_KEY: z.string().optional(),
