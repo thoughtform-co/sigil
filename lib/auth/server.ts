@@ -50,7 +50,6 @@ export const getAuthedUser = cache(async (): Promise<AuthedUser | null> => {
     data: { user },
     error,
   } = await supabase.auth.getUser();
-
   if (error || !user) return null;
   return { id: user.id, email: user.email ?? null };
 });

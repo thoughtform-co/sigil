@@ -63,9 +63,11 @@ async function adminStatsFetcher(url: string): Promise<{ adminStats: AdminStatRo
 export function DashboardView({
   initialData,
   initialIsAdmin,
+  initialDataIncludesThumbnails = true,
 }: {
   initialData?: DashboardData;
   initialIsAdmin?: boolean;
+  initialDataIncludesThumbnails?: boolean;
 } = {}) {
   const { isAdmin: authIsAdmin } = useAuth();
   const isAdmin = initialIsAdmin ?? authIsAdmin;
@@ -74,12 +76,11 @@ export function DashboardView({
     perfMarked.current = true;
     if (typeof performance !== "undefined") performance.mark("sigil:dashboard-mount");
   }
-
   const { data, error, isLoading, mutate } = useSWR("/api/dashboard", dashboardFetcher, {
     fallbackData: initialData,
     revalidateOnFocus: false,
     dedupingInterval: 60_000,
-    revalidateOnMount: !initialData,
+    revalidateOnMount: !initialData || !initialDataIncludesThumbnails,
   });
   const { data: adminStatsData } = useSWR(
     isAdmin ? "/api/admin/dashboard-stats" : null,

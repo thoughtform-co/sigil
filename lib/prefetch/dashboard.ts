@@ -6,7 +6,9 @@ const THUMBS_PER_ROUTE = 8;
 
 export async function prefetchDashboard(
   userId: string,
+  options?: { includeThumbnails?: boolean },
 ): Promise<{ data: DashboardData; isAdmin: boolean } | null> {
+  const includeThumbnails = options?.includeThumbnails ?? true;
   try {
     const [profile, allWorkspaceProjects] = await Promise.all([
       prisma.profile.findUnique({
@@ -51,7 +53,7 @@ export async function prefetchDashboard(
       { id: string; fileUrl: string; fileType: string; width: number | null; height: number | null }[]
     >();
 
-    if (allBriefingIds.length > 0) {
+    if (includeThumbnails && allBriefingIds.length > 0) {
       const thumbRows = await prisma.$queryRaw<
         { project_id: string; output_id: string; file_url: string; file_type: string; width: number | null; height: number | null; rn: bigint }[]
       >(Prisma.sql`
@@ -70,6 +72,7 @@ export async function prefetchDashboard(
           INNER JOIN outputs o ON o.generation_id = g.id
           WHERE s.project_id = ANY(${allBriefingIds}::uuid[])
             AND g.status = 'completed'
+            AND o.file_url NOT LIKE 'data:%'
         ) sub
         WHERE sub.rn <= ${THUMBS_PER_ROUTE}
         ORDER BY sub.project_id, sub.rn
@@ -90,7 +93,6 @@ export async function prefetchDashboard(
         });
       }
     }
-
     const journeys = workspaceProjects.map((wp) => ({
       id: wp.id,
       name: wp.name,

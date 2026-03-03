@@ -85,6 +85,7 @@ export function ProjectWorkspace({
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const hasPrefetch = Boolean(prefetchedData);
+  const generationsNeedHydration = prefetchedData?.includesGenerationOutputs === false;
 
   // --- SWR: sessions (stable, rarely changes) ---
   const { data: sessionsData, mutate: mutateSessions } = useSWR<{ sessions: SessionItem[] }>(
@@ -132,7 +133,7 @@ export function ProjectWorkspace({
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
       revalidateFirstPage: false,
-      revalidateOnMount: !hasPrefetch,
+      revalidateOnMount: !hasPrefetch || generationsNeedHydration,
       dedupingInterval: 5_000,
       fallbackData: prefetchedData?.generationsPage
         ? [prefetchedData.generationsPage]

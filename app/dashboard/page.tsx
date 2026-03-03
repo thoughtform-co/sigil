@@ -8,13 +8,14 @@ export default async function DashboardPage() {
   const user = await getAuthedUser();
   if (!user) redirect("/login");
 
-  const result = await prefetchDashboard(user.id);
+  const result = await prefetchDashboard(user.id, { includeThumbnails: false });
 
   return (
     <NavigationFrame title="SIGIL" modeLabel="dashboard" workspaceLayout>
       <DashboardView
         initialData={result?.data}
         initialIsAdmin={result?.isAdmin}
+        initialDataIncludesThumbnails={false}
       />
     </NavigationFrame>
   );

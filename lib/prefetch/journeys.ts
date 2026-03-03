@@ -22,7 +22,9 @@ export type JourneyListItem = {
 
 export async function prefetchJourneysList(
   userId: string,
+  options?: { includeThumbnails?: boolean },
 ): Promise<{ journeys: JourneyListItem[]; isAdmin: boolean } | null> {
+  const includeThumbnails = options?.includeThumbnails ?? true;
   try {
     const [profile, allWorkspaceProjects] = await Promise.all([
       prisma.profile.findUnique({
@@ -63,7 +65,7 @@ export async function prefetchJourneysList(
       { id: string; fileUrl: string; fileType: string; width: number | null; height: number | null }[]
     >();
 
-    if (wpIds.length > 0) {
+    if (includeThumbnails && wpIds.length > 0) {
       const thumbRows = await prisma.$queryRaw<
         { wp_id: string; output_id: string; file_url: string; file_type: string; width: number | null; height: number | null; rn: bigint }[]
       >(Prisma.sql`
@@ -83,6 +85,7 @@ export async function prefetchJourneysList(
           INNER JOIN outputs o ON o.generation_id = g.id
           WHERE p.workspace_project_id = ANY(${wpIds}::uuid[])
             AND g.status = 'completed'
+            AND o.file_url NOT LIKE 'data:%'
         ) sub
         WHERE sub.rn <= ${THUMBS_PER_JOURNEY}
         ORDER BY sub.wp_id, sub.rn
@@ -103,7 +106,6 @@ export async function prefetchJourneysList(
         });
       }
     }
-
     const journeys: JourneyListItem[] = workspaceProjects.map((wp) => ({
       id: wp.id,
       name: wp.name,
@@ -202,6 +204,7 @@ export async function prefetchJourneyDetail(
           INNER JOIN outputs o ON o.generation_id = g.id
           WHERE s.project_id = p.id
             AND g.status = 'completed'
+            AND o.file_url NOT LIKE 'data:%'
           ORDER BY g.created_at DESC, o.created_at DESC
           LIMIT 1
         ) thumb ON TRUE

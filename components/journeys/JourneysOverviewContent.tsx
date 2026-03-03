@@ -140,9 +140,11 @@ function JourneyCardWithMenu({
 export function JourneysOverviewContent({
   initialJourneys,
   initialIsAdmin,
+  initialDataIncludesThumbnails = true,
 }: {
   initialJourneys?: JourneyCardItem[];
   initialIsAdmin?: boolean;
+  initialDataIncludesThumbnails?: boolean;
 }) {
   const { isAdmin: authIsAdmin } = useAuth();
   const isAdmin = initialIsAdmin ?? authIsAdmin;
@@ -153,7 +155,7 @@ export function JourneysOverviewContent({
     journeysFetcher,
     {
       fallbackData,
-      revalidateOnMount: !initialJourneys,
+      revalidateOnMount: !initialJourneys || !initialDataIncludesThumbnails,
       revalidateOnFocus: false,
       dedupingInterval: 60_000,
     },

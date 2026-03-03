@@ -8,13 +8,14 @@ export default async function JourneysPage() {
   const user = await getAuthedUser();
   if (!user) redirect("/login");
 
-  const result = await prefetchJourneysList(user.id);
+  const result = await prefetchJourneysList(user.id, { includeThumbnails: false });
 
   return (
     <NavigationFrame title="SIGIL" modeLabel="journeys">
       <JourneysOverviewContent
         initialJourneys={result?.journeys}
         initialIsAdmin={result?.isAdmin}
+        initialDataIncludesThumbnails={false}
       />
     </NavigationFrame>
   );

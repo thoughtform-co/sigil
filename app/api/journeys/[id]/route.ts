@@ -71,6 +71,7 @@ export async function GET(
         INNER JOIN outputs o ON o.generation_id = g.id
         WHERE s.project_id = p.id
           AND g.status = 'completed'
+          AND o.file_url NOT LIKE 'data:%'
         ORDER BY g.created_at DESC, o.created_at DESC
         LIMIT 1
       ) thumb ON TRUE

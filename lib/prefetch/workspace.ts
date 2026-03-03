@@ -9,6 +9,7 @@ export type PrefetchedWorkspaceData = {
   projectName: string;
   sessions: SessionItem[];
   generationsPage: { generations: GenerationItem[]; nextCursor: string | null };
+  includesGenerationOutputs: boolean;
 } | null;
 
 export async function prefetchWorkspaceData(
@@ -45,17 +46,6 @@ export async function prefetchWorkspaceData(
       errorCategory: true,
       errorRetryable: true,
       lastHeartbeatAt: true,
-      outputs: {
-        select: {
-          id: true,
-          fileUrl: true,
-          fileType: true,
-          isApproved: true,
-          width: true,
-          height: true,
-          duration: true,
-        },
-      },
     } as const;
 
     const [project, sessionsRaw, generationsRaw] = await Promise.all([
@@ -103,22 +93,16 @@ export async function prefetchWorkspaceData(
       errorCategory: g.errorCategory,
       errorRetryable: g.errorRetryable,
       lastHeartbeatAt: g.lastHeartbeatAt?.toISOString() ?? null,
-      outputs: g.outputs.map((o) => ({
-        id: o.id,
-        fileUrl: o.fileUrl,
-        fileType: o.fileType,
-        isApproved: o.isApproved,
-        width: o.width,
-        height: o.height,
-        duration: o.duration,
-      })),
+      outputs: [],
     }));
 
-    return {
+    const payload = {
       projectName: project.name,
       sessions,
       generationsPage: { generations, nextCursor },
+      includesGenerationOutputs: false,
     };
+    return payload;
   } catch {
     return null;
   }
