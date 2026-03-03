@@ -70,7 +70,7 @@ export async function GET() {
     return { day, count: dailyMap.get(day) ?? 0 };
   });
 
-  const t = totalsRow[0] ?? { gen_count: 0n, output_count: 0n, total_cost: 0 };
+  const t = totalsRow[0] ?? { gen_count: BigInt(0), output_count: BigInt(0), total_cost: 0 };
 
   const response = NextResponse.json({
     totals: {
