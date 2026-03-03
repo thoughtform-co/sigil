@@ -28,6 +28,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="preconnect" href="https://hrgxfbyrumeyftqrlehv.supabase.co" />
+        <link rel="preconnect" href="https://replicate.delivery" />
+        <link rel="dns-prefetch" href="https://hrgxfbyrumeyftqrlehv.supabase.co" />
+        <link rel="dns-prefetch" href="https://replicate.delivery" />
         <script
           dangerouslySetInnerHTML={{
             __html: `try { if (localStorage.getItem('sigil-theme') === 'light') document.documentElement.classList.add('light'); } catch(e) {}`,

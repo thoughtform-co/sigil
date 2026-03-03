@@ -15,6 +15,18 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "replicate.delivery",
       },
+      {
+        protocol: "https",
+        hostname: "*.replicate.delivery",
+      },
+      {
+        protocol: "https",
+        hostname: "fal.media",
+      },
+      {
+        protocol: "https",
+        hostname: "*.fal.media",
+      },
     ],
     formats: ["image/webp", "image/avif"],
   },

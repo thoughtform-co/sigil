@@ -1,14 +1,12 @@
+import { cache } from "react";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 /**
  * Returns a Prisma `where` clause fragment for finding projects visible to a user.
- * A user can see a project (briefing) if they:
- * 1. Own it
- * 2. Are a direct project member
- * 3. Are a member of the workspace project it belongs to
+ * Deduplicated per server request via React.cache.
  */
-export async function projectAccessFilter(userId: string): Promise<Prisma.ProjectWhereInput> {
+export const projectAccessFilter = cache(async (userId: string): Promise<Prisma.ProjectWhereInput> => {
   const wpMemberships = await prisma.workspaceProjectMember.findMany({
     where: { userId },
     select: { workspaceProjectId: true },
@@ -25,4 +23,4 @@ export async function projectAccessFilter(userId: string): Promise<Prisma.Projec
   }
 
   return { OR: conditions };
-}
+});

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 
@@ -15,7 +16,11 @@ const BYPASS_USER_EMAIL = "vince@thoughtform.co";
 let bypassEnsured = false;
 let demoWarned = false;
 
-export async function getAuthedUser(): Promise<AuthedUser | null> {
+/**
+ * Deduplicated per server request via React.cache — safe to call multiple
+ * times in the same RSC render without extra Supabase / DB round-trips.
+ */
+export const getAuthedUser = cache(async (): Promise<AuthedUser | null> => {
   if (AUTH_BYPASS || PUBLIC_DEMO) {
     if (PUBLIC_DEMO && !demoWarned) {
       demoWarned = true;
@@ -48,7 +53,7 @@ export async function getAuthedUser(): Promise<AuthedUser | null> {
 
   if (error || !user) return null;
   return { id: user.id, email: user.email ?? null };
-}
+});
 
 export async function ensureProfile(user: AuthedUser) {
   await prisma.profile.upsert({

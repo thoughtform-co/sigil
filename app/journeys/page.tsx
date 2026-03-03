@@ -7,18 +7,17 @@ import { prefetchJourneysList } from "@/lib/prefetch/journeys";
 export const dynamic = "force-dynamic";
 
 export default async function JourneysPage() {
-  const includeThumbnails = false;
   const user = await getAuthedUser();
   if (!user) redirect("/login");
 
-  const result = await prefetchJourneysList(user.id, { includeThumbnails });
+  const result = await prefetchJourneysList(user.id);
 
   return (
     <NavigationFrame title="SIGIL" modeLabel="journeys">
       <JourneysOverviewContent
         initialJourneys={result?.journeys}
         initialIsAdmin={result?.isAdmin}
-        initialDataIncludesThumbnails={includeThumbnails}
+        initialDataIncludesThumbnails={true}
       />
     </NavigationFrame>
   );

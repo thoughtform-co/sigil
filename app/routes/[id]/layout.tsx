@@ -2,6 +2,7 @@ import { NavigationFrame } from "@/components/hud/NavigationFrame";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { prefetchWorkspaceData } from "@/lib/prefetch/workspace";
 import { WorkspacePrefetchProvider } from "@/components/generation/WorkspacePrefetchProvider";
+import { VideoIterationCountsProvider } from "@/components/generation/VideoIterationCountsContext";
 
 type RouteLayoutProps = {
   children: React.ReactNode;
@@ -16,7 +17,9 @@ export default async function RouteLayout({ children, params }: RouteLayoutProps
     <RequireAuth>
       <NavigationFrame title="SIGIL" modeLabel={`route / ${id}`} workspaceLayout>
         <WorkspacePrefetchProvider projectId={id} prefetchedData={prefetch}>
-          {children}
+          <VideoIterationCountsProvider projectId={id}>
+            {children}
+          </VideoIterationCountsProvider>
         </WorkspacePrefetchProvider>
       </NavigationFrame>
     </RequireAuth>

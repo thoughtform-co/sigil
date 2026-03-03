@@ -119,7 +119,8 @@ export default function LoginPage() {
         className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            "radial-gradient(ellipse at center, transparent 30%, rgba(5, 4, 3, 0.8) 100%)",
+            "radial-gradient(ellipse at center, transparent 30%, var(--void) 100%)",
+          opacity: 0.85,
         }}
       />
 
@@ -133,8 +134,8 @@ export default function LoginPage() {
           <div
             className="relative"
             style={{
-              background: "rgba(10, 9, 8, 0.8)",
-              border: "1px solid var(--dawn-08)",
+              background: "var(--surface-0)",
+              border: "1px solid var(--dawn-15)",
               backdropFilter: "blur(24px)",
               WebkitBackdropFilter: "blur(24px)",
               padding: "clamp(32px, 5vw, 48px)",
@@ -173,7 +174,7 @@ export default function LoginPage() {
               </h1>
               <p
                 style={{
-                  color: "var(--dawn-40)",
+                  color: "var(--dawn-50)",
                   fontFamily: "var(--font-sans)",
                   fontSize: "13px",
                   fontWeight: 300,
@@ -192,7 +193,7 @@ export default function LoginPage() {
                     htmlFor="email"
                     style={{
                       display: "block",
-                      color: "var(--dawn-40)",
+                      color: "var(--dawn-50)",
                       fontFamily: "var(--font-mono)",
                       fontSize: "10px",
                       fontWeight: 500,
@@ -218,8 +219,8 @@ export default function LoginPage() {
                     className="w-full outline-none transition-colors"
                     style={{
                       color: "var(--dawn)",
-                      background: "var(--dawn-04)",
-                      border: "1px solid var(--dawn-08)",
+                      background: "var(--dawn-08)",
+                      border: "1px solid var(--dawn-12)",
                       fontFamily: "var(--font-mono)",
                       fontSize: "14px",
                       padding: "12px 16px",
@@ -234,7 +235,7 @@ export default function LoginPage() {
                       htmlFor="password"
                       style={{
                         display: "block",
-                        color: "var(--dawn-40)",
+                        color: "var(--dawn-50)",
                         fontFamily: "var(--font-mono)",
                         fontSize: "10px",
                         fontWeight: 500,
@@ -247,7 +248,7 @@ export default function LoginPage() {
                       <span
                         style={{
                           marginLeft: "8px",
-                          color: "var(--dawn-30)",
+                          color: "var(--dawn-40)",
                           fontSize: "9px",
                           textTransform: "none",
                           letterSpacing: "normal",
@@ -269,8 +270,8 @@ export default function LoginPage() {
                       className="w-full outline-none transition-colors"
                       style={{
                         color: "var(--dawn)",
-                        background: "var(--dawn-04)",
-                        border: "1px solid var(--dawn-08)",
+                        background: "var(--dawn-08)",
+                        border: "1px solid var(--dawn-12)",
                         fontFamily: "var(--font-mono)",
                         fontSize: "14px",
                         padding: "12px 16px",

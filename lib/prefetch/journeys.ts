@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 
+const THUMBS_PER_JOURNEY = 6;
+
 export type JourneyListItem = {
   id: string;
   name: string;
@@ -20,7 +22,6 @@ export type JourneyListItem = {
 
 export async function prefetchJourneysList(
   userId: string,
-  _options: { includeThumbnails?: boolean } = {},
 ): Promise<{ journeys: JourneyListItem[]; isAdmin: boolean } | null> {
   try {
     const profile = await prisma.profile.findUnique({
@@ -50,6 +51,53 @@ export async function prefetchJourneysList(
       },
     });
 
+    const wpIds = workspaceProjects.map((wp) => wp.id);
+    const thumbnailsByWpId = new Map<
+      string,
+      { id: string; fileUrl: string; fileType: string; width: number | null; height: number | null }[]
+    >();
+
+    if (wpIds.length > 0) {
+      const thumbRows = await prisma.$queryRaw<
+        { wp_id: string; output_id: string; file_url: string; file_type: string; width: number | null; height: number | null; rn: bigint }[]
+      >(Prisma.sql`
+        SELECT sub.wp_id, sub.output_id, sub.file_url, sub.file_type, sub.width, sub.height, sub.rn
+        FROM (
+          SELECT
+            p.workspace_project_id AS wp_id,
+            o.id AS output_id,
+            o.file_url,
+            o.file_type,
+            o.width,
+            o.height,
+            ROW_NUMBER() OVER (PARTITION BY p.workspace_project_id ORDER BY g.created_at DESC, o.created_at DESC) AS rn
+          FROM projects p
+          INNER JOIN sessions s ON s.project_id = p.id
+          INNER JOIN generations g ON g.session_id = s.id
+          INNER JOIN outputs o ON o.generation_id = g.id
+          WHERE p.workspace_project_id = ANY(${wpIds}::uuid[])
+            AND g.status = 'completed'
+        ) sub
+        WHERE sub.rn <= ${THUMBS_PER_JOURNEY}
+        ORDER BY sub.wp_id, sub.rn
+      `);
+
+      for (const row of thumbRows) {
+        let list = thumbnailsByWpId.get(row.wp_id);
+        if (!list) {
+          list = [];
+          thumbnailsByWpId.set(row.wp_id, list);
+        }
+        list.push({
+          id: row.output_id,
+          fileUrl: row.file_url,
+          fileType: row.file_type,
+          width: row.width,
+          height: row.height,
+        });
+      }
+    }
+
     const journeys: JourneyListItem[] = workspaceProjects.map((wp) => ({
       id: wp.id,
       name: wp.name,
@@ -63,7 +111,7 @@ export async function prefetchJourneysList(
         updatedAt: b.updatedAt.toISOString(),
         waypointCount: b._count.sessions,
       })),
-      thumbnails: [],
+      thumbnails: thumbnailsByWpId.get(wp.id) ?? [],
     }));
     return { journeys, isAdmin };
   } catch {

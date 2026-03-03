@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import type { CSSProperties } from "react";
 import Image from "next/image";
 import type { GenerationItem, OutputItem } from "@/components/generation/types";
-import { useVideoIterations } from "@/hooks/useVideoIterations";
+import { useVideoIterationCount } from "@/components/generation/VideoIterationCountsContext";
 import { VideoIterationsStackGlow, VideoIterationsBarButton } from "@/components/generation/VideoIterationsStackHint";
 import styles from "./ForgeGenerationCard.module.css";
 
@@ -126,9 +126,8 @@ function OutputCard({
   busy: boolean;
 }) {
   const showVideoIterations = output.fileType !== "video" && Boolean(onConvertToVideo);
-  const { count: iterCount, hasProcessing: iterProcessing } = useVideoIterations(
+  const { count: iterCount, hasProcessing: iterProcessing } = useVideoIterationCount(
     showVideoIterations ? output.id : null,
-    { limit: 10, enabled: showVideoIterations },
   );
 
   const frameStyle = {
