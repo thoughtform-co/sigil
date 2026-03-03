@@ -165,6 +165,7 @@ function OutputCard({
               >
                 <Image
                   fill
+                  unoptimized
                   className={styles.media}
                   src={output.fileUrl}
                   alt="Generated output"
@@ -174,6 +175,7 @@ function OutputCard({
             ) : (
               <Image
                 fill
+                unoptimized
                 className={styles.media}
                 src={output.fileUrl}
                 alt="Generated output"
