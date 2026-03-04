@@ -3,14 +3,16 @@
 .promptBarContainer {
   position: fixed;
   bottom: clamp(24px, 4vw, 48px);
-  left: 50%;
-  transform: translateX(-50%);
+  left: var(--content-inset-left, 0px);
+  right: calc(var(--hud-padding, 40px) + 20px);
   z-index: 40;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  width: 100%;
+  width: auto;
   max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
   padding: 0 clamp(16px, 4vw, 32px);
   pointer-events: none;
 }
@@ -470,10 +472,8 @@
 
 @media (max-width: 1100px) {
   .promptBarContainer {
-    left: calc(var(--hud-padding) + 88px);
+    left: var(--content-inset-left, calc(var(--hud-padding) + 88px));
     right: var(--hud-padding);
-    transform: none;
-    width: auto;
     max-width: none;
     padding: 0;
   }
@@ -507,10 +507,8 @@
 
 @media (max-width: 980px) {
   .promptBarContainer {
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-    width: 100%;
+    left: 16px;
+    right: 16px;
     max-width: 100%;
     padding: 0 clamp(12px, 2.5vw, 20px);
   }

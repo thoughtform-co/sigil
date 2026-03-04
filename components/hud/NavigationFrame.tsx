@@ -529,9 +529,10 @@ function NavigationFrameInner({
       <main
         className={`hud-shell ${workspaceLayout ? "hud-shell--workspace" : ""}`}
         style={{
-          paddingLeft: `calc(var(--hud-padding) + ${RAIL_WIDTH}px + 8px)`,
+          paddingLeft: `calc(var(--hud-padding) + ${journeyName ? RAIL_WIDTH + NAV_SPINE_CARD_WIDTH + 24 : RAIL_WIDTH + 8}px)`,
           paddingRight: `calc(var(--hud-padding) + 20px)`,
-          paddingTop: "calc(var(--hud-padding) + 56px)",
+          paddingTop: workspaceLayout ? "64px" : "calc(var(--hud-padding) + 56px)",
+          ...({ "--content-inset-left": `calc(var(--hud-padding) + ${journeyName ? RAIL_WIDTH + NAV_SPINE_CARD_WIDTH + 24 : RAIL_WIDTH + 8}px)` } as React.CSSProperties),
         }}
       >
         {children}
