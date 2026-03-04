@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRef, useState, useEffect, useCallback } from "react";
 import type { GenerationType, ModelItem } from "@/components/generation/types";
+import { ImageBrowseModal } from "@/components/generation/ImageBrowseModal";
 import styles from "./ForgePromptBar.module.css";
 
 const DEFAULT_ASPECT_RATIOS = ["1:1", "16:9", "9:16", "4:3", "3:4"];
@@ -90,6 +91,8 @@ export function ForgePromptBar({
 }: ForgePromptBarProps) {
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [browseModalOpen, setBrowseModalOpen] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(
     referenceImageUrl && (referenceImageUrl.startsWith("data:") || referenceImageUrl.startsWith("blob:"))
       ? referenceImageUrl
@@ -98,6 +101,7 @@ export function ForgePromptBar({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const modelPickerRef = useRef<HTMLDivElement>(null);
+  const attachMenuRef = useRef<HTMLDivElement>(null);
 
   const [inputHeight, setInputHeight] = useState(52);
   const [isResizing, setIsResizing] = useState(false);
@@ -175,6 +179,26 @@ export function ForgePromptBar({
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [showModelPicker]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (attachMenuRef.current && !attachMenuRef.current.contains(e.target as Node)) {
+        setShowAttachMenu(false);
+      }
+    };
+    if (showAttachMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showAttachMenu]);
+
+  const handleBrowseSelect = useCallback(
+    (url: string) => {
+      setImagePreview(url);
+      onReferenceImageUrlChange(url);
+    },
+    [onReferenceImageUrlChange],
+  );
 
   const handleImageSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -334,18 +358,53 @@ export function ForgePromptBar({
           <div className={styles.promptAndParams}>
             {/* Attachments row above prompt */}
             <div className={styles.attachRow}>
-              <button
-                type="button"
-                className={styles.addImageBtn}
-                onClick={() => fileInputRef.current?.click()}
-                title="Add reference image"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <rect x="3" y="3" width="18" height="18" />
-                  <circle cx="8.5" cy="8.5" r="1.5" />
-                  <path d="M21 15l-5-5L5 21" />
-                </svg>
-              </button>
+              <div className={styles.attachMenuContainer} ref={attachMenuRef}>
+                <button
+                  type="button"
+                  className={styles.addImageBtn}
+                  onClick={() => setShowAttachMenu(!showAttachMenu)}
+                  title="Add reference image"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <rect x="3" y="3" width="18" height="18" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <path d="M21 15l-5-5L5 21" />
+                  </svg>
+                </button>
+                {showAttachMenu && (
+                  <div className={styles.attachDropdown}>
+                    <button
+                      type="button"
+                      className={styles.attachOption}
+                      onClick={() => {
+                        setShowAttachMenu(false);
+                        fileInputRef.current?.click();
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+                      </svg>
+                      Upload
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.attachOption}
+                      onClick={() => {
+                        setShowAttachMenu(false);
+                        setBrowseModalOpen(true);
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <rect x="3" y="3" width="7" height="7" />
+                        <rect x="14" y="3" width="7" height="7" />
+                        <rect x="3" y="14" width="7" height="7" />
+                        <rect x="14" y="14" width="7" height="7" />
+                      </svg>
+                      Browse
+                    </button>
+                  </div>
+                )}
+              </div>
               {(imagePreview || referenceImageUrl) && (
                 <div className={styles.attachThumb}>
                   <img
@@ -570,6 +629,12 @@ export function ForgePromptBar({
         </div>
       </div>
       {message && <p className={styles.message} role="status">{message}</p>}
+      <ImageBrowseModal
+        open={browseModalOpen}
+        onClose={() => setBrowseModalOpen(false)}
+        onSelectImage={handleBrowseSelect}
+        projectId={projectId}
+      />
     </div>
   );
 }

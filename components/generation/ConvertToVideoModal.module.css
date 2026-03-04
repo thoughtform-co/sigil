@@ -229,6 +229,48 @@
   cursor: not-allowed;
 }
 
+/* End frame upload/browse menu */
+.endFrameMenu {
+  position: absolute;
+  bottom: calc(50% + 24px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface-0);
+  border: 1px solid var(--dawn-15);
+  min-width: 120px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+}
+
+.endFrameMenuOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--dawn-08);
+  color: var(--dawn-50);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--duration-fast);
+}
+
+.endFrameMenuOption:last-child {
+  border-bottom: none;
+}
+
+.endFrameMenuOption:hover {
+  background: rgba(236, 227, 214, 0.08);
+  color: var(--dawn);
+}
+
 /* End frame card when filled — image full area, remove button top-right */
 .endFrameThumb {
   width: 100%;

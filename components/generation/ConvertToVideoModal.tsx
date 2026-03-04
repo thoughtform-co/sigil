@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import type { SessionItem } from "@/components/generation/types";
 import type { ModelItem } from "@/components/generation/types";
 import { useVideoIterations } from "@/hooks/useVideoIterations";
+import { ImageBrowseModal } from "@/components/generation/ImageBrowseModal";
 import styles from "./ConvertToVideoModal.module.css";
 
 type VideoModelSpec = {
@@ -116,7 +117,10 @@ export function ConvertToVideoModal({
   const [endFrameUrl, setEndFrameUrl] = useState<string | null>(null);
   const [endFrameFile, setEndFrameFile] = useState<File | null>(null);
   const [detectedAspectRatio, setDetectedAspectRatio] = useState<string | null>(null);
+  const [showEndFrameMenu, setShowEndFrameMenu] = useState(false);
+  const [endFrameBrowseOpen, setEndFrameBrowseOpen] = useState(false);
   const endFrameInputRef = useRef<HTMLInputElement>(null);
+  const endFrameMenuRef = useRef<HTMLDivElement>(null);
 
   const spec = useMemo(() => VIDEO_MODEL_SPECS[modelId] ?? DEFAULT_SPEC, [modelId]);
 
@@ -231,6 +235,23 @@ export function ConvertToVideoModal({
     },
     [projectId]
   );
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (endFrameMenuRef.current && !endFrameMenuRef.current.contains(e.target as Node)) {
+        setShowEndFrameMenu(false);
+      }
+    };
+    if (showEndFrameMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showEndFrameMenu]);
+
+  const handleEndFrameBrowseSelect = useCallback((url: string) => {
+    setEndFrameUrl(url);
+    setEndFrameFile(null);
+  }, []);
 
   const handleSubmit = useCallback(async () => {
     if (!prompt.trim() || !modelId) {
@@ -398,15 +419,48 @@ export function ConvertToVideoModal({
               </div>
               {spec.supportsEndFrame && (
                 !endFrameUrl ? (
-                  <div className={`${styles.endFrameCard} ${styles.endFrameCardEmpty}`}>
+                  <div className={`${styles.endFrameCard} ${styles.endFrameCardEmpty}`} ref={endFrameMenuRef}>
                     <button
                       type="button"
                       className={styles.endFrameAddBtn}
-                      onClick={() => endFrameInputRef.current?.click()}
+                      onClick={() => setShowEndFrameMenu(!showEndFrameMenu)}
                       disabled={busy}
                     >
                       + End frame
                     </button>
+                    {showEndFrameMenu && (
+                      <div className={styles.endFrameMenu}>
+                        <button
+                          type="button"
+                          className={styles.endFrameMenuOption}
+                          onClick={() => {
+                            setShowEndFrameMenu(false);
+                            endFrameInputRef.current?.click();
+                          }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+                          </svg>
+                          Upload
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.endFrameMenuOption}
+                          onClick={() => {
+                            setShowEndFrameMenu(false);
+                            setEndFrameBrowseOpen(true);
+                          }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                            <rect x="3" y="3" width="7" height="7" />
+                            <rect x="14" y="3" width="7" height="7" />
+                            <rect x="3" y="14" width="7" height="7" />
+                            <rect x="14" y="14" width="7" height="7" />
+                          </svg>
+                          Browse
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className={styles.endFrameCard}>
@@ -640,5 +694,15 @@ export function ConvertToVideoModal({
     </div>
   );
 
-  return createPortal(panel, document.body);
+  return (
+    <>
+      {createPortal(panel, document.body)}
+      <ImageBrowseModal
+        open={endFrameBrowseOpen}
+        onClose={() => setEndFrameBrowseOpen(false)}
+        onSelectImage={handleEndFrameBrowseSelect}
+        projectId={projectId}
+      />
+    </>
+  );
 }
