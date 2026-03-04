@@ -226,10 +226,11 @@ export function JourneysOverviewContent({
   return (
     <section
       className="w-full max-w-[1200px] animate-fade-in-up"
-      style={{ paddingTop: "var(--space-2xl)" }}
+      style={{
+        alignSelf: "flex-start",
+      }}
     >
       <SectionHeader
-        bearing="01"
         label="JOURNEYS"
         action={
           isAdmin ? (

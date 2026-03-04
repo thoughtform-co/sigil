@@ -242,7 +242,7 @@ function CreateModeContent({
         )}
 
         <div>
-          <SectionHeader bearing="01" label={`ROUTES (${routes.length})`} />
+          <SectionHeader label={`ROUTES (${routes.length})`} />
           {routes.length > 0 ? (
             <div className={`${styles.routeGrid} ${styles.routeGridWide}`}>
               {routes.map((route, index) => (
@@ -492,7 +492,7 @@ function ResourcesContent({ resources }: { resources: Resource[] }) {
 function ArtifactsContent({ routes, onCreateRoute }: { routes: RouteItem[]; onCreateRoute: () => void }) {
   return (
     <div>
-      <SectionHeader bearing="01" label={`ROUTES (${routes.length})`} />
+      <SectionHeader label={`ROUTES (${routes.length})`} />
       {routes.length > 0 ? (
         <div className={`${styles.routeGrid} ${styles.routeGridWide}`}>
           {routes.map((route, index) => (

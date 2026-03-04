@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Dialog } from "@/components/ui/Dialog";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { RouteCard } from "./RouteCard";
@@ -124,11 +123,11 @@ export function RouteCardsPanel({ routes, journeyId, onRouteCreated, onRouteDele
         height: "100%",
         minHeight: 0,
         overflow: "hidden",
+        paddingLeft: "var(--space-sm)",
         paddingRight: "var(--space-md)",
       }}
     >
       <SectionHeader
-        bearing="02"
         label="ROUTES"
         action={
           journeyId ? (
@@ -163,39 +162,6 @@ export function RouteCardsPanel({ routes, journeyId, onRouteCreated, onRouteDele
           ) : undefined
         }
       />
-
-      {/* Open journey link */}
-      {journeyId && (
-        <Link
-          href={`/journeys/${journeyId}`}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "8px var(--space-md)",
-            marginBottom: "var(--space-md)",
-            border: "1px solid var(--dawn-08)",
-            textDecoration: "none",
-            color: "var(--dawn-50)",
-            fontFamily: "var(--font-mono)",
-            fontSize: "10px",
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            transition: "border-color 120ms, color 120ms",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = "var(--gold-15)";
-            e.currentTarget.style.color = "var(--gold)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = "var(--dawn-08)";
-            e.currentTarget.style.color = "var(--dawn-50)";
-          }}
-        >
-          <span style={{ width: 6, height: 6, background: "var(--gold)", transform: "rotate(45deg)", flexShrink: 0 }} />
-          Open journey &rarr;
-        </Link>
-      )}
 
       <div
         style={{

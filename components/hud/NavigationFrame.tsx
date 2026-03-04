@@ -250,11 +250,11 @@ function NavigationFrameInner({
       const segments: BreadcrumbSegment[] = [];
       if (journeyName) {
         segments.push({
-          label: `journey: ${journeyName}`,
+          label: `journey ${journeyName}`,
           href: journeyId ? `/journeys/${journeyId}` : undefined,
         });
       }
-      segments.push({ label: routeName ? `route: ${routeName}` : "route" });
+      segments.push({ label: routeName ? `route ${routeName}` : "route" });
       segments.push({ label: mode });
       const backHref = journeyId ? `/journeys/${journeyId}` : null;
       return { backHref, segments };
@@ -500,14 +500,17 @@ function NavigationFrameInner({
               <Link
                 href={breadcrumb.segments[0].href}
                 style={{
-                  display: "block",
+                  display: "inline-flex",
+                  alignItems: "center",
                   fontFamily: "var(--font-mono)",
                   fontSize: "13px",
                   fontWeight: 500,
                   letterSpacing: "0.08em",
                   textTransform: "uppercase",
-                  color: breadcrumb.segments.length > 1 ? "var(--dawn-50)" : "var(--dawn-70)",
+                  color: "var(--gold)",
                   textDecoration: "none",
+                  border: "1px solid var(--gold)",
+                  padding: "3px 8px",
                   transition: "color 100ms ease",
                   cursor: "pointer",
                   whiteSpace: "nowrap",
@@ -516,8 +519,7 @@ function NavigationFrameInner({
                   e.currentTarget.style.color = "var(--gold)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.color =
-                    breadcrumb!.segments.length > 1 ? "var(--dawn-50)" : "var(--dawn-70)";
+                  e.currentTarget.style.color = "var(--gold)";
                 }}
               >
                 {breadcrumb.segments[0].label}
@@ -527,17 +529,18 @@ function NavigationFrameInner({
                 type="button"
                 onClick={handleBack}
                 style={{
-                  display: "block",
+                  display: "inline-flex",
+                  alignItems: "center",
                   fontFamily: "var(--font-mono)",
                   fontSize: "13px",
                   fontWeight: 500,
                   letterSpacing: "0.08em",
                   textTransform: "uppercase",
-                  color: "var(--dawn-50)",
+                  color: "var(--gold)",
                   textDecoration: "none",
+                  border: "1px solid var(--gold)",
+                  padding: "3px 8px",
                   background: "none",
-                  border: "none",
-                  padding: 0,
                   cursor: "pointer",
                   transition: "color 100ms ease",
                   whiteSpace: "nowrap",
@@ -546,7 +549,7 @@ function NavigationFrameInner({
                   e.currentTarget.style.color = "var(--gold)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "var(--dawn-50)";
+                  e.currentTarget.style.color = "var(--gold)";
                 }}
               >
                 {breadcrumb.segments[0].label}
@@ -555,7 +558,7 @@ function NavigationFrameInner({
           </div>
 
           {breadcrumb.segments.length > 1 && (
-            <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+            <ul style={{ listStyle: "none", margin: 0, padding: 0, marginTop: 12 }}>
               {breadcrumb.segments.slice(1).map((seg, i) => {
                 const isCurrent = i === breadcrumb.segments.length - 2;
                 return (
@@ -565,7 +568,7 @@ function NavigationFrameInner({
                       position: "relative",
                       paddingLeft: 16,
                       marginLeft: 10 * i,
-                      marginTop: 8,
+                      marginTop: 12,
                     }}
                     aria-current={isCurrent ? "page" : undefined}
                   >
@@ -598,16 +601,19 @@ function NavigationFrameInner({
                           fontSize: "11px",
                           letterSpacing: "0.08em",
                           textTransform: "uppercase",
-                          color: "var(--dawn-30)",
+                          color: "var(--gold)",
                           textDecoration: "none",
+                          border: "1px solid var(--gold)",
+                          padding: "2px 7px",
                           transition: "color 100ms ease",
-                          display: "block",
+                          display: "inline-flex",
+                          alignItems: "center",
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.color = "var(--dawn-50)";
+                          e.currentTarget.style.color = "var(--gold)";
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.color = "var(--dawn-30)";
+                          e.currentTarget.style.color = "var(--gold)";
                         }}
                       >
                         {seg.label}
@@ -619,8 +625,11 @@ function NavigationFrameInner({
                           fontSize: "11px",
                           letterSpacing: "0.08em",
                           textTransform: "uppercase",
-                          color: "var(--dawn-50)",
-                          display: "block",
+                          color: "var(--gold)",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          border: "1px solid var(--gold)",
+                          padding: "2px 7px",
                         }}
                       >
                         {seg.label}

@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { AdminStatsPanel } from "@/components/dashboard/AdminStatsPanel";
 import { Dialog } from "@/components/ui/Dialog";
 import { Diamond } from "@/components/ui/Diamond";
-import { ParticleIcon } from "@/components/ui/ParticleIcon";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 
 export type JourneyPanelRoute = {
@@ -71,6 +71,7 @@ export function JourneyPanel({
   adminStats,
   isAdmin,
 }: JourneyPanelProps) {
+  const router = useRouter();
   const totalGenerations = journeys.reduce((sum, j) => sum + j.generationCount, 0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [name, setName] = useState("");
@@ -164,7 +165,6 @@ export function JourneyPanel({
       }}
     >
       <SectionHeader
-        bearing="01"
         label="JOURNEYS"
         action={
           isAdmin ? (
@@ -212,7 +212,7 @@ export function JourneyPanel({
             No journeys assigned
           </p>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingLeft: 18 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingLeft: 18, paddingTop: 8 }}>
             {journeys.map((journey, idx) => {
               const isSelected = selectedJourneyId === journey.id;
               const isHovered = hoveredId === journey.id;
@@ -244,9 +244,16 @@ export function JourneyPanel({
                       style={{ position: "absolute", left: -16, top: 36, bottom: -8, width: 1, background: "var(--dawn-15)" }}
                     />
                   )}
-                  <button
-                    type="button"
+                  <div
+                    role="button"
+                    tabIndex={0}
                     onClick={() => onSelectJourney(journey.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onSelectJourney(journey.id);
+                      }
+                    }}
                     style={{
                       display: "flex",
                       flexDirection: "column",
@@ -281,7 +288,7 @@ export function JourneyPanel({
                     {/* Divider */}
                     <div style={{ borderTop: "1px solid var(--dawn-08)", marginTop: 8, marginBottom: 8 }} />
 
-                    {/* Title row with particle arrow */}
+                    {/* Title row with open action */}
                     <div
                       style={{
                         display: "flex",
@@ -305,17 +312,52 @@ export function JourneyPanel({
                       >
                         {journey.name}
                       </span>
-                      <span
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/journeys/${journey.id}`);
+                        }}
                         style={{
-                          color: isSelected ? "var(--gold)" : isHovered ? "var(--gold)" : "var(--dawn-50)",
+                          color: "var(--gold)",
                           flexShrink: 0,
                           display: "inline-flex",
                           alignItems: "center",
-                          transition: "color 100ms",
+                          gap: 6,
+                          border: "none",
+                          background: "transparent",
+                          padding: 0,
+                          marginTop: 2,
+                          fontFamily: "var(--font-mono)",
+                          fontSize: "9px",
+                          letterSpacing: "0.08em",
+                          textTransform: "uppercase",
+                          lineHeight: 1.2,
+                          cursor: "pointer",
+                          transition: "opacity 100ms, color 100ms",
+                          opacity: isHovered || isSelected ? 1 : 0.75,
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.opacity = "1";
+                          e.currentTarget.style.color = "var(--gold)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.opacity = isHovered || isSelected ? "1" : "0.75";
+                          e.currentTarget.style.color = "var(--gold)";
                         }}
                       >
-                        <ParticleIcon glyph="arrow" size="sm" />
-                      </span>
+                        <span
+                          aria-hidden
+                          style={{
+                            width: 5,
+                            height: 5,
+                            background: "currentColor",
+                            transform: "rotate(45deg)",
+                            display: "inline-block",
+                          }}
+                        />
+                        Open
+                      </button>
                     </div>
 
                     {/* Stats */}
@@ -333,7 +375,7 @@ export function JourneyPanel({
                       <span>{journey.routeCount} routes</span>
                       <span>{journey.generationCount} gen</span>
                     </div>
-                  </button>
+                  </div>
 
                   {showActions && (
                     <div
