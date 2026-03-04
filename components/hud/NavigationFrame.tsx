@@ -28,6 +28,7 @@ type NavigationFrameProps = {
   routeName?: string;
 };
 
+export const NAV_SPINE_CARD_WIDTH = 280;
 const RAIL_WIDTH = 48;
 const TICK_COUNT = 20;
 const TICK_LABELS: Record<number, string> = {
@@ -502,7 +503,7 @@ function NavigationFrameInner({
               name={journeyName}
               routeName={routeName}
               size="compact"
-              style={{ maxWidth: 240 }}
+              style={{ width: NAV_SPINE_CARD_WIDTH }}
             />
           ) : (
             <span
@@ -518,27 +519,6 @@ function NavigationFrameInner({
             >
               {breadcrumb.segments[0].label}
             </span>
-          )}
-
-          {breadcrumb.segments.length > 1 && (
-            <div style={{ marginTop: 10, paddingLeft: 4 }}>
-              {breadcrumb.segments.slice(1).map((seg, i) => (
-                <span
-                  key={i}
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "10px",
-                    letterSpacing: "0.08em",
-                    textTransform: "uppercase",
-                    color: "var(--gold)",
-                    display: "block",
-                    marginTop: i > 0 ? 4 : 0,
-                  }}
-                >
-                  {seg.label}
-                </span>
-              ))}
-            </div>
           )}
 
           {/* Portal target for page-specific tree extensions (e.g. waypoints) */}
