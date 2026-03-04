@@ -92,6 +92,57 @@ export async function uploadBase64ToStorage(
   return data.publicUrl;
 }
 
+/**
+ * Upload a data-URI output (e.g. from Gemini inline images) to Supabase Storage.
+ * Decodes the base64 payload and stores it in the outputs bucket, returning a public URL.
+ */
+export async function uploadDataUriOutput(params: {
+  dataUri: string;
+  userId: string;
+  generationId: string;
+  outputIndex: number;
+}): Promise<string> {
+  const { dataUri, userId, generationId, outputIndex } = params;
+  if (!dataUri.startsWith("data:")) {
+    throw new Error("Expected a data: URI");
+  }
+
+  const admin = createAdminClient();
+  outputsBucketReady ??= ensureOutputsBucketExists(admin);
+  await outputsBucketReady;
+
+  const commaIndex = dataUri.indexOf(",");
+  if (commaIndex === -1) throw new Error("Invalid data URI format");
+  const meta = dataUri.slice("data:".length, commaIndex);
+  const base64Data = dataUri.slice(commaIndex + 1);
+  const parts = meta.split(";").filter(Boolean);
+  const mimeType = parts[0] || "image/png";
+
+  const extMap: Record<string, string> = {
+    "image/png": "png",
+    "image/jpeg": "jpg",
+    "image/webp": "webp",
+    "image/gif": "gif",
+    "video/mp4": "mp4",
+  };
+  const ext = extMap[mimeType] || "png";
+
+  const buffer = Buffer.from(base64Data, "base64");
+  const bucket = "outputs";
+  const path = `${userId}/${generationId}/output-${outputIndex}.${ext}`;
+
+  const { error } = await admin.storage.from(bucket).upload(path, buffer, {
+    upsert: true,
+    contentType: mimeType,
+    cacheControl: "31536000",
+  });
+  if (error) throw new Error(`Storage upload failed: ${error.message}`);
+
+  const { data } = admin.storage.from(bucket).getPublicUrl(path);
+  if (!data.publicUrl) throw new Error("Supabase public URL generation failed");
+  return data.publicUrl;
+}
+
 export async function uploadProviderOutput(params: {
   sourceUrl: string;
   userId: string;

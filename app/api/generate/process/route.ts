@@ -5,9 +5,9 @@ import { getAuthedUser } from "@/lib/auth/server";
 import { getModel, getModelConfig } from "@/lib/models/registry";
 import { routeModel } from "@/lib/models/routing";
 import { calculateGenerationCost } from "@/lib/cost/calculator";
-import { uploadProviderOutput } from "@/lib/supabase/storage";
+import { uploadProviderOutput, uploadDataUriOutput } from "@/lib/supabase/storage";
 import { broadcastGenerationUpdate } from "@/lib/supabase/realtime";
-import { getSafeFetchUrl } from "@/lib/security/url-safety";
+
 import { processRequestSchema } from "@/lib/models/contracts";
 import { normalizeGenerationRequest } from "@/lib/models/request-builder";
 import { isProcessable } from "@/lib/models/generation-status";
@@ -202,6 +202,17 @@ export async function POST(request: Request) {
     const persistedOutputs = await Promise.all(
       outputs.map(async (output, index) => {
         const fileType = output.duration ? "video" : "image";
+
+        if (output.url.startsWith("data:")) {
+          const platformUrl = await uploadDataUriOutput({
+            dataUri: output.url,
+            userId: generation.userId,
+            generationId: generation.id,
+            outputIndex: index,
+          });
+          return { ...output, url: platformUrl };
+        }
+
         const fetchHeaders =
           output.url.startsWith("gs://") && process.env.GEMINI_API_KEY
             ? { "x-goog-api-key": process.env.GEMINI_API_KEY }
