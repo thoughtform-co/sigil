@@ -5,9 +5,9 @@ import { getAuthedUser } from "@/lib/auth/server";
 import { getModel, getModelConfig } from "@/lib/models/registry";
 import { routeModel } from "@/lib/models/routing";
 import { calculateGenerationCost } from "@/lib/cost/calculator";
-import { uploadProviderOutput } from "@/lib/supabase/storage";
+import { uploadProviderOutput, uploadDataUriOutput } from "@/lib/supabase/storage";
 import { broadcastGenerationUpdate } from "@/lib/supabase/realtime";
-import { getSafeFetchUrl } from "@/lib/security/url-safety";
+
 import { processRequestSchema } from "@/lib/models/contracts";
 import { normalizeGenerationRequest } from "@/lib/models/request-builder";
 import { isProcessable } from "@/lib/models/generation-status";
@@ -202,41 +202,30 @@ export async function POST(request: Request) {
     const persistedOutputs = await Promise.all(
       outputs.map(async (output, index) => {
         const fileType = output.duration ? "video" : "image";
+
+        if (output.url.startsWith("data:")) {
+          const platformUrl = await uploadDataUriOutput({
+            dataUri: output.url,
+            userId: generation.userId,
+            generationId: generation.id,
+            outputIndex: index,
+          });
+          return { ...output, url: platformUrl };
+        }
+
         const fetchHeaders =
           output.url.startsWith("gs://") && process.env.GEMINI_API_KEY
             ? { "x-goog-api-key": process.env.GEMINI_API_KEY }
             : undefined;
-        try {
-          const platformUrl = await uploadProviderOutput({
-            sourceUrl: output.url,
-            userId: generation.userId,
-            generationId: generation.id,
-            outputIndex: index,
-            fileType,
-            fetchHeaders,
-          });
-          return { ...output, url: platformUrl };
-        } catch {
-          if (fileType === "image") {
-            try {
-              const safeFallbackUrl = getSafeFetchUrl(output.url, { allowGsToGoogleStorage: true });
-              if (safeFallbackUrl) {
-                const fallbackResponse = await fetch(safeFallbackUrl);
-                if (fallbackResponse.ok) {
-                  const contentType = fallbackResponse.headers.get("content-type") || "image/png";
-                  const buffer = Buffer.from(await fallbackResponse.arrayBuffer());
-                  if (buffer.length <= 8 * 1024 * 1024) {
-                    const dataUrl = `data:${contentType};base64,${buffer.toString("base64")}`;
-                    return { ...output, url: dataUrl };
-                  }
-                }
-              }
-            } catch {
-              // keep provider URL fallback
-            }
-          }
-          return output;
-        }
+        const platformUrl = await uploadProviderOutput({
+          sourceUrl: output.url,
+          userId: generation.userId,
+          generationId: generation.id,
+          outputIndex: index,
+          fileType,
+          fetchHeaders,
+        });
+        return { ...output, url: platformUrl };
       }),
     );
 
