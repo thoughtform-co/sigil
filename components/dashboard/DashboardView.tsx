@@ -207,11 +207,33 @@ export function DashboardView({
         alignSelf: "flex-start",
         height: "100%",
         minHeight: 0,
+        position: "relative",
         display: "grid",
         gridTemplateColumns: "360px 1fr",
         gap: "var(--space-xl)",
       }}
     >
+      <svg
+        aria-hidden
+        width="252"
+        height="1"
+        viewBox="0 0 252 1"
+        fill="none"
+        style={{
+          position: "absolute",
+          left: 140,
+          top: 14,
+          pointerEvents: "none",
+        }}
+      >
+        <path
+          d="M0 0H252"
+          stroke="var(--dawn-15)"
+          strokeWidth="1"
+          strokeLinecap="square"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
       <div style={{ minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
         <JourneyPanel
           journeys={data.journeys}
@@ -227,7 +249,6 @@ export function DashboardView({
 
       <div
         style={{
-          borderLeft: "1px solid var(--dawn-08)",
           minHeight: 0,
           overflow: "hidden",
           display: "flex",

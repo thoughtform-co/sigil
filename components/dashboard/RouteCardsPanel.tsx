@@ -118,6 +118,7 @@ export function RouteCardsPanel({ routes, journeyId, onRouteCreated, onRouteDele
   return (
     <div
       style={{
+        position: "relative",
         display: "flex",
         flexDirection: "column",
         height: "100%",
@@ -127,6 +128,18 @@ export function RouteCardsPanel({ routes, journeyId, onRouteCreated, onRouteDele
         paddingRight: "var(--space-md)",
       }}
     >
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          left: "var(--space-sm)",
+          top: 41,
+          bottom: 0,
+          width: 1,
+          background: "var(--dawn-15)",
+          pointerEvents: "none",
+        }}
+      />
       <SectionHeader
         label="ROUTES"
         action={
@@ -168,8 +181,9 @@ export function RouteCardsPanel({ routes, journeyId, onRouteCreated, onRouteDele
           flex: 1,
           minHeight: 0,
           display: "flex",
-          alignItems: "center",
+          alignItems: "stretch",
           overflow: "hidden",
+          paddingTop: "15px",
         }}
       >
         {routes.length === 0 ? (
@@ -188,18 +202,30 @@ export function RouteCardsPanel({ routes, journeyId, onRouteCreated, onRouteDele
         ) : (
           <div
             style={{
+              position: "relative",
               width: "100%",
               overflowX: "auto",
               display: "flex",
-              justifyContent: "center",
+              justifyContent: "flex-start",
+              paddingLeft: 22,
             }}
           >
+            <svg
+              aria-hidden
+              width="20"
+              height="24"
+              viewBox="0 0 20 24"
+              fill="none"
+              style={{ position: "absolute", left: 0, top: 56 }}
+            >
+              <path d="M0 0V11H19" stroke="var(--dawn-15)" strokeWidth="1" strokeLinecap="square" strokeLinejoin="miter" vectorEffect="non-scaling-stroke" />
+            </svg>
             <div
               style={{
                 display: "flex",
-                alignItems: "flex-end",
+                alignItems: "flex-start",
                 gap: "var(--space-xl)",
-                padding: "var(--space-2xl) var(--space-xl)",
+                padding: "0 var(--space-xl) var(--space-xl)",
                 flexShrink: 0,
               }}
             >

@@ -79,6 +79,7 @@ export function JourneyPanel({
   const [journeyType, setJourneyType] = useState<"learn" | "create">("create");
   const [creating, setCreating] = useState(false);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [actionHoverId, setActionHoverId] = useState<string | null>(null);
   const [renameId, setRenameId] = useState<string | null>(null);
   const [renameName, setRenameName] = useState("");
   const [renaming, setRenaming] = useState(false);
@@ -217,14 +218,23 @@ export function JourneyPanel({
               const isSelected = selectedJourneyId === journey.id;
               const isHovered = hoveredId === journey.id;
               const category = journey.type === "learn" ? "learn" : "create";
-              const showActions = isAdmin && isHovered;
+              const showActions = isAdmin && actionHoverId === journey.id;
               const isLast = idx === journeys.length - 1;
               return (
                 <div
                   key={journey.id}
                   style={{ position: "relative" }}
                   onMouseEnter={() => setHoveredId(journey.id)}
-                  onMouseLeave={() => setHoveredId(null)}
+                  onMouseMove={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const y = e.clientY - rect.top;
+                    if (y <= 34) setActionHoverId(journey.id);
+                    else if (actionHoverId === journey.id) setActionHoverId(null);
+                  }}
+                  onMouseLeave={() => {
+                    setHoveredId(null);
+                    if (actionHoverId === journey.id) setActionHoverId(null);
+                  }}
                 >
                   {/* Tree L-connector */}
                   <svg
@@ -280,6 +290,7 @@ export function JourneyPanel({
                         color: "var(--dawn-40)",
                         paddingRight: 24,
                       }}
+                      onMouseEnter={() => setActionHoverId(journey.id)}
                     >
                       <Diamond active={category === "learn"} size="sm" />
                       {category}
@@ -386,6 +397,8 @@ export function JourneyPanel({
                         display: "flex",
                         gap: 2,
                       }}
+                      onMouseEnter={() => setActionHoverId(journey.id)}
+                      onMouseLeave={() => setActionHoverId(null)}
                     >
                       <button
                         type="button"

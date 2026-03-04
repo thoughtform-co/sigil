@@ -45,6 +45,7 @@ function TrashIcon() {
 export function RouteCard({ route, isActive, onSelect, onNavigate, onRename, onDelete }: RouteCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [hovered, setHovered] = useState(false);
+  const [topHovered, setTopHovered] = useState(false);
 
   const thumb = route.thumbnails[0];
   const isVideo = thumb?.fileType?.startsWith("video");
@@ -91,7 +92,15 @@ export function RouteCard({ route, isActive, onSelect, onNavigate, onRename, onD
       onClick={handleClick}
       onDoubleClick={onNavigate}
       onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseMove={(e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        setTopHovered(y <= 42);
+      }}
+      onMouseLeave={() => {
+        setHovered(false);
+        setTopHovered(false);
+      }}
     >
       {/* Drop-shadow border that follows the clip-path */}
       <div style={{ filter: borderFilter, transition: "filter 300ms ease" }}>
@@ -369,7 +378,7 @@ export function RouteCard({ route, isActive, onSelect, onNavigate, onRename, onD
         </div>
       </div>
 
-      {(onRename || onDelete) && hovered && (
+      {(onRename || onDelete) && topHovered && (
         <div
           style={{
             position: "absolute",
