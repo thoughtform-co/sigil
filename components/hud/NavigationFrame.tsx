@@ -152,6 +152,8 @@ function JourneyConnector() {
     let currentY = 0;
     let initialized = false;
     let hudPad = 40;
+    let lastTime = 0;
+    const TRACK_SPEED_PX_PER_SEC = 450;
 
     function readHudPadding() {
       const val = getComputedStyle(document.documentElement).getPropertyValue("--hud-padding");
@@ -161,7 +163,10 @@ function JourneyConnector() {
     readHudPadding();
     window.addEventListener("resize", readHudPadding);
 
-    const update = () => {
+    const update = (time: number) => {
+      const dt = lastTime ? Math.min((time - lastTime) / 1000, 0.05) : 0.016;
+      lastTime = time;
+
       const el = document.querySelector("[data-journey-selected]");
       const path = pathRef.current;
       const diamond = diamondRef.current;
@@ -181,10 +186,17 @@ function JourneyConnector() {
         currentY = targetY;
         initialized = true;
       } else {
-        currentY += (targetY - currentY) * 0.2;
+        const delta = targetY - currentY;
+        const maxStep = TRACK_SPEED_PX_PER_SEC * dt;
+        if (Math.abs(delta) <= maxStep) {
+          currentY = targetY;
+        } else {
+          currentY += Math.sign(delta) * maxStep;
+        }
       }
 
-      if (Math.abs(currentY - targetY) > 0.5 || !svg.style.opacity || svg.style.opacity === "0") {
+      const settled = Math.abs(currentY - targetY) < 0.3;
+      if (!settled || !svg.style.opacity || svg.style.opacity === "0") {
         path.setAttribute("d", `M ${hudPad} ${currentY} L ${endX} ${currentY}`);
         diamond.setAttribute("x", String(hudPad - 3));
         diamond.setAttribute("y", String(currentY - 3));

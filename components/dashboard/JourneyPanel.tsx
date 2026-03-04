@@ -62,7 +62,7 @@ function TrashIcon() {
 }
 
 const CAROUSEL_GAP = 8;
-const WHEEL_COOLDOWN = 250;
+const WHEEL_COOLDOWN = 70;
 const VISIBLE_SLOTS = 5;
 
 export function JourneyPanel({
@@ -91,8 +91,10 @@ export function JourneyPanel({
   const [deleting, setDeleting] = useState(false);
 
   const wheelContainerRef = useRef<HTMLDivElement>(null);
+  const cardElMap = useRef<Map<string, HTMLDivElement>>(new Map());
   const selectedIdRef = useRef(selectedJourneyId);
   const lastWheelTime = useRef(0);
+  const [carouselOffset, setCarouselOffset] = useState(0);
 
   selectedIdRef.current = selectedJourneyId;
   const selectedIdx = journeys.findIndex((j) => j.id === selectedJourneyId);
@@ -103,6 +105,21 @@ export function JourneyPanel({
     : Math.max(0, Math.min(safeIdx - 2, journeys.length - VISIBLE_SLOTS));
   const windowEnd = Math.min(windowStart + VISIBLE_SLOTS, journeys.length);
   const visibleJourneys = journeys.slice(windowStart, windowEnd);
+  const slotIdx = safeIdx - windowStart;
+  const shouldScrollCards = journeys.length > VISIBLE_SLOTS;
+
+  useEffect(() => {
+    if (!shouldScrollCards || visibleJourneys.length <= 1) {
+      setCarouselOffset(0);
+      return;
+    }
+    let offset = 0;
+    for (let i = 0; i < slotIdx; i++) {
+      const el = cardElMap.current.get(visibleJourneys[i]!.id);
+      offset += (el?.offsetHeight ?? 90) + CAROUSEL_GAP;
+    }
+    setCarouselOffset(offset);
+  }, [slotIdx, visibleJourneys, shouldScrollCards]);
 
   useEffect(() => {
     const el = wheelContainerRef.current;
@@ -267,6 +284,10 @@ export function JourneyPanel({
                 gap: CAROUSEL_GAP,
                 paddingTop: 8,
                 paddingBottom: 40,
+                transform: shouldScrollCards ? `translateY(-${carouselOffset}px)` : "translateY(0)",
+                transition: shouldScrollCards
+                  ? "transform 350ms cubic-bezier(0.25, 1, 0.5, 1)"
+                  : undefined,
               }}
             >
               {visibleJourneys.map((journey, visIdx) => {
@@ -280,12 +301,15 @@ export function JourneyPanel({
                 return (
                   <div
                     key={journey.id}
+                    ref={(el) => {
+                      if (el) cardElMap.current.set(journey.id, el);
+                      else cardElMap.current.delete(journey.id);
+                    }}
                     data-journey-selected={isSelected || undefined}
                     style={{
                       position: "relative",
                       opacity: dimming,
-                      transition: "opacity 300ms ease",
-                      animation: "journeyCardEnter 200ms ease-out",
+                      transition: "opacity 350ms ease",
                     }}
                     onMouseEnter={() => setHoveredId(journey.id)}
                     onMouseMove={(e) => {
