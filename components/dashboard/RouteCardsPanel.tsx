@@ -124,7 +124,6 @@ export function RouteCardsPanel({ routes, journeyId, onRouteCreated, onRouteDele
         height: "100%",
         minHeight: 0,
         overflow: "hidden",
-        paddingLeft: "var(--space-md)",
         paddingRight: "var(--space-md)",
       }}
     >

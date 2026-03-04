@@ -203,7 +203,8 @@ export function DashboardView({
       style={{
         width: "100%",
         maxWidth: 1400,
-        margin: "0 0 0 var(--space-2xl)",
+        margin: 0,
+        alignSelf: "flex-start",
         height: "100%",
         minHeight: 0,
         display: "grid",

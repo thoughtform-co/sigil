@@ -160,7 +160,6 @@ export function JourneyPanel({
         height: "100%",
         minHeight: 0,
         overflow: "hidden",
-        paddingLeft: "var(--space-md)",
         paddingRight: "var(--space-md)",
       }}
     >
@@ -213,12 +212,13 @@ export function JourneyPanel({
             No journeys assigned
           </p>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {journeys.map((journey) => {
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingLeft: 18 }}>
+            {journeys.map((journey, idx) => {
               const isSelected = selectedJourneyId === journey.id;
               const isHovered = hoveredId === journey.id;
               const category = journey.type === "learn" ? "learn" : "create";
               const showActions = isAdmin && isHovered;
+              const isLast = idx === journeys.length - 1;
               return (
                 <div
                   key={journey.id}
@@ -226,6 +226,24 @@ export function JourneyPanel({
                   onMouseEnter={() => setHoveredId(journey.id)}
                   onMouseLeave={() => setHoveredId(null)}
                 >
+                  {/* Tree L-connector */}
+                  <svg
+                    aria-hidden
+                    width="14"
+                    height="40"
+                    viewBox="0 0 14 40"
+                    fill="none"
+                    style={{ position: "absolute", left: -16, top: -4 }}
+                  >
+                    <path d="M0 0V39H13" stroke="var(--dawn-15)" strokeWidth="1" strokeLinecap="square" strokeLinejoin="miter" vectorEffect="non-scaling-stroke" />
+                  </svg>
+                  {/* Vertical continuation line */}
+                  {!isLast && (
+                    <div
+                      aria-hidden
+                      style={{ position: "absolute", left: -16, top: 36, bottom: -8, width: 1, background: "var(--dawn-15)" }}
+                    />
+                  )}
                   <button
                     type="button"
                     onClick={() => onSelectJourney(journey.id)}
