@@ -263,43 +263,13 @@ export function JourneyPanel({
           </p>
         ) : (
           <>
-            {/* Fixed selection rail */}
-            <div
-              aria-hidden
-              style={{
-                position: "absolute",
-                left: 0,
-                top: 0,
-                bottom: 0,
-                width: 2,
-                background: "var(--dawn-08)",
-                zIndex: 1,
-                pointerEvents: "none",
-              }}
-            />
-            {/* Gold active-slot indicator */}
-            <div
-              aria-hidden
-              style={{
-                position: "absolute",
-                left: 0,
-                top: 8,
-                width: 2,
-                height: 24,
-                background: "var(--gold)",
-                zIndex: 2,
-                pointerEvents: "none",
-                transition: "opacity var(--duration-base)",
-              }}
-            />
-
             {/* Sliding card stack */}
             <div
               style={{
                 display: "flex",
                 flexDirection: "column",
                 gap: CAROUSEL_GAP,
-                paddingLeft: 10,
+                paddingLeft: 0,
                 paddingTop: 8,
                 paddingBottom: 40,
                 transform: `translateY(-${carouselOffset}px)`,

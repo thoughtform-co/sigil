@@ -30,13 +30,12 @@ type NavigationFrameProps = {
 
 export const NAV_SPINE_CARD_WIDTH = 280;
 const RAIL_WIDTH = 48;
-const TICK_COUNT = 20;
+const TICK_COUNT = 24;
+const MAJOR_INDICES = new Set([6, 12, 18]);
 const TICK_LABELS: Record<number, string> = {
-  0: "0",
-  5: "2",
-  10: "5",
-  15: "7",
-  20: "10",
+  6: "2",
+  12: "5",
+  18: "7",
 };
 
 const LEFT_NAV = [
@@ -313,8 +312,7 @@ function NavigationFrameInner({
         />
         <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-between">
           {Array.from({ length: TICK_COUNT + 1 }).map((_, i) => {
-            const isCorner = i === 0 || i === TICK_COUNT;
-            const isMajor = i % 5 === 0 && !isCorner;
+            const isMajor = MAJOR_INDICES.has(i);
             return (
               <div key={i} className="relative">
                 <div
@@ -324,7 +322,7 @@ function NavigationFrameInner({
                     background: isMajor ? "var(--gold)" : "var(--gold-30)",
                   }}
                 />
-                {TICK_LABELS[i] && !isCorner && (
+                {TICK_LABELS[i] && (
                   <span
                     className="absolute text-[9px]"
                     style={{
@@ -363,8 +361,7 @@ function NavigationFrameInner({
         />
         <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-between items-end">
           {Array.from({ length: TICK_COUNT + 1 }).map((_, i) => {
-            const isCorner = i === 0 || i === TICK_COUNT;
-            const isMajor = i % 5 === 0 && !isCorner;
+            const isMajor = MAJOR_INDICES.has(i);
             return (
               <div
                 key={i}
