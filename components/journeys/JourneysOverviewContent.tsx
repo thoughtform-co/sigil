@@ -5,7 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { JourneyCard, type JourneyCardItem } from "@/components/journeys/JourneyCard";
 import { Dialog } from "@/components/ui/Dialog";
-import { HudPanel, HudPanelHeader, HudEmptyState } from "@/components/ui/hud";
+import { HudPanel, HudEmptyState } from "@/components/ui/hud";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 
 type JourneysListData = {
   journeys: JourneyCardItem[];
@@ -224,46 +225,47 @@ export function JourneysOverviewContent({
 
   return (
     <section
-      className="w-full max-w-[960px] animate-fade-in-up"
+      className="w-full max-w-[1200px] animate-fade-in-up"
       style={{ paddingTop: "var(--space-2xl)" }}
     >
+      <SectionHeader
+        bearing="01"
+        label="JOURNEYS"
+        action={
+          isAdmin ? (
+            <button
+              type="button"
+              onClick={() => setCreateOpen(true)}
+              title="Create journey"
+              aria-label="Create journey"
+              style={{
+                width: 24,
+                height: 24,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "transparent",
+                border: "none",
+                color: "var(--dawn-30)",
+                fontFamily: "var(--font-mono)",
+                fontSize: "14px",
+                lineHeight: 1,
+                cursor: "pointer",
+                transition: "color 120ms ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "var(--gold)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "var(--dawn-30)";
+              }}
+            >
+              +
+            </button>
+          ) : undefined
+        }
+      />
       <HudPanel>
-        <HudPanelHeader
-          title="Journeys"
-          inlineActions={
-            isAdmin ? (
-              <button
-                type="button"
-                onClick={() => setCreateOpen(true)}
-                title="Create journey"
-                aria-label="Create journey"
-                style={{
-                  width: 24,
-                  height: 24,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: "transparent",
-                  border: "none",
-                  color: "var(--dawn-30)",
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "14px",
-                  lineHeight: 1,
-                  cursor: "pointer",
-                  transition: "color 120ms ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "var(--gold)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "var(--dawn-30)";
-                }}
-              >
-                +
-              </button>
-            ) : null
-          }
-        />
         {isLoading && !data ? (
           <div className="flex items-center gap-3 py-12">
             <div

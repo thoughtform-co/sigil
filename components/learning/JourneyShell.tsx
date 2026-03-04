@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { RouteCard } from "@/components/journeys/RouteCard";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 import type { JourneyContent, Resource } from "@/lib/learning/types";
 import type { JourneyMode } from "@/lib/terminology";
 import styles from "@/app/journeys/[id]/JourneyShell.module.css";
@@ -241,9 +242,7 @@ function CreateModeContent({
         )}
 
         <div>
-          <div className={styles.sectionLabel} style={{ marginBottom: "var(--space-md)" }}>
-            Routes ({routes.length})
-          </div>
+          <SectionHeader bearing="01" label={`ROUTES (${routes.length})`} />
           {routes.length > 0 ? (
             <div className={`${styles.routeGrid} ${styles.routeGridWide}`}>
               {routes.map((route, index) => (
@@ -493,9 +492,7 @@ function ResourcesContent({ resources }: { resources: Resource[] }) {
 function ArtifactsContent({ routes, onCreateRoute }: { routes: RouteItem[]; onCreateRoute: () => void }) {
   return (
     <div>
-      <div className={styles.sectionLabel} style={{ marginBottom: "var(--space-md)" }}>
-        Routes ({routes.length})
-      </div>
+      <SectionHeader bearing="01" label={`ROUTES (${routes.length})`} />
       {routes.length > 0 ? (
         <div className={`${styles.routeGrid} ${styles.routeGridWide}`}>
           {routes.map((route, index) => (

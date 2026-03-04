@@ -4,9 +4,9 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Dialog } from "@/components/ui/Dialog";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 import { RouteCard } from "./RouteCard";
 import type { DashboardRouteItem } from "./DashboardView";
-import type { ReactNode } from "react";
 
 type RouteCardsPanelProps = {
   routes: DashboardRouteItem[];
@@ -15,27 +15,6 @@ type RouteCardsPanelProps = {
   onRouteDeleted?: (routeId: string) => void;
   onRouteRenamed?: (routeId: string, name: string) => void;
 };
-
-function SectionHeader({ bearing, label, action }: { bearing: string; label: string; action?: ReactNode }) {
-  return (
-    <div
-      style={{
-        paddingBottom: "var(--space-sm)",
-        borderBottom: "1px solid var(--dawn-08)",
-        marginBottom: "var(--space-lg)",
-        display: "flex",
-        alignItems: "center",
-        gap: "var(--space-sm)",
-      }}
-    >
-      <h2 className="sigil-section-label" style={{ margin: 0 }}>
-        <span style={{ color: "var(--dawn-50)", marginRight: "var(--space-xs)" }}>{bearing}</span>
-        {label}
-      </h2>
-      {action}
-    </div>
-  );
-}
 
 export function RouteCardsPanel({ routes, journeyId, onRouteCreated, onRouteDeleted, onRouteRenamed }: RouteCardsPanelProps) {
   const router = useRouter();

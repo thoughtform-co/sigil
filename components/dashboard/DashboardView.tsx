@@ -207,7 +207,7 @@ export function DashboardView({
         height: "100%",
         minHeight: 0,
         display: "grid",
-        gridTemplateColumns: "300px 1fr",
+        gridTemplateColumns: "360px 1fr",
         gap: "var(--space-xl)",
       }}
     >
