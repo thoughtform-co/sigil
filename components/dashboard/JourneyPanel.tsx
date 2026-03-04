@@ -63,6 +63,7 @@ function TrashIcon() {
 
 const CAROUSEL_GAP = 8;
 const WHEEL_COOLDOWN = 250;
+const VISIBLE_SLOTS = 5;
 
 export function JourneyPanel({
   journeys,
@@ -90,23 +91,18 @@ export function JourneyPanel({
   const [deleting, setDeleting] = useState(false);
 
   const wheelContainerRef = useRef<HTMLDivElement>(null);
-  const cardElMap = useRef<Map<string, HTMLDivElement>>(new Map());
   const selectedIdRef = useRef(selectedJourneyId);
   const lastWheelTime = useRef(0);
-  const [carouselOffset, setCarouselOffset] = useState(0);
 
   selectedIdRef.current = selectedJourneyId;
   const selectedIdx = journeys.findIndex((j) => j.id === selectedJourneyId);
+  const safeIdx = Math.max(0, selectedIdx);
 
-  useEffect(() => {
-    if (selectedIdx <= 0) { setCarouselOffset(0); return; }
-    let offset = 0;
-    for (let i = 0; i < selectedIdx; i++) {
-      const el = cardElMap.current.get(journeys[i]!.id);
-      offset += (el?.offsetHeight ?? 90) + CAROUSEL_GAP;
-    }
-    setCarouselOffset(offset);
-  }, [selectedIdx, journeys]);
+  const windowStart = journeys.length <= VISIBLE_SLOTS
+    ? 0
+    : Math.max(0, Math.min(safeIdx - 2, journeys.length - VISIBLE_SLOTS));
+  const windowEnd = Math.min(windowStart + VISIBLE_SLOTS, journeys.length);
+  const visibleJourneys = journeys.slice(windowStart, windowEnd);
 
   useEffect(() => {
     const el = wheelContainerRef.current;
@@ -263,21 +259,19 @@ export function JourneyPanel({
           </p>
         ) : (
           <>
-            {/* Sliding card stack */}
+            {/* Windowed card stack */}
             <div
               style={{
                 display: "flex",
                 flexDirection: "column",
                 gap: CAROUSEL_GAP,
-                paddingLeft: 0,
                 paddingTop: 8,
                 paddingBottom: 40,
-                transform: `translateY(-${carouselOffset}px)`,
-                transition: "transform 300ms cubic-bezier(0.19, 1, 0.22, 1)",
               }}
             >
-              {journeys.map((journey, idx) => {
-                const dist = idx - selectedIdx;
+              {visibleJourneys.map((journey, visIdx) => {
+                const actualIdx = windowStart + visIdx;
+                const dist = actualIdx - safeIdx;
                 const isSelected = dist === 0;
                 const isHovered = hoveredId === journey.id;
                 const showActions = isAdmin && actionHoverId === journey.id;
@@ -286,14 +280,12 @@ export function JourneyPanel({
                 return (
                   <div
                     key={journey.id}
-                    ref={(el) => {
-                      if (el) cardElMap.current.set(journey.id, el);
-                      else cardElMap.current.delete(journey.id);
-                    }}
+                    data-journey-selected={isSelected || undefined}
                     style={{
                       position: "relative",
                       opacity: dimming,
                       transition: "opacity 300ms ease",
+                      animation: "journeyCardEnter 200ms ease-out",
                     }}
                     onMouseEnter={() => setHoveredId(journey.id)}
                     onMouseMove={(e) => {

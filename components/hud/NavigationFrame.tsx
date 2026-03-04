@@ -142,6 +142,105 @@ function ParticleIcon({ pixels, active = false, light = false }: { pixels: Pixel
   );
 }
 
+function JourneyConnector() {
+  const pathRef = useRef<SVGPathElement>(null);
+  const diamondRef = useRef<SVGRectElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  useEffect(() => {
+    let rafId: number;
+    let currentY = 0;
+    let initialized = false;
+    let hudPad = 40;
+
+    function readHudPadding() {
+      const val = getComputedStyle(document.documentElement).getPropertyValue("--hud-padding");
+      hudPad = parseFloat(val) || 40;
+    }
+
+    readHudPadding();
+    window.addEventListener("resize", readHudPadding);
+
+    const update = () => {
+      const el = document.querySelector("[data-journey-selected]");
+      const path = pathRef.current;
+      const diamond = diamondRef.current;
+      const svg = svgRef.current;
+
+      if (!el || !path || !diamond || !svg) {
+        if (svg) svg.style.opacity = "0";
+        rafId = requestAnimationFrame(update);
+        return;
+      }
+
+      const rect = el.getBoundingClientRect();
+      const targetY = rect.top + rect.height / 2;
+      const endX = hudPad + RAIL_WIDTH;
+
+      if (!initialized) {
+        currentY = targetY;
+        initialized = true;
+      } else {
+        currentY += (targetY - currentY) * 0.2;
+      }
+
+      if (Math.abs(currentY - targetY) > 0.5 || !svg.style.opacity || svg.style.opacity === "0") {
+        path.setAttribute("d", `M ${hudPad} ${currentY} L ${endX} ${currentY}`);
+        diamond.setAttribute("x", String(hudPad - 3));
+        diamond.setAttribute("y", String(currentY - 3));
+      }
+
+      svg.style.opacity = "1";
+      rafId = requestAnimationFrame(update);
+    };
+
+    rafId = requestAnimationFrame(update);
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener("resize", readHudPadding);
+    };
+  }, []);
+
+  return (
+    <svg
+      ref={svgRef}
+      aria-hidden
+      className="journey-connector"
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
+        pointerEvents: "none",
+        zIndex: 35,
+        opacity: 0,
+        transition: "opacity 150ms ease-out",
+      }}
+    >
+      <path
+        ref={pathRef}
+        fill="none"
+        stroke="var(--gold)"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <rect
+        ref={diamondRef}
+        width="6"
+        height="6"
+        fill="var(--gold)"
+        style={{
+          transformOrigin: "center",
+          transformBox: "fill-box",
+          transform: "rotate(45deg)",
+          filter: "drop-shadow(0 0 4px rgba(202, 165, 84, 0.4))",
+        }}
+      />
+    </svg>
+  );
+}
+
 export function NavigationFrame(props: NavigationFrameProps) {
   return (
     <NavSpineProvider>
@@ -340,6 +439,8 @@ function NavigationFrameInner({
           })}
         </div>
       </aside>
+
+      <JourneyConnector />
 
       {/* Right rail */}
       <aside
