@@ -22,8 +22,6 @@ export function SectionHeader({ bearing, label, action }: SectionHeaderProps) {
           margin: 0,
           display: "inline-flex",
           alignItems: "center",
-          padding: "3px 8px",
-          border: "1px solid var(--gold)",
         }}
       >
         <SectionLabel bearing={bearing}>{label}</SectionLabel>

@@ -10,6 +10,29 @@ import { ForgeGallery } from "@/components/generation/ForgeGallery";
 import { ForgePromptBar } from "@/components/generation/ForgePromptBar";
 import { WaypointBranch } from "@/components/hud/WaypointBranch";
 
+const DEFAULT_ASPECT_RATIOS = ["1:1", "16:9", "9:16", "4:3", "3:4"];
+
+function detectClosestAspectRatio(
+  width: number,
+  height: number,
+  supported: string[],
+): string | null {
+  if (width <= 0 || height <= 0 || supported.length === 0) return null;
+  const ratio = width / height;
+  let closest = supported[0];
+  let minDiff = Infinity;
+  for (const label of supported) {
+    const [w, h] = label.split(":").map(Number);
+    if (!w || !h) continue;
+    const diff = Math.abs(ratio - w / h);
+    if (diff < minDiff) {
+      minDiff = diff;
+      closest = label;
+    }
+  }
+  return closest ?? null;
+}
+
 import dynamic from "next/dynamic";
 import { CanvasSidebar } from "@/components/canvas/CanvasSidebar";
 
@@ -374,6 +397,24 @@ export function ProjectWorkspace({
   const compatibleModels = useMemo(
     () => models.filter((m) => m.type === mode),
     [models, mode],
+  );
+
+  const handleUseAsReference = useCallback(
+    (url: string) => {
+      setReferenceImageUrl(url);
+      if (!url) return;
+      const selectedModel = compatibleModels.find((m) => m.id === modelId);
+      const supported = selectedModel?.supportedAspectRatios?.length
+        ? selectedModel.supportedAspectRatios
+        : DEFAULT_ASPECT_RATIOS;
+      const img = new window.Image();
+      img.onload = () => {
+        const match = detectClosestAspectRatio(img.naturalWidth, img.naturalHeight, supported);
+        if (match) setAspectRatio(match);
+      };
+      img.src = url;
+    },
+    [compatibleModels, modelId],
   );
 
   useEffect(() => {
@@ -870,7 +911,7 @@ export function ProjectWorkspace({
             onReuse={reuseGeneration}
             onRerun={retryGeneration}
             onConvertToVideo={handleConvertToVideo}
-            onUseAsReference={setReferenceImageUrl}
+            onUseAsReference={handleUseAsReference}
             onDismiss={handleDismissGeneration}
             onApprove={toggleApproveOutput}
             busy={busy}

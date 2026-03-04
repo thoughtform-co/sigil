@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { NavSpineProvider, useNavSpine } from "@/context/NavSpineContext";
+import { JourneyCardCompact } from "@/components/ui/JourneyCardCompact";
 import { SigilParticleLogo } from "./SigilParticleLogo";
 
 const THEME_KEY = "sigil-theme";
@@ -250,11 +251,10 @@ function NavigationFrameInner({
       const segments: BreadcrumbSegment[] = [];
       if (journeyName) {
         segments.push({
-          label: `journey ${journeyName}`,
+          label: journeyName,
           href: journeyId ? `/journeys/${journeyId}` : undefined,
         });
       }
-      segments.push({ label: routeName ? `route ${routeName}` : "route" });
       segments.push({ label: mode });
       const backHref = journeyId ? `/journeys/${journeyId}` : null;
       return { backHref, segments };
@@ -495,150 +495,50 @@ function NavigationFrameInner({
             left: `calc(var(--hud-padding) + ${RAIL_WIDTH + 8}px)`,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center" }}>
-            {breadcrumb.segments[0].href ? (
-              <Link
-                href={breadcrumb.segments[0].href}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "13px",
-                  fontWeight: 500,
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                  color: "var(--gold)",
-                  textDecoration: "none",
-                  border: "1px solid var(--gold)",
-                  padding: "3px 8px",
-                  transition: "color 100ms ease",
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "var(--gold)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "var(--gold)";
-                }}
-              >
-                {breadcrumb.segments[0].label}
-              </Link>
-            ) : (
-              <button
-                type="button"
-                onClick={handleBack}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "13px",
-                  fontWeight: 500,
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                  color: "var(--gold)",
-                  textDecoration: "none",
-                  border: "1px solid var(--gold)",
-                  padding: "3px 8px",
-                  background: "none",
-                  cursor: "pointer",
-                  transition: "color 100ms ease",
-                  whiteSpace: "nowrap",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "var(--gold)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "var(--gold)";
-                }}
-              >
-                {breadcrumb.segments[0].label}
-              </button>
-            )}
-          </div>
+          {journeyName ? (
+            <JourneyCardCompact
+              as={breadcrumb.segments[0].href ? Link : "div"}
+              href={breadcrumb.segments[0].href}
+              name={journeyName}
+              routeName={routeName}
+              size="compact"
+              style={{ maxWidth: 240 }}
+            />
+          ) : (
+            <span
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "13px",
+                fontWeight: 500,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "var(--gold)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {breadcrumb.segments[0].label}
+            </span>
+          )}
 
           {breadcrumb.segments.length > 1 && (
-            <ul style={{ listStyle: "none", margin: 0, padding: 0, marginTop: 12 }}>
-              {breadcrumb.segments.slice(1).map((seg, i) => {
-                const isCurrent = i === breadcrumb.segments.length - 2;
-                return (
-                  <li
-                    key={i}
-                    style={{
-                      position: "relative",
-                      paddingLeft: 16,
-                      marginLeft: 10 * i,
-                      marginTop: 12,
-                    }}
-                    aria-current={isCurrent ? "page" : undefined}
-                  >
-                    <svg
-                      aria-hidden
-                      width="12"
-                      height="16"
-                      viewBox="0 0 12 16"
-                      fill="none"
-                      style={{
-                        position: "absolute",
-                        left: 2,
-                        top: -7,
-                      }}
-                    >
-                      <path
-                        d="M0 0V15H11"
-                        stroke="var(--dawn-15)"
-                        strokeWidth="1"
-                        strokeLinecap="square"
-                        strokeLinejoin="miter"
-                        vectorEffect="non-scaling-stroke"
-                      />
-                    </svg>
-                    {seg.href ? (
-                      <Link
-                        href={seg.href}
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: "11px",
-                          letterSpacing: "0.08em",
-                          textTransform: "uppercase",
-                          color: "var(--gold)",
-                          textDecoration: "none",
-                          border: "1px solid var(--gold)",
-                          padding: "2px 7px",
-                          transition: "color 100ms ease",
-                          display: "inline-flex",
-                          alignItems: "center",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.color = "var(--gold)";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.color = "var(--gold)";
-                        }}
-                      >
-                        {seg.label}
-                      </Link>
-                    ) : (
-                      <span
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: "11px",
-                          letterSpacing: "0.08em",
-                          textTransform: "uppercase",
-                          color: "var(--gold)",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          border: "1px solid var(--gold)",
-                          padding: "2px 7px",
-                        }}
-                      >
-                        {seg.label}
-                      </span>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
+            <div style={{ marginTop: 10, paddingLeft: 4 }}>
+              {breadcrumb.segments.slice(1).map((seg, i) => (
+                <span
+                  key={i}
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "10px",
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    color: "var(--gold)",
+                    display: "block",
+                    marginTop: i > 0 ? 4 : 0,
+                  }}
+                >
+                  {seg.label}
+                </span>
+              ))}
+            </div>
           )}
 
           {/* Portal target for page-specific tree extensions (e.g. waypoints) */}

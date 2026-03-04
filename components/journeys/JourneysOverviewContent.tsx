@@ -2,8 +2,10 @@
 
 import useSWR from "swr";
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { JourneyCard, type JourneyCardItem } from "@/components/journeys/JourneyCard";
+import type { JourneyCardItem } from "@/components/journeys/JourneyCard";
+import { JourneyCardCompact } from "@/components/ui/JourneyCardCompact";
 import { Dialog } from "@/components/ui/Dialog";
 import { HudPanel, HudEmptyState } from "@/components/ui/hud";
 import { SectionHeader } from "@/components/ui/SectionHeader";
@@ -54,7 +56,15 @@ function JourneyCardWithMenu({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => { setHovered(false); setMenuOpen(false); }}
     >
-      <JourneyCard journey={journey} />
+      <JourneyCardCompact
+        as={Link}
+        href={`/journeys/${journey.id}`}
+        name={journey.name}
+        type={journey.type}
+        routeCount={journey.routeCount}
+        generationCount={journey.generationCount}
+        prefetch
+      />
       {isAdmin && (hovered || menuOpen) && (
         <button
           type="button"

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AdminStatsPanel } from "@/components/dashboard/AdminStatsPanel";
 import { Dialog } from "@/components/ui/Dialog";
-import { Diamond } from "@/components/ui/Diamond";
+import { JourneyCardCompact } from "@/components/ui/JourneyCardCompact";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 
 export type JourneyPanelRoute = {
@@ -254,75 +254,15 @@ export function JourneyPanel({
                       style={{ position: "absolute", left: -16, top: 36, bottom: -8, width: 1, background: "var(--dawn-15)" }}
                     />
                   )}
-                  <div
-                    role="button"
-                    tabIndex={0}
+                  <JourneyCardCompact
+                    name={journey.name}
+                    type={category}
+                    routeCount={journey.routeCount}
+                    generationCount={journey.generationCount}
                     onClick={() => onSelectJourney(journey.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        onSelectJourney(journey.id);
-                      }
-                    }}
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      width: "100%",
-                      padding: "10px 14px 14px",
-                      background: isSelected ? "var(--gold-10)" : isHovered ? "var(--dawn-04)" : "var(--surface-0)",
-                      border: "1px solid " + (isSelected ? "var(--gold-30, rgba(202,165,84,0.3))" : isHovered ? "var(--dawn-15)" : "var(--dawn-08)"),
-                      color: "var(--dawn)",
-                      fontFamily: "var(--font-mono)",
-                      textAlign: "left",
-                      cursor: "pointer",
-                      transition: "background 100ms, border-color 100ms",
-                    }}
-                  >
-                    {/* Category row */}
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                        fontSize: "9px",
-                        letterSpacing: "0.1em",
-                        textTransform: "uppercase",
-                        color: "var(--dawn-40)",
-                        paddingRight: 24,
-                      }}
-                      onMouseEnter={() => setActionHoverId(journey.id)}
-                    >
-                      <Diamond active={category === "learn"} size="sm" />
-                      {category}
-                    </div>
-
-                    {/* Divider */}
-                    <div style={{ borderTop: "1px solid var(--dawn-08)", marginTop: 8, marginBottom: 8 }} />
-
-                    {/* Title row with open action */}
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 8,
-                        marginBottom: 6,
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: "12px",
-                          letterSpacing: "0.08em",
-                          textTransform: "uppercase",
-                          color: isSelected ? "var(--gold)" : "var(--dawn)",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          transition: "color 100ms",
-                        }}
-                      >
-                        {journey.name}
-                      </span>
+                    selected={isSelected}
+                    style={isHovered && !isSelected ? { background: "var(--dawn-04)", borderColor: "var(--dawn-15)" } : undefined}
+                    action={
                       <button
                         type="button"
                         onClick={(e) => {
@@ -338,23 +278,14 @@ export function JourneyPanel({
                           border: "none",
                           background: "transparent",
                           padding: 0,
-                          marginTop: 2,
                           fontFamily: "var(--font-mono)",
                           fontSize: "9px",
                           letterSpacing: "0.08em",
                           textTransform: "uppercase",
                           lineHeight: 1.2,
                           cursor: "pointer",
-                          transition: "opacity 100ms, color 100ms",
+                          transition: "opacity 100ms",
                           opacity: isHovered || isSelected ? 1 : 0.75,
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.opacity = "1";
-                          e.currentTarget.style.color = "var(--gold)";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.opacity = isHovered || isSelected ? "1" : "0.75";
-                          e.currentTarget.style.color = "var(--gold)";
                         }}
                       >
                         <span
@@ -369,24 +300,8 @@ export function JourneyPanel({
                         />
                         Open
                       </button>
-                    </div>
-
-                    {/* Stats */}
-                    <div
-                      style={{
-                        fontSize: "9px",
-                        letterSpacing: "0.05em",
-                        textTransform: "uppercase",
-                        color: isSelected ? "var(--gold-50, var(--gold))" : "var(--dawn-50)",
-                        display: "flex",
-                        gap: 10,
-                        transition: "color 100ms",
-                      }}
-                    >
-                      <span>{journey.routeCount} routes</span>
-                      <span>{journey.generationCount} gen</span>
-                    </div>
-                  </div>
+                    }
+                  />
 
                   {showActions && (
                     <div

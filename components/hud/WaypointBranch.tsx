@@ -42,7 +42,7 @@ export function WaypointBranch({
   if (!mounted || !portalRef.current) return null;
 
   const content = (
-    <div style={{ paddingLeft: INDENT, marginTop: 20 }}>
+    <div style={{ paddingLeft: INDENT, marginTop: 24 }}>
       <ul
         style={{
           listStyle: "none",
