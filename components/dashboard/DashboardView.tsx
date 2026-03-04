@@ -215,19 +215,19 @@ export function DashboardView({
     >
       <svg
         aria-hidden
-        width="252"
+        width="60"
         height="1"
-        viewBox="0 0 252 1"
+        viewBox="0 0 60 1"
         fill="none"
         style={{
           position: "absolute",
-          left: 140,
-          top: 14,
+          left: 344,
+          top: 38,
           pointerEvents: "none",
         }}
       >
         <path
-          d="M0 0H252"
+          d="M0 0H60"
           stroke="var(--dawn-15)"
           strokeWidth="1"
           strokeLinecap="square"

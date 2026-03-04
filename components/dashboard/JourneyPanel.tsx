@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AdminStatsPanel } from "@/components/dashboard/AdminStatsPanel";
 import { Dialog } from "@/components/ui/Dialog";
@@ -61,6 +61,9 @@ function TrashIcon() {
   );
 }
 
+const CAROUSEL_GAP = 8;
+const WHEEL_COOLDOWN = 250;
+
 export function JourneyPanel({
   journeys,
   selectedJourneyId,
@@ -85,6 +88,43 @@ export function JourneyPanel({
   const [renaming, setRenaming] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const wheelContainerRef = useRef<HTMLDivElement>(null);
+  const cardElMap = useRef<Map<string, HTMLDivElement>>(new Map());
+  const selectedIdRef = useRef(selectedJourneyId);
+  const lastWheelTime = useRef(0);
+  const [carouselOffset, setCarouselOffset] = useState(0);
+
+  selectedIdRef.current = selectedJourneyId;
+  const selectedIdx = journeys.findIndex((j) => j.id === selectedJourneyId);
+
+  useEffect(() => {
+    if (selectedIdx <= 0) { setCarouselOffset(0); return; }
+    let offset = 0;
+    for (let i = 0; i < selectedIdx; i++) {
+      const el = cardElMap.current.get(journeys[i]!.id);
+      offset += (el?.offsetHeight ?? 90) + CAROUSEL_GAP;
+    }
+    setCarouselOffset(offset);
+  }, [selectedIdx, journeys]);
+
+  useEffect(() => {
+    const el = wheelContainerRef.current;
+    if (!el || journeys.length <= 1) return;
+    const handler = (e: WheelEvent) => {
+      e.preventDefault();
+      const now = Date.now();
+      if (now - lastWheelTime.current < WHEEL_COOLDOWN) return;
+      if (Math.abs(e.deltaY) < 5) return;
+      lastWheelTime.current = now;
+      const dir = e.deltaY > 0 ? 1 : -1;
+      const curIdx = journeys.findIndex((j) => j.id === selectedIdRef.current);
+      const nextIdx = Math.max(0, Math.min(journeys.length - 1, curIdx + dir));
+      if (nextIdx !== curIdx) onSelectJourney(journeys[nextIdx]!.id);
+    };
+    el.addEventListener("wheel", handler, { passive: false });
+    return () => el.removeEventListener("wheel", handler);
+  }, [journeys, onSelectJourney]);
 
   function openRenameDialog(id: string) {
     const journey = journeys.find((j) => j.id === id);
@@ -201,7 +241,16 @@ export function JourneyPanel({
         }
       />
 
-      <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+      <div
+        ref={wheelContainerRef}
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflow: "hidden",
+          position: "relative",
+          cursor: journeys.length > 1 ? "ns-resize" : undefined,
+        }}
+      >
         {journeys.length === 0 ? (
           <p
             style={{
@@ -213,176 +262,230 @@ export function JourneyPanel({
             No journeys assigned
           </p>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingLeft: 18, paddingTop: 8 }}>
-            {journeys.map((journey, idx) => {
-              const isSelected = selectedJourneyId === journey.id;
-              const isHovered = hoveredId === journey.id;
-              const category = journey.type === "learn" ? "learn" : "create";
-              const showActions = isAdmin && actionHoverId === journey.id;
-              const isLast = idx === journeys.length - 1;
-              return (
-                <div
-                  key={journey.id}
-                  style={{ position: "relative" }}
-                  onMouseEnter={() => setHoveredId(journey.id)}
-                  onMouseMove={(e) => {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const y = e.clientY - rect.top;
-                    if (y <= 34) setActionHoverId(journey.id);
-                    else if (actionHoverId === journey.id) setActionHoverId(null);
-                  }}
-                  onMouseLeave={() => {
-                    setHoveredId(null);
-                    if (actionHoverId === journey.id) setActionHoverId(null);
-                  }}
-                >
-                  {/* Tree L-connector */}
-                  <svg
-                    aria-hidden
-                    width="14"
-                    height="40"
-                    viewBox="0 0 14 40"
-                    fill="none"
-                    style={{ position: "absolute", left: -16, top: -4 }}
-                  >
-                    <path d="M0 0V39H13" stroke="var(--dawn-15)" strokeWidth="1" strokeLinecap="square" strokeLinejoin="miter" vectorEffect="non-scaling-stroke" />
-                  </svg>
-                  {/* Vertical continuation line */}
-                  {!isLast && (
-                    <div
-                      aria-hidden
-                      style={{ position: "absolute", left: -16, top: 36, bottom: -8, width: 1, background: "var(--dawn-15)" }}
-                    />
-                  )}
-                  <JourneyCardCompact
-                    name={journey.name}
-                    type={category}
-                    routeCount={journey.routeCount}
-                    generationCount={journey.generationCount}
-                    onClick={() => onSelectJourney(journey.id)}
-                    selected={isSelected}
-                    style={isHovered && !isSelected ? { background: "var(--dawn-04)", borderColor: "var(--dawn-15)" } : undefined}
-                    action={
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/journeys/${journey.id}`);
-                        }}
-                        style={{
-                          color: "var(--gold)",
-                          flexShrink: 0,
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 6,
-                          border: "none",
-                          background: "transparent",
-                          padding: 0,
-                          fontFamily: "var(--font-mono)",
-                          fontSize: "9px",
-                          letterSpacing: "0.08em",
-                          textTransform: "uppercase",
-                          lineHeight: 1.2,
-                          cursor: "pointer",
-                          transition: "opacity 100ms",
-                          opacity: isHovered || isSelected ? 1 : 0.75,
-                        }}
-                      >
-                        <span
-                          aria-hidden
-                          style={{
-                            width: 5,
-                            height: 5,
-                            background: "currentColor",
-                            transform: "rotate(45deg)",
-                            display: "inline-block",
-                          }}
-                        />
-                        Open
-                      </button>
-                    }
-                  />
+          <>
+            {/* Fixed selection rail */}
+            <div
+              aria-hidden
+              style={{
+                position: "absolute",
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: 2,
+                background: "var(--dawn-08)",
+                zIndex: 1,
+                pointerEvents: "none",
+              }}
+            />
+            {/* Gold active-slot indicator */}
+            <div
+              aria-hidden
+              style={{
+                position: "absolute",
+                left: 0,
+                top: 8,
+                width: 2,
+                height: 24,
+                background: "var(--gold)",
+                zIndex: 2,
+                pointerEvents: "none",
+                transition: "opacity var(--duration-base)",
+              }}
+            />
 
-                  {showActions && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: 8,
-                        right: 8,
-                        display: "flex",
-                        gap: 2,
-                      }}
-                      onMouseEnter={() => setActionHoverId(journey.id)}
-                      onMouseLeave={() => setActionHoverId(null)}
-                    >
-                      <button
-                        type="button"
-                        title="Rename journey"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openRenameDialog(journey.id);
-                        }}
+            {/* Sliding card stack */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: CAROUSEL_GAP,
+                paddingLeft: 10,
+                paddingTop: 8,
+                paddingBottom: 40,
+                transform: `translateY(-${carouselOffset}px)`,
+                transition: "transform 300ms cubic-bezier(0.19, 1, 0.22, 1)",
+              }}
+            >
+              {journeys.map((journey, idx) => {
+                const dist = idx - selectedIdx;
+                const isSelected = dist === 0;
+                const isHovered = hoveredId === journey.id;
+                const showActions = isAdmin && actionHoverId === journey.id;
+                const dimming = isSelected ? 1 : Math.max(0.35, 1 - Math.abs(dist) * 0.2);
+
+                return (
+                  <div
+                    key={journey.id}
+                    ref={(el) => {
+                      if (el) cardElMap.current.set(journey.id, el);
+                      else cardElMap.current.delete(journey.id);
+                    }}
+                    style={{
+                      position: "relative",
+                      opacity: dimming,
+                      transition: "opacity 300ms ease",
+                    }}
+                    onMouseEnter={() => setHoveredId(journey.id)}
+                    onMouseMove={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const y = e.clientY - rect.top;
+                      if (y <= 34) setActionHoverId(journey.id);
+                      else if (actionHoverId === journey.id) setActionHoverId(null);
+                    }}
+                    onMouseLeave={() => {
+                      setHoveredId(null);
+                      if (actionHoverId === journey.id) setActionHoverId(null);
+                    }}
+                  >
+                    <JourneyCardCompact
+                      name={journey.name}
+                      type={journey.type === "learn" ? "learn" : "create"}
+                      routeCount={journey.routeCount}
+                      generationCount={journey.generationCount}
+                      onClick={() => onSelectJourney(journey.id)}
+                      selected={isSelected}
+                      style={isHovered && !isSelected ? { background: "var(--dawn-04)" } : undefined}
+                      action={
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/journeys/${journey.id}`);
+                          }}
+                          style={{
+                            color: "var(--gold)",
+                            flexShrink: 0,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 6,
+                            border: "none",
+                            background: "transparent",
+                            padding: 0,
+                            fontFamily: "var(--font-mono)",
+                            fontSize: "9px",
+                            letterSpacing: "0.08em",
+                            textTransform: "uppercase",
+                            lineHeight: 1.2,
+                            cursor: "pointer",
+                            transition: "opacity 100ms",
+                            opacity: isHovered || isSelected ? 1 : 0.75,
+                          }}
+                        >
+                          <span
+                            aria-hidden
+                            style={{
+                              width: 5,
+                              height: 5,
+                              background: "currentColor",
+                              transform: "rotate(45deg)",
+                              display: "inline-block",
+                            }}
+                          />
+                          Open
+                        </button>
+                      }
+                    />
+
+                    {showActions && (
+                      <div
                         style={{
+                          position: "absolute",
+                          top: 8,
+                          right: 8,
                           display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          width: 22,
-                          height: 22,
-                          padding: 0,
-                          background: "transparent",
-                          border: "none",
-                          color: "var(--dawn-30)",
-                          cursor: "pointer",
-                          transition: "color 80ms ease, background 80ms ease",
+                          gap: 2,
                         }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.color = "var(--dawn)";
-                          e.currentTarget.style.background = "var(--dawn-08)";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.color = "var(--dawn-30)";
-                          e.currentTarget.style.background = "transparent";
-                        }}
+                        onMouseEnter={() => setActionHoverId(journey.id)}
+                        onMouseLeave={() => setActionHoverId(null)}
                       >
-                        <PencilIcon />
-                      </button>
-                      <button
-                        type="button"
-                        title="Delete journey"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openDeleteDialog(journey.id);
-                        }}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          width: 22,
-                          height: 22,
-                          padding: 0,
-                          background: "transparent",
-                          border: "none",
-                          color: "var(--dawn-30)",
-                          cursor: "pointer",
-                          transition: "color 80ms ease, background 80ms ease",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.color = "var(--status-error, #c17f59)";
-                          e.currentTarget.style.background = "var(--dawn-08)";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.color = "var(--dawn-30)";
-                          e.currentTarget.style.background = "transparent";
-                        }}
-                      >
-                        <TrashIcon />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                        <button
+                          type="button"
+                          title="Rename journey"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openRenameDialog(journey.id);
+                          }}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: 22,
+                            height: 22,
+                            padding: 0,
+                            background: "transparent",
+                            border: "none",
+                            color: "var(--dawn-30)",
+                            cursor: "pointer",
+                            transition: "color 80ms ease, background 80ms ease",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = "var(--dawn)";
+                            e.currentTarget.style.background = "var(--dawn-08)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = "var(--dawn-30)";
+                            e.currentTarget.style.background = "transparent";
+                          }}
+                        >
+                          <PencilIcon />
+                        </button>
+                        <button
+                          type="button"
+                          title="Delete journey"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openDeleteDialog(journey.id);
+                          }}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: 22,
+                            height: 22,
+                            padding: 0,
+                            background: "transparent",
+                            border: "none",
+                            color: "var(--dawn-30)",
+                            cursor: "pointer",
+                            transition: "color 80ms ease, background 80ms ease",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = "var(--status-error, #c17f59)";
+                            e.currentTarget.style.background = "var(--dawn-08)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = "var(--dawn-30)";
+                            e.currentTarget.style.background = "transparent";
+                          }}
+                        >
+                          <TrashIcon />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Position indicator */}
+            {journeys.length > 1 && (
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: 4,
+                  left: 10,
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "8px",
+                  letterSpacing: "0.1em",
+                  color: "var(--dawn-30)",
+                  fontVariantNumeric: "tabular-nums",
+                  pointerEvents: "none",
+                }}
+              >
+                {String(selectedIdx + 1).padStart(2, "0")}/{String(journeys.length).padStart(2, "0")}
+              </div>
+            )}
+          </>
         )}
       </div>
 

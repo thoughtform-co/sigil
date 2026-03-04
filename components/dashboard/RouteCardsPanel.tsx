@@ -133,7 +133,7 @@ export function RouteCardsPanel({ routes, journeyId, onRouteCreated, onRouteDele
         style={{
           position: "absolute",
           left: "var(--space-sm)",
-          top: 41,
+          top: 38,
           bottom: 0,
           width: 1,
           background: "var(--dawn-15)",
@@ -216,7 +216,7 @@ export function RouteCardsPanel({ routes, journeyId, onRouteCreated, onRouteDele
               height="24"
               viewBox="0 0 20 24"
               fill="none"
-              style={{ position: "absolute", left: 0, top: 56 }}
+              style={{ position: "absolute", left: 0, top: 53 }}
             >
               <path d="M0 0V11H19" stroke="var(--dawn-15)" strokeWidth="1" strokeLinecap="square" strokeLinejoin="miter" vectorEffect="non-scaling-stroke" />
             </svg>
