@@ -10,14 +10,22 @@ import type { DashboardRouteItem } from "./DashboardView";
 type RouteCardsPanelProps = {
   routes: DashboardRouteItem[];
   journeyId: string | null;
+  selectedRouteId?: string | null;
+  onSelectRoute?: (routeId: string) => void;
   onRouteCreated: () => void;
   onRouteDeleted?: (routeId: string) => void;
   onRouteRenamed?: (routeId: string, name: string) => void;
 };
 
-export function RouteCardsPanel({ routes, journeyId, onRouteCreated, onRouteDeleted, onRouteRenamed }: RouteCardsPanelProps) {
+export function RouteCardsPanel({ routes, journeyId, selectedRouteId: controlledRouteId, onSelectRoute, onRouteCreated, onRouteDeleted, onRouteRenamed }: RouteCardsPanelProps) {
   const router = useRouter();
-  const [focusedRouteId, setFocusedRouteId] = useState<string | null>(null);
+  const [internalFocusId, setInternalFocusId] = useState<string | null>(null);
+  const isControlled = controlledRouteId !== undefined;
+  const focusedRouteId = isControlled ? controlledRouteId : internalFocusId;
+  const setFocusedRouteId = (id: string | null) => {
+    if (id && onSelectRoute) onSelectRoute(id);
+    if (!isControlled) setInternalFocusId(id);
+  };
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [name, setName] = useState("");
@@ -32,12 +40,15 @@ export function RouteCardsPanel({ routes, journeyId, onRouteCreated, onRouteDele
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    setFocusedRouteId((prev) => {
-      if (routes.length === 0) return null;
-      if (prev && routes.some((r) => r.id === prev)) return prev;
-      return routes[0]!.id;
-    });
-  }, [routes]);
+    if (routes.length === 0) {
+      if (!isControlled) setInternalFocusId(null);
+      return;
+    }
+    if (focusedRouteId && routes.some((r) => r.id === focusedRouteId)) return;
+    const first = routes[0]!.id;
+    if (onSelectRoute) onSelectRoute(first);
+    if (!isControlled) setInternalFocusId(first);
+  }, [routes]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!focusedRouteId) return;

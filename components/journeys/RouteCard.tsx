@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { ImageDiskStack } from "./ImageDiskStack";
+import { CardFrame } from "@/components/ui/CardFrame";
+import { CardTitle, CardStats, CardDivider } from "@/components/ui/card";
 
 export type RouteCardItem = {
   id: string;
@@ -30,93 +32,44 @@ export function RouteCard({ route }: RouteCardProps) {
     : [];
 
   return (
-    <Link
+    <CardFrame
+      as={Link}
       href={`/routes/${route.id}/image`}
       prefetch={true}
-      className="group relative block overflow-hidden transition-all"
+      className="transition-all"
       style={{
-        background: "var(--surface-0)",
-        border: "1px solid var(--dawn-08)",
         padding: "20px",
-        transitionDuration: "var(--duration-base)",
-        transitionTimingFunction: "var(--ease-out)",
         display: "grid",
         gridTemplateColumns: "1fr auto",
         gap: "var(--space-md)",
         alignItems: "start",
+        textDecoration: "none",
       }}
     >
-      {/* Corner accents — visible on hover */}
-      <span
-        className="pointer-events-none absolute -left-px -top-px opacity-0 transition-opacity group-hover:opacity-100"
-        style={{
-          width: "14px",
-          height: "14px",
-          borderTop: "1px solid var(--gold)",
-          borderLeft: "1px solid var(--gold)",
-          transitionDuration: "var(--duration-base)",
-        }}
-      />
-      <span
-        className="pointer-events-none absolute -right-px -top-px opacity-0 transition-opacity group-hover:opacity-100"
-        style={{
-          width: "14px",
-          height: "14px",
-          borderTop: "1px solid var(--gold)",
-          borderRight: "1px solid var(--gold)",
-          transitionDuration: "var(--duration-base)",
-        }}
-      />
-      <span
-        className="pointer-events-none absolute -bottom-px -left-px opacity-0 transition-opacity group-hover:opacity-100"
-        style={{
-          width: "14px",
-          height: "14px",
-          borderBottom: "1px solid var(--gold)",
-          borderLeft: "1px solid var(--gold)",
-          transitionDuration: "var(--duration-base)",
-        }}
-      />
-      <span
-        className="pointer-events-none absolute -bottom-px -right-px opacity-0 transition-opacity group-hover:opacity-100"
-        style={{
-          width: "14px",
-          height: "14px",
-          borderBottom: "1px solid var(--gold)",
-          borderRight: "1px solid var(--gold)",
-          transitionDuration: "var(--duration-base)",
-        }}
-      />
-
-      {/* Left: metadata */}
       <div style={{ minWidth: 0 }}>
-        <div className="mb-3 flex items-start justify-between gap-3">
-          <h2
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "13px",
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              color: "var(--dawn)",
-            }}
-          >
-            {route.name}
-          </h2>
-          <span
-            className="transition-colors group-hover:text-[var(--gold)]"
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "9px",
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              color: "var(--dawn-70)",
-              flexShrink: 0,
-              transitionDuration: "var(--duration-fast)",
-            }}
-          >
-            open &rarr;
-          </span>
-        </div>
+        <CardTitle
+          as="h2"
+          fontSize="13px"
+          action={
+            <span
+              className="transition-colors group-hover:text-[var(--gold)]"
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "9px",
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                color: "var(--dawn-70)",
+                flexShrink: 0,
+                transitionDuration: "var(--duration-fast)",
+              }}
+            >
+              open &rarr;
+            </span>
+          }
+          style={{ marginBottom: 12 }}
+        >
+          {route.name}
+        </CardTitle>
 
         <p
           style={{
@@ -130,26 +83,19 @@ export function RouteCard({ route }: RouteCardProps) {
           {route.description ?? "No description"}
         </p>
 
-        <div
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: "9px",
-            letterSpacing: "0.05em",
-            textTransform: "uppercase",
-            color: "var(--dawn-70)",
-            borderTop: "1px solid var(--dawn-08)",
-            paddingTop: "12px",
-          }}
-        >
-          <span style={{ display: "block", marginBottom: "4px" }}>
-            {route.waypointCount} waypoint{route.waypointCount !== 1 ? "s" : ""}
-          </span>
-          updated {new Date(route.updatedAt).toLocaleDateString()}
-        </div>
+        <CardDivider marginTop={0} marginBottom={12} />
+
+        <CardStats
+          entries={[
+            { value: route.waypointCount, label: `waypoint${route.waypointCount !== 1 ? "s" : ""}` },
+            { value: `updated ${new Date(route.updatedAt).toLocaleDateString()}` },
+          ]}
+          color="var(--dawn-70)"
+          style={{ flexDirection: "column", gap: 4 }}
+        />
       </div>
 
-      {/* Right: image stack */}
       <ImageDiskStack images={thumbnails} size="md" />
-    </Link>
+    </CardFrame>
   );
 }

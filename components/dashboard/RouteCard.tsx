@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRef, useEffect, useState } from "react";
 import type { DashboardRouteItem } from "./DashboardView";
+import { ParticleIcon } from "@/components/ui/ParticleIcon";
 
 type RouteCardProps = {
   route: DashboardRouteItem;
@@ -353,24 +354,29 @@ export function RouteCard({ route, isActive, onSelect, onNavigate, onRename, onD
               </div>
             </div>
 
-            {/* Diamond sockets — active only */}
+            {/* Navigate arrow — active only */}
             {isActive && (
               <div
                 style={{
                   marginTop: "8px",
                   display: "flex",
-                  gap: "5px",
-                  fontSize: "9px",
-                  lineHeight: 1,
+                  alignItems: "center",
+                  gap: "6px",
                 }}
               >
+                <ParticleIcon glyph="arrow" size="sm" active />
                 {Array.from({ length: Math.min(Math.max(route.waypointCount, 1), 6) }).map((_, i) => (
                   <span
                     key={i}
-                    style={{ color: i < route.thumbnails.length ? "var(--gold-30)" : "var(--dawn-15)" }}
-                  >
-                    ◇
-                  </span>
+                    style={{
+                      width: 4,
+                      height: 4,
+                      background: i < route.thumbnails.length ? "var(--gold-30)" : "var(--dawn-15)",
+                      transform: "rotate(45deg)",
+                      display: "inline-block",
+                      flexShrink: 0,
+                    }}
+                  />
                 ))}
               </div>
             )}

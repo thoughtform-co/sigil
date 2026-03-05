@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ImageDiskStack, type ImageDiskStackImage } from "./ImageDiskStack";
 import { CardFrame } from "@/components/ui/CardFrame";
-import { CategoryRow } from "@/components/ui/CategoryRow";
+import { CardCategory, CardTitle, CardStats, CardDivider } from "@/components/ui/card";
 import { ParticleIcon } from "@/components/ui/ParticleIcon";
 
 export type JourneyCardItem = {
@@ -36,40 +36,41 @@ export function JourneyCard({ journey }: JourneyCardProps) {
         gridTemplateColumns: "1fr auto",
         gap: "var(--space-md)",
         alignItems: "start",
+        textDecoration: "none",
       }}
     >
       <div style={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
-        <CategoryRow category={category} active={category === "learn"} style={{ paddingRight: 24 }} />
+        <CardCategory
+          category={category}
+          active={category === "learn"}
+          gap={8}
+          style={{ paddingRight: 24 }}
+        />
 
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h2
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "13px",
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              color: "var(--dawn)",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {journey.name}
-          </h2>
-          <span
-            className="transition-colors group-hover:text-[var(--gold)]"
-            style={{
-              color: "var(--dawn-50)",
-              flexShrink: 0,
-              display: "inline-flex",
-              alignItems: "center",
-              transitionDuration: "var(--duration-fast)",
-            }}
-            aria-hidden="true"
-          >
-            <ParticleIcon glyph="arrow" size="sm" />
-          </span>
-        </div>
+        <CardDivider marginTop={10} marginBottom={10} />
+
+        <CardTitle
+          as="h2"
+          fontSize="13px"
+          action={
+            <span
+              className="transition-colors group-hover:text-[var(--gold)]"
+              style={{
+                color: "var(--dawn-50)",
+                flexShrink: 0,
+                display: "inline-flex",
+                alignItems: "center",
+                transitionDuration: "var(--duration-fast)",
+              }}
+              aria-hidden="true"
+            >
+              <ParticleIcon glyph="arrow" size="sm" />
+            </span>
+          }
+          style={{ marginBottom: 12 }}
+        >
+          {journey.name}
+        </CardTitle>
 
         {journey.description ? (
           <p
@@ -85,23 +86,14 @@ export function JourneyCard({ journey }: JourneyCardProps) {
           </p>
         ) : null}
 
-        <div
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: "9px",
-            letterSpacing: "0.05em",
-            textTransform: "uppercase",
-            color: "var(--dawn-70)",
-            marginTop: "auto",
-          }}
-        >
-          <span style={{ display: "block", marginBottom: "4px" }}>
-            {journey.routeCount} route{journey.routeCount !== 1 ? "s" : ""}
-          </span>
-          <span style={{ display: "block" }}>
-            {journey.generationCount} generation{journey.generationCount !== 1 ? "s" : ""}
-          </span>
-        </div>
+        <CardStats
+          entries={[
+            { value: journey.routeCount, label: `route${journey.routeCount !== 1 ? "s" : ""}` },
+            { value: journey.generationCount, label: `generation${journey.generationCount !== 1 ? "s" : ""}` },
+          ]}
+          color="var(--dawn-70)"
+          style={{ marginTop: "auto", flexDirection: "column", gap: 4 }}
+        />
       </div>
 
       <ImageDiskStack images={journey.thumbnails} size="sm" />

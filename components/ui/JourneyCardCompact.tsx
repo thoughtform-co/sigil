@@ -1,6 +1,6 @@
 import type { ReactNode, CSSProperties, ElementType } from "react";
-import { CardFrame } from "./CardFrame";
-import { Diamond } from "./Diamond";
+import { CardFrame, type CardState } from "./CardFrame";
+import { CardCategory, CardTitle, CardStats, CardDivider } from "./card";
 
 type JourneyCardCompactProps = {
   name: string;
@@ -11,7 +11,7 @@ type JourneyCardCompactProps = {
   href?: string;
   onClick?: () => void;
   as?: ElementType;
-  selected?: boolean;
+  state?: CardState;
   size?: "default" | "compact" | "mini";
   action?: ReactNode;
   className?: string;
@@ -34,7 +34,7 @@ export function JourneyCardCompact({
   href,
   onClick,
   as,
-  selected = false,
+  state = "default",
   size = "default",
   action,
   className,
@@ -44,6 +44,8 @@ export function JourneyCardCompact({
   const category = type === "learn" ? "learn" : "create";
   const isMini = size === "mini";
   const isCompact = size === "compact";
+  const isSelected = state === "selected" || state === "active";
+
   const showDivider = !isMini;
   const showStats = !isMini && (routeCount != null || generationCount != null);
 
@@ -51,80 +53,50 @@ export function JourneyCardCompact({
     padding: PADDING[size],
     textDecoration: "none",
     cursor: href || onClick ? "pointer" : undefined,
-    ...(selected
-      ? { background: "var(--gold-10)", borderColor: "var(--gold-30, rgba(202,165,84,0.3))" }
-      : {}),
     ...style,
   };
 
   const titleFontSize = isMini ? "11px" : isCompact ? "11px" : "12px";
   const statsFontSize = isCompact ? "8px" : "9px";
+  const dividerSpacing = isCompact ? 6 : 8;
+
+  const statsEntries = [];
+  if (routeCount != null) statsEntries.push({ value: routeCount, label: "routes" });
+  if (generationCount != null) statsEntries.push({ value: generationCount, label: "gen" });
 
   return (
     <CardFrame
       as={as}
       href={href}
       onClick={onClick}
+      state={state}
       className={className}
       style={frameStyle}
       prefetch={prefetch}
     >
-      {/* Category row */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          fontFamily: "var(--font-mono)",
-          fontSize: "9px",
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-          color: "var(--dawn-40)",
-        }}
-      >
-        <Diamond active={category === "learn"} size="sm" />
-        {category}
-      </div>
+      <CardCategory category={category} active={category === "learn"} />
 
       {showDivider && (
-        <div style={{ borderTop: "1px solid var(--dawn-08)", marginTop: isCompact ? 6 : 8, marginBottom: isCompact ? 6 : 8 }} />
+        <CardDivider marginTop={dividerSpacing} marginBottom={dividerSpacing} />
       )}
 
-      {/* Title row */}
-      <div
+      <CardTitle
+        fontSize={titleFontSize}
+        color={isSelected ? "var(--gold)" : "var(--dawn)"}
+        action={action}
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 8,
           marginTop: isMini ? 4 : 0,
           marginBottom: isMini ? 0 : routeName ? 2 : 6,
         }}
       >
-        <span
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: titleFontSize,
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            color: selected ? "var(--gold)" : "var(--dawn)",
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            transition: "color 100ms",
-          }}
-        >
-          {name}
-        </span>
-        {action}
-      </div>
+        {name}
+      </CardTitle>
 
-      {/* Route name -- compact and default when provided */}
       {routeName && !isMini && (
         <div
           style={{
             fontFamily: "var(--font-mono)",
-            fontSize: isCompact ? "10px" : "10px",
+            fontSize: "10px",
             letterSpacing: "0.06em",
             textTransform: "uppercase",
             color: "var(--dawn-50)",
@@ -138,23 +110,12 @@ export function JourneyCardCompact({
         </div>
       )}
 
-      {/* Stats row */}
       {showStats && (
-        <div
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: statsFontSize,
-            letterSpacing: "0.05em",
-            textTransform: "uppercase",
-            color: selected ? "var(--gold-50, var(--gold))" : "var(--dawn-50)",
-            display: "flex",
-            gap: 10,
-            transition: "color 100ms",
-          }}
-        >
-          {routeCount != null && <span>{routeCount} routes</span>}
-          {generationCount != null && <span>{generationCount} gen</span>}
-        </div>
+        <CardStats
+          entries={statsEntries}
+          fontSize={statsFontSize}
+          color={isSelected ? "var(--gold-50, var(--gold))" : "var(--dawn-50)"}
+        />
       )}
     </CardFrame>
   );

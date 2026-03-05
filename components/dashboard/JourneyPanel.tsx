@@ -6,6 +6,7 @@ import { AdminStatsPanel } from "@/components/dashboard/AdminStatsPanel";
 import { Dialog } from "@/components/ui/Dialog";
 import { JourneyCardCompact } from "@/components/ui/JourneyCardCompact";
 import { SectionHeader } from "@/components/ui/SectionHeader";
+import { CardArrowAction } from "@/components/ui/card";
 
 export type JourneyPanelRoute = {
   id: string;
@@ -37,6 +38,7 @@ type JourneyPanelProps = {
   journeys: JourneyPanelItem[];
   selectedJourneyId: string | null;
   onSelectJourney: (id: string) => void;
+  onSelectRoute?: (routeId: string) => void;
   onJourneyCreated?: () => void;
   onJourneyDeleted?: (id: string) => void;
   onJourneyRenamed?: (id: string, name: string) => void;
@@ -64,11 +66,14 @@ function TrashIcon() {
 const CAROUSEL_GAP = 8;
 const WHEEL_COOLDOWN = 70;
 const VISIBLE_SLOTS = 5;
+const TREE_INDENT = 24;
+const TREE_GUTTER = 14;
 
 export function JourneyPanel({
   journeys,
   selectedJourneyId,
   onSelectJourney,
+  onSelectRoute,
   onJourneyCreated,
   onJourneyDeleted,
   onJourneyRenamed,
@@ -89,6 +94,8 @@ export function JourneyPanel({
   const [renaming, setRenaming] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [expandedJourneyId, setExpandedJourneyId] = useState<string | null>(null);
+  const [hoveredRouteId, setHoveredRouteId] = useState<string | null>(null);
 
   const wheelContainerRef = useRef<HTMLDivElement>(null);
   const cardElMap = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -125,6 +132,8 @@ export function JourneyPanel({
     const el = wheelContainerRef.current;
     if (!el || journeys.length <= 1) return;
     const handler = (e: WheelEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest?.("[data-route-tree]")) return;
       e.preventDefault();
       const now = Date.now();
       if (now - lastWheelTime.current < WHEEL_COOLDOWN) return;
@@ -138,6 +147,10 @@ export function JourneyPanel({
     el.addEventListener("wheel", handler, { passive: false });
     return () => el.removeEventListener("wheel", handler);
   }, [journeys, onSelectJourney]);
+
+  useEffect(() => {
+    if (selectedJourneyId) setExpandedJourneyId(selectedJourneyId);
+  }, [selectedJourneyId]);
 
   function openRenameDialog(id: string) {
     const journey = journeys.find((j) => j.id === id);
@@ -276,7 +289,6 @@ export function JourneyPanel({
           </p>
         ) : (
           <>
-            {/* Windowed card stack */}
             <div
               style={{
                 display: "flex",
@@ -297,6 +309,7 @@ export function JourneyPanel({
                 const isHovered = hoveredId === journey.id;
                 const showActions = isAdmin && actionHoverId === journey.id;
                 const dimming = isSelected ? 1 : Math.max(0.35, 1 - Math.abs(dist) * 0.2);
+                const isExpanded = expandedJourneyId === journey.id && isSelected;
 
                 return (
                   <div
@@ -329,48 +342,126 @@ export function JourneyPanel({
                       routeCount={journey.routeCount}
                       generationCount={journey.generationCount}
                       onClick={() => onSelectJourney(journey.id)}
-                      selected={isSelected}
+                      state={isSelected ? "selected" : "default"}
                       style={isHovered && !isSelected ? { background: "var(--dawn-04)" } : undefined}
                       action={
-                        <button
-                          type="button"
+                        <CardArrowAction
                           onClick={(e) => {
                             e.stopPropagation();
                             router.push(`/journeys/${journey.id}`);
                           }}
-                          style={{
-                            color: "var(--gold)",
-                            flexShrink: 0,
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 6,
-                            border: "none",
-                            background: "transparent",
-                            padding: 0,
-                            fontFamily: "var(--font-mono)",
-                            fontSize: "9px",
-                            letterSpacing: "0.08em",
-                            textTransform: "uppercase",
-                            lineHeight: 1.2,
-                            cursor: "pointer",
-                            transition: "opacity 100ms",
-                            opacity: isHovered || isSelected ? 1 : 0.75,
-                          }}
-                        >
-                          <span
-                            aria-hidden
-                            style={{
-                              width: 5,
-                              height: 5,
-                              background: "currentColor",
-                              transform: "rotate(45deg)",
-                              display: "inline-block",
-                            }}
-                          />
-                          Open
-                        </button>
+                          active={isHovered || isSelected}
+                        />
                       }
                     />
+
+                    {/* Collapsible route tree */}
+                    {isExpanded && journey.routes.length > 0 && (
+                      <div
+                        data-route-tree
+                        style={{
+                          paddingLeft: TREE_INDENT,
+                          paddingTop: 8,
+                          paddingBottom: 4,
+                          position: "relative",
+                        }}
+                      >
+                        {journey.routes.map((route, routeIdx) => {
+                          const isLastRoute = routeIdx === journey.routes.length - 1;
+                          const isRouteHovered = hoveredRouteId === route.id;
+                          return (
+                            <div
+                              key={route.id}
+                              style={{
+                                position: "relative",
+                                paddingLeft: TREE_GUTTER,
+                                marginBottom: isLastRoute ? 0 : 6,
+                                cursor: "pointer",
+                              }}
+                              onMouseEnter={() => setHoveredRouteId(route.id)}
+                              onMouseLeave={() => setHoveredRouteId(null)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onSelectRoute?.(route.id);
+                              }}
+                              onDoubleClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/routes/${route.id}/image`);
+                              }}
+                            >
+                              {/* Tree connector */}
+                              <svg
+                                aria-hidden
+                                width={TREE_GUTTER}
+                                height="20"
+                                viewBox={`0 0 ${TREE_GUTTER} 20`}
+                                fill="none"
+                                style={{ position: "absolute", left: 0, top: -2 }}
+                              >
+                                <path
+                                  d={`M0 0V10H${TREE_GUTTER - 1}`}
+                                  stroke="var(--dawn-15)"
+                                  strokeWidth="1"
+                                  strokeLinecap="square"
+                                  strokeLinejoin="miter"
+                                  vectorEffect="non-scaling-stroke"
+                                />
+                              </svg>
+                              {!isLastRoute && (
+                                <div
+                                  aria-hidden
+                                  style={{
+                                    position: "absolute",
+                                    left: 0,
+                                    top: 10,
+                                    bottom: -6,
+                                    width: 1,
+                                    background: "var(--dawn-15)",
+                                  }}
+                                />
+                              )}
+
+                              {/* Route row — line-only treatment */}
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                  gap: 6,
+                                  paddingBottom: 4,
+                                  borderBottom: `1px solid ${isRouteHovered ? "var(--dawn-15)" : "var(--dawn-08)"}`,
+                                  transition: "border-color 120ms ease",
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    fontFamily: "var(--font-mono)",
+                                    fontSize: "10px",
+                                    letterSpacing: "0.06em",
+                                    textTransform: "uppercase",
+                                    color: isRouteHovered ? "var(--dawn)" : "var(--dawn-50)",
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    transition: "color 100ms",
+                                  }}
+                                >
+                                  {route.name}
+                                </span>
+                                <CardArrowAction
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    router.push(`/routes/${route.id}/image`);
+                                  }}
+                                  active={isRouteHovered}
+                                  style={{ opacity: isRouteHovered ? 1 : 0 }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
 
                     {showActions && (
                       <div
@@ -453,7 +544,6 @@ export function JourneyPanel({
               })}
             </div>
 
-            {/* Position indicator */}
             {journeys.length > 1 && (
               <div
                 style={{

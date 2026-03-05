@@ -7,10 +7,10 @@ type FrameOpts = {
   height?: number;
   fill?: RGB;
   fillOpacity?: number;
+  asComponent?: boolean;
 };
 
-export function createAutoLayoutFrame(opts: FrameOpts): FrameNode {
-  const frame = figma.createFrame();
+function applyAutoLayout(frame: FrameNode | ComponentNode, opts: FrameOpts): void {
   frame.name = opts.name;
   frame.layoutMode = opts.direction ?? "VERTICAL";
   frame.primaryAxisSizingMode = "AUTO";
@@ -42,6 +42,16 @@ export function createAutoLayoutFrame(opts: FrameOpts): FrameNode {
   } else {
     frame.fills = [];
   }
+}
 
+export function createAutoLayoutFrame(opts: FrameOpts): FrameNode {
+  const frame = figma.createFrame();
+  applyAutoLayout(frame, opts);
   return frame;
+}
+
+export function createAutoLayoutComponent(opts: FrameOpts): ComponentNode {
+  const comp = figma.createComponent();
+  applyAutoLayout(comp, opts);
+  return comp;
 }

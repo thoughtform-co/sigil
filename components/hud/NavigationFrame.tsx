@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { NavSpineProvider, useNavSpine } from "@/context/NavSpineContext";
-import { JourneyCardCompact } from "@/components/ui/JourneyCardCompact";
 import { SigilParticleLogo } from "./SigilParticleLogo";
 
 const THEME_KEY = "sigil-theme";
@@ -607,14 +606,93 @@ function NavigationFrameInner({
           }}
         >
           {journeyName ? (
-            <JourneyCardCompact
-              as={breadcrumb.segments[0].href ? Link : "div"}
-              href={breadcrumb.segments[0].href}
-              name={journeyName}
-              routeName={routeName}
-              size="compact"
-              style={{ width: NAV_SPINE_CARD_WIDTH }}
-            />
+            <div data-journey-selected style={{ width: NAV_SPINE_CARD_WIDTH }}>
+              {/* Journey header — line-only presentation */}
+              {breadcrumb.segments[0].href ? (
+                <Link
+                  href={breadcrumb.segments[0].href}
+                  style={{ display: "block", textDecoration: "none" }}
+                >
+                  <span
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "11px",
+                      fontWeight: 400,
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase" as const,
+                      color: "var(--dawn)",
+                      whiteSpace: "nowrap" as const,
+                      overflow: "hidden" as const,
+                      textOverflow: "ellipsis",
+                      display: "block",
+                    }}
+                  >
+                    {journeyName}
+                  </span>
+                  <div style={{ borderBottom: "1px solid var(--dawn-08)", marginTop: 6 }} />
+                </Link>
+              ) : (
+                <div>
+                  <span
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "11px",
+                      fontWeight: 400,
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase" as const,
+                      color: "var(--dawn)",
+                      whiteSpace: "nowrap" as const,
+                      overflow: "hidden" as const,
+                      textOverflow: "ellipsis",
+                      display: "block",
+                    }}
+                  >
+                    {journeyName}
+                  </span>
+                  <div style={{ borderBottom: "1px solid var(--dawn-08)", marginTop: 6 }} />
+                </div>
+              )}
+
+              {/* Route branch connector — current route only */}
+              {routeName && (
+                <div style={{ paddingLeft: 20, paddingTop: 8, position: "relative" }}>
+                  <svg
+                    aria-hidden
+                    width="14"
+                    height="18"
+                    viewBox="0 0 14 18"
+                    fill="none"
+                    style={{ position: "absolute", left: 2, top: 0 }}
+                  >
+                    <path
+                      d="M0 0V9H13"
+                      stroke="var(--dawn-15)"
+                      strokeWidth="1"
+                      strokeLinecap="square"
+                      strokeLinejoin="miter"
+                      vectorEffect="non-scaling-stroke"
+                    />
+                  </svg>
+                  <span
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "10px",
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase" as const,
+                      color: "var(--dawn-50)",
+                      whiteSpace: "nowrap" as const,
+                      overflow: "hidden" as const,
+                      textOverflow: "ellipsis",
+                      display: "block",
+                      paddingBottom: 4,
+                      borderBottom: "1px solid var(--dawn-08)",
+                    }}
+                  >
+                    {routeName}
+                  </span>
+                </div>
+              )}
+            </div>
           ) : (
             <span
               style={{

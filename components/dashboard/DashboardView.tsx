@@ -88,6 +88,7 @@ export function DashboardView({
     { revalidateOnFocus: false, dedupingInterval: 30_000 }
   );
   const [selectedJourneyId, setSelectedJourneyId] = useState<string | null>(null);
+  const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
 
   const handleJourneyDeleted = useCallback((id: string) => {
     void mutate(
@@ -238,7 +239,11 @@ export function DashboardView({
         <JourneyPanel
           journeys={data.journeys}
           selectedJourneyId={selectedJourneyId}
-          onSelectJourney={setSelectedJourneyId}
+          onSelectJourney={(id) => {
+            setSelectedJourneyId(id);
+            setSelectedRouteId(null);
+          }}
+          onSelectRoute={setSelectedRouteId}
           onJourneyCreated={() => void mutate()}
           onJourneyDeleted={handleJourneyDeleted}
           onJourneyRenamed={handleJourneyRenamed}
@@ -258,6 +263,8 @@ export function DashboardView({
         <RouteCardsPanel
           routes={routes}
           journeyId={selectedJourneyId}
+          selectedRouteId={selectedRouteId}
+          onSelectRoute={setSelectedRouteId}
           onRouteCreated={() => void mutate()}
           onRouteDeleted={handleRouteDeleted}
           onRouteRenamed={handleRouteRenamed}
