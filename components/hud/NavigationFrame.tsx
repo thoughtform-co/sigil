@@ -651,7 +651,7 @@ function NavigationFrameInner({
                     fontSize: "17px",
                     letterSpacing: "0.06em",
                     textTransform: "uppercase" as const,
-                    color: "var(--dawn)",
+                    color: "var(--gold)",
                     whiteSpace: "nowrap" as const,
                     overflow: "hidden" as const,
                     textOverflow: "ellipsis",
