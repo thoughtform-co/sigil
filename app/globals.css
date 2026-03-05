@@ -400,6 +400,32 @@ body {
   }
 }
 
+/* ─── WIDESCREEN LAYOUT SCALING ─── */
+
+@media (min-width: 1536px) {
+  :root {
+    --layout-content-sm: 1100px;
+    --layout-content-md: 1400px;
+    --layout-content-lg: 1600px;
+  }
+}
+
+@media (min-width: 1920px) {
+  :root {
+    --layout-content-sm: 1280px;
+    --layout-content-md: 1600px;
+    --layout-content-lg: 1800px;
+  }
+}
+
+@media (min-width: 2560px) {
+  :root {
+    --layout-content-sm: 1600px;
+    --layout-content-md: 1920px;
+    --layout-content-lg: 2200px;
+  }
+}
+
 /* ─── CONTENT SHELL ─── */
 
 .hud-shell {

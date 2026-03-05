@@ -235,9 +235,9 @@ export function JourneysOverviewContent({
 
   return (
     <section
-      className="w-full max-w-[1200px] animate-fade-in-up"
+      className="w-full animate-fade-in-up"
       style={{
-        alignSelf: "flex-start",
+        maxWidth: "var(--layout-content-md, 1200px)",
       }}
     >
       <SectionHeader

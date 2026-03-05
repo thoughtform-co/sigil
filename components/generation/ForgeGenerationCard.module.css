@@ -6,7 +6,7 @@
   grid-template-columns: minmax(200px, 240px) minmax(0, 1fr);
   gap: 16px;
   width: 100%;
-  max-width: 880px;
+  max-width: calc(var(--layout-content-md, 1200px) - 80px);
   background: transparent;
   overflow: visible;
 }
@@ -596,6 +596,16 @@
   }
   50% {
     opacity: 0.5;
+  }
+}
+
+@media (min-width: 1536px) {
+  .card {
+    gap: clamp(16px, 1vw, 24px);
+  }
+  .mediaPanel {
+    padding: clamp(12px, 0.8vw, 16px) clamp(20px, 1.2vw, 32px)
+      clamp(12px, 0.8vw, 16px) clamp(12px, 0.8vw, 16px);
   }
 }
 

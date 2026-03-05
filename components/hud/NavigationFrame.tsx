@@ -6,8 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { NavSpineProvider, useNavSpine } from "@/context/NavSpineContext";
 import { SigilParticleLogo } from "./SigilParticleLogo";
-import { CardFrame } from "@/components/ui/CardFrame";
-import { CardTitle, CardArrowAction, CardDivider, CardStats } from "@/components/ui/card";
+import { CardTitle, CardArrowAction } from "@/components/ui/card";
 
 const THEME_KEY = "sigil-theme";
 const GRID = 3;
@@ -168,7 +167,9 @@ function JourneyConnector() {
       const dt = lastTime ? Math.min((time - lastTime) / 1000, 0.05) : 0.016;
       lastTime = time;
 
-      const el = document.querySelector("[data-journey-selected]");
+      const el =
+        document.querySelector("[data-waypoint-active='true']") ??
+        document.querySelector("[data-journey-selected]");
       const path = pathRef.current;
       const diamond = diamondRef.current;
       const svg = svgRef.current;
@@ -608,73 +609,60 @@ function NavigationFrameInner({
           }}
         >
           {journeyName ? (
-            <CardFrame
-              presentation="ghost"
-              style={{
-                width: NAV_SPINE_CARD_WIDTH,
-                padding: "10px 14px",
-              }}
-            >
-              <div data-journey-selected>
-                <CardTitle
-                  fontSize="12px"
-                  color="var(--gold)"
-                  action={
-                    breadcrumb.segments[0].href ? (
-                      <CardArrowAction
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          if (breadcrumb.segments[0].href) router.push(breadcrumb.segments[0].href);
-                        }}
-                        active
-                      />
-                    ) : undefined
-                  }
+            <div style={{ width: NAV_SPINE_CARD_WIDTH }}>
+              <div style={{ display: "inline-flex", flexDirection: "column" }}>
+                <div
+                  data-journey-selected
+                  onClick={() => {
+                    if (breadcrumb.segments[0].href) router.push(breadcrumb.segments[0].href);
+                  }}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "4px 8px",
+                    background: "var(--surface-0)",
+                    border: "1px solid var(--dawn-08)",
+                    cursor: breadcrumb.segments[0].href ? "pointer" : undefined,
+                    transition: "border-color 120ms ease",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--gold-30)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--dawn-08)"; }}
                 >
-                  {journeyName}
-                </CardTitle>
-                <CardDivider marginTop={8} marginBottom={6} />
-                <CardStats entries={[{ value: "route" }]} fontSize="10px" color="var(--dawn-40)" />
+                  <CardTitle
+                    fontSize="12px"
+                    color="var(--gold)"
+                    action={
+                      breadcrumb.segments[0].href ? (
+                        <CardArrowAction active />
+                      ) : undefined
+                    }
+                  >
+                    {journeyName}
+                  </CardTitle>
+                </div>
+                <div style={{ borderBottom: "1px solid var(--dawn-08)", marginTop: 10 }} />
               </div>
 
               {routeName && (
-                <div style={{ paddingLeft: 16, paddingTop: 8, position: "relative" }}>
-                  <svg
-                    aria-hidden
-                    width="12"
-                    height="16"
-                    viewBox="0 0 12 16"
-                    fill="none"
-                    style={{ position: "absolute", left: 0, top: 1 }}
-                  >
-                    <path
-                      d="M0 0V8H11"
-                      stroke="var(--dawn-15)"
-                      strokeWidth="1"
-                      strokeLinecap="square"
-                      strokeLinejoin="miter"
-                      vectorEffect="non-scaling-stroke"
-                    />
-                  </svg>
-                  <span
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "10px",
-                      letterSpacing: "0.06em",
-                      textTransform: "uppercase" as const,
-                      color: "var(--dawn-50)",
-                      whiteSpace: "nowrap" as const,
-                      overflow: "hidden" as const,
-                      textOverflow: "ellipsis",
-                      display: "block",
-                    }}
-                  >
-                    {routeName}
-                  </span>
-                </div>
+                <span
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "17px",
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase" as const,
+                    color: "var(--dawn)",
+                    whiteSpace: "nowrap" as const,
+                    overflow: "hidden" as const,
+                    textOverflow: "ellipsis",
+                    display: "block",
+                    marginTop: 14,
+                  }}
+                >
+                  {routeName}
+                </span>
               )}
-            </CardFrame>
+            </div>
           ) : (
             <span
               style={{

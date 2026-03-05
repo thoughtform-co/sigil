@@ -46,7 +46,7 @@ export function WaypointBranch({
   if (!mounted || !portalRef.current) return null;
 
   const content = (
-    <div style={{ paddingLeft: INDENT, marginTop: 24 }}>
+    <div style={{ marginTop: 12 }}>
       <ul
         style={{
           listStyle: "none",
@@ -83,6 +83,8 @@ export function WaypointBranch({
           const isHovered = hoveredId === session.id;
           const isLast = idx === sessions.length - 1 && sessions.length > 0;
           const thumbUrl = sessionThumbnails?.[session.id];
+          const firstExtend = idx === 0 ? 14 : 0;
+          const svgH = THUMB / 2 + 8 + firstExtend;
           return (
             <li
               key={session.id}
@@ -96,13 +98,13 @@ export function WaypointBranch({
               <svg
                 aria-hidden
                 width={TREE_GUTTER}
-                height={THUMB / 2 + 8}
-                viewBox={`0 0 ${TREE_GUTTER} ${THUMB / 2 + 8}`}
+                height={svgH}
+                viewBox={`0 0 ${TREE_GUTTER} ${svgH}`}
                 fill="none"
-                style={{ position: "absolute", left: 2, top: -7 }}
+                style={{ position: "absolute", left: 2, top: -7 - firstExtend }}
               >
                 <path
-                  d={`M0 0V${THUMB / 2 + 7}H${TREE_GUTTER - 1}`}
+                  d={`M0 0V${svgH - 1}H${TREE_GUTTER - 1}`}
                   stroke="var(--dawn-15)"
                   strokeWidth="1"
                   strokeLinecap="square"
@@ -123,7 +125,6 @@ export function WaypointBranch({
                   }}
                 />
               )}
-
               <WaypointThumb
                 thumbUrl={thumbUrl}
                 isActive={isActive}
@@ -239,6 +240,7 @@ function WaypointThumb({
 
   return (
     <div
+      data-waypoint-active={isActive ? "true" : undefined}
       style={{
         position: "relative",
         width: w,

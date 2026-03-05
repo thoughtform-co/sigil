@@ -33,7 +33,7 @@ export default function LessonPage() {
           <div
             style={{
               paddingTop: "var(--space-2xl)",
-              maxWidth: 960,
+              maxWidth: "var(--layout-content-sm, 960px)",
               fontFamily: "var(--font-mono)",
               fontSize: "11px",
               color: "var(--dawn-30)",

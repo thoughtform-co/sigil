@@ -80,8 +80,8 @@ export function ProjectsView() {
 
   return (
     <section
-      className="w-full max-w-[960px] animate-fade-in-up"
-      style={{ paddingTop: "var(--space-2xl)" }}
+      className="w-full animate-fade-in-up"
+      style={{ maxWidth: "var(--layout-content-sm, 960px)", paddingTop: "var(--space-2xl)" }}
     >
       <HudPanel>
         <HudPanelHeader

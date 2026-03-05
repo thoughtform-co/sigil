@@ -1,10 +1,10 @@
-/* ForgeGallery — single-column centered feed (Atlas pattern), max 960px */
+/* ForgeGallery — single-column centered feed (Atlas pattern) */
 
 /* Reserve space above fixed prompt bar so last card stays visible (prompt bar ~bottom 24–48px + bar height) */
 .gallery {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   flex: 1;
   min-height: 0;
   overflow: visible;
@@ -17,7 +17,8 @@
   align-items: center;
   gap: 24px;
   width: 100%;
-  max-width: 960px;
+  max-width: var(--layout-content-md, 1200px);
+  align-self: center;
   overflow-y: auto;
   min-height: 0;
   flex: 1;
@@ -40,7 +41,7 @@
   text-align: center;
   border: 1px dashed var(--dawn-15);
   width: 100%;
-  max-width: 960px;
+  max-width: var(--layout-content-md, 1200px);
 }
 
 .emptyTitle {
@@ -63,7 +64,7 @@
   grid-template-columns: minmax(200px, 240px) minmax(0, 1fr);
   gap: 16px;
   width: 100%;
-  max-width: 880px;
+  max-width: calc(var(--layout-content-md, 1200px) - 80px);
 }
 
 .skeletonPrompt {

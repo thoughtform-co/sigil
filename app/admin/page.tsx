@@ -10,8 +10,8 @@ export default function AdminPage() {
     <RequireAdmin>
       <NavigationFrame title="SIGIL" modeLabel="admin">
         <section
-          className="w-full max-w-[960px] animate-fade-in-up"
-          style={{ paddingTop: "var(--space-2xl)", paddingBottom: "var(--space-3xl)" }}
+          className="w-full animate-fade-in-up"
+          style={{ maxWidth: "var(--layout-content-sm, 960px)", paddingTop: "var(--space-2xl)", paddingBottom: "var(--space-3xl)" }}
         >
           <h1
             className="sigil-section-label"

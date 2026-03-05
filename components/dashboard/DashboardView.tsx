@@ -203,9 +203,8 @@ export function DashboardView({
       className="dashboard-two-panel w-full animate-fade-in-up"
       style={{
         width: "100%",
-        maxWidth: 1400,
+        maxWidth: "var(--layout-content-lg, 1400px)",
         margin: 0,
-        alignSelf: "flex-start",
         height: "100%",
         minHeight: 0,
         position: "relative",

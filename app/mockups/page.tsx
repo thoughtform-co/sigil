@@ -413,6 +413,272 @@ function V9Route() {
   );
 }
 
+/* ══════════════════════════════════════════════════════════════
+   SYMBOL EXPLORATIONS (V10–V13)
+   
+   Different approach: break out of the CardFrame entirely.
+   The journey becomes a lightweight symbol + name marker.
+   The route name is promoted to the primary, larger title.
+   ══════════════════════════════════════════════════════════════ */
+
+/*
+   V10: Icon + journey name inline, no frame
+   ParticleIcon and journey name float freely as a small
+   contextual marker. Route name below at a larger size
+   becomes the page-level heading. Minimal, typographic.
+*/
+function V10Route() {
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <ParticleIcon glyph="logo" size="sm" />
+        <Mono size="9px" color="var(--dawn-50)">{SAMPLE.journeyName}</Mono>
+      </div>
+      <Mono size="14px" color="var(--dawn)" style={{ display: "block", marginTop: 6, letterSpacing: "0.06em" }}>
+        {SAMPLE.activeRoute}
+      </Mono>
+      <FakeWaypoints />
+    </div>
+  );
+}
+
+/*
+   V11: Icon in bordered tile + journey name
+   The icon sits inside a small bordered square — echoes
+   the card language without being a full card. Journey
+   name next to the tile. Route name bigger below.
+*/
+function V11Route() {
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+          width: 20, height: 20,
+          border: "1px solid var(--dawn-15)",
+        }}>
+          <ParticleIcon glyph="logo" size="sm" active />
+        </div>
+        <Mono size="9px" color="var(--gold)">{SAMPLE.journeyName}</Mono>
+      </div>
+      <Mono size="14px" color="var(--dawn)" style={{ display: "block", marginTop: 6, letterSpacing: "0.06em" }}>
+        {SAMPLE.activeRoute}
+      </Mono>
+      <FakeWaypoints />
+    </div>
+  );
+}
+
+/*
+   V12: Readout badge with icon inside
+   The readoutLabel badge style (gold-10 bg, gold-30 border)
+   wraps both the ParticleIcon and the journey name into one
+   compact element. Route name is the page title below.
+*/
+function V12Route() {
+  return (
+    <div>
+      <div style={{
+        display: "inline-flex", alignItems: "center", gap: 5,
+        padding: "2px 6px",
+        background: "var(--gold-10)",
+        border: "1px solid var(--gold-30)",
+      }}>
+        <ParticleIcon glyph="logo" size="sm" active />
+        <Mono size={TITLE_SIZE} color="var(--gold)">{SAMPLE.journeyName}</Mono>
+      </div>
+      <Mono size="14px" color="var(--dawn)" style={{ display: "block", marginTop: 6, letterSpacing: "0.06em" }}>
+        {SAMPLE.activeRoute}
+      </Mono>
+      <FakeWaypoints />
+    </div>
+  );
+}
+
+/*
+   V13: Icon-only marker, journey name as subtitle
+   Only the ParticleIcon marks the journey — no inline name.
+   Route name is the dominant title. Journey name appears as
+   a tiny subtitle below. Most minimal option.
+*/
+function V13Route() {
+  return (
+    <div>
+      <ParticleIcon glyph="logo" size="md" active />
+      <Mono size="16px" color="var(--dawn)" style={{ display: "block", marginTop: 4, letterSpacing: "0.06em" }}>
+        {SAMPLE.activeRoute}
+      </Mono>
+      <Mono size="8px" color="var(--dawn-30)" style={{ display: "block", marginTop: 4 }}>
+        {SAMPLE.journeyName}
+      </Mono>
+      <FakeWaypoints />
+    </div>
+  );
+}
+
+/*
+   V14: Title + arrow + divider, no frame
+   Just the journey name with the open-arrow action and a
+   horizontal divider beneath. No CardFrame, no background.
+   The route name sits below the divider as the primary title.
+   Stripped to structural essentials.
+*/
+function V14Route() {
+  return (
+    <div>
+      <CardTitle fontSize={TITLE_SIZE} color="var(--gold)" action={<CardArrowAction active />}>
+        {SAMPLE.journeyName}
+      </CardTitle>
+      <CardDivider marginTop={8} marginBottom={8} />
+      <Mono size="14px" color="var(--dawn)" style={{ display: "block", letterSpacing: "0.06em" }}>
+        {SAMPLE.activeRoute}
+      </Mono>
+      <FakeWaypoints />
+    </div>
+  );
+}
+
+/*
+   V15: Title + tree branch to route name, no frame
+   Same as V14 but the divider is replaced by a tree-line
+   connector linking the journey title to the route name.
+   The branch visually subordinates the route to its journey.
+*/
+function V15Route() {
+  return (
+    <div>
+      <CardTitle fontSize={TITLE_SIZE} color="var(--gold)" action={<CardArrowAction active />}>
+        {SAMPLE.journeyName}
+      </CardTitle>
+      <div style={{ paddingLeft: 16, paddingTop: 14, position: "relative" }}>
+        <svg aria-hidden width="12" height="20" viewBox="0 0 12 20" fill="none"
+          style={{ position: "absolute", left: 0, top: 1 }}>
+          <path d="M0 0V12H11" stroke="var(--dawn-15)" strokeWidth="1" strokeLinecap="square" vectorEffect="non-scaling-stroke" />
+        </svg>
+        <Mono size="14px" color="var(--dawn)" style={{ display: "block", letterSpacing: "0.06em" }}>
+          {SAMPLE.activeRoute}
+        </Mono>
+      </div>
+      <FakeWaypoints />
+    </div>
+  );
+}
+
+/*
+   V16: Journey → route with rail waypoints, active connector only
+   Same header as V15 (journey title → tree branch → route name).
+   Below, waypoint thumbnails are shown without tree connectors
+   between them. A mini left-rail preview is added, and a single
+   connector emerges from that rail to the active waypoint only.
+*/
+function RailWaypoints({ count = 3, activeIndex = 0 }: { count?: number; activeIndex?: number }) {
+  const THUMB = 48;
+  const GAP = 12;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: GAP, marginTop: 14 }}>
+      {Array.from({ length: count }).map((_, i) => {
+        const isActive = i === activeIndex;
+        return (
+          <div key={i} style={{ position: "relative" }}>
+            <div style={{
+              width: THUMB, height: THUMB,
+              border: isActive ? "1px solid var(--gold)" : "1px solid var(--dawn-08)",
+              background: i < count - 1
+                ? "linear-gradient(135deg, var(--dawn-08), var(--dawn-04))"
+                : "var(--surface-0)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              position: "relative",
+            }}>
+              {i >= count - 1 && <Mono size="10px" color="var(--dawn-15)">◇</Mono>}
+              {isActive && (
+                <>
+                  <div style={{ position: "absolute", top: -1, left: -1, width: 5, height: 5, borderTop: "1px solid var(--gold)", borderLeft: "1px solid var(--gold)" }} />
+                  <div style={{ position: "absolute", top: -1, right: -1, width: 5, height: 5, borderTop: "1px solid var(--gold)", borderRight: "1px solid var(--gold)" }} />
+                  <div style={{ position: "absolute", bottom: -1, left: -1, width: 5, height: 5, borderBottom: "1px solid var(--gold)", borderLeft: "1px solid var(--gold)" }} />
+                  <div style={{ position: "absolute", bottom: -1, right: -1, width: 5, height: 5, borderBottom: "1px solid var(--gold)", borderRight: "1px solid var(--gold)" }} />
+                </>
+              )}
+            </div>
+          </div>
+        );
+      })}
+      <div style={{
+        width: THUMB, height: 32, border: "1px dashed var(--dawn-15)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        <Mono size="12px" color="var(--dawn-30)">+</Mono>
+      </div>
+    </div>
+  );
+}
+
+function MiniLeftRailPreview({ height = 252 }: { height?: number }) {
+  const tickOffsets = [14, 56, 98, 140, 182, 224];
+  return (
+    <div style={{ position: "absolute", left: 0, top: 4, width: 22, height, pointerEvents: "none" }}>
+      <div style={{ position: "absolute", left: 10, top: 0, bottom: 0, width: 1, background: "var(--dawn-30)" }} />
+      {tickOffsets.map((top, i) => (
+        <div
+          key={i}
+          style={{
+            position: "absolute",
+            left: i % 2 === 0 ? 2 : 4,
+            top,
+            width: i % 2 === 0 ? 14 : 10,
+            borderTop: `1px solid ${i % 2 === 0 ? "var(--dawn-20)" : "var(--dawn-12)"}`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function V16Route() {
+  const activeIndex = 0;
+  const thumb = 48;
+  const gap = 12;
+  const waypointsTop = 14;
+  const activeWaypointY = waypointsTop + activeIndex * (thumb + gap) + thumb / 2;
+
+  return (
+    <div style={{ position: "relative", paddingLeft: 28 }}>
+      <MiniLeftRailPreview />
+      <CardTitle fontSize={TITLE_SIZE} color="var(--gold)" action={<CardArrowAction active />}>
+        {SAMPLE.journeyName}
+      </CardTitle>
+      <div style={{ paddingLeft: 16, paddingTop: 14, position: "relative" }}>
+        <svg aria-hidden width="12" height="20" viewBox="0 0 12 20" fill="none"
+          style={{ position: "absolute", left: 0, top: 1 }}>
+          <path d="M0 0V12H11" stroke="var(--dawn-15)" strokeWidth="1" strokeLinecap="square" vectorEffect="non-scaling-stroke" />
+        </svg>
+        <Mono size="14px" color="var(--dawn)" style={{ display: "block", letterSpacing: "0.06em" }}>
+          {SAMPLE.activeRoute}
+        </Mono>
+        <div style={{ paddingLeft: 4, position: "relative" }}>
+          <svg
+            aria-hidden
+            width="42"
+            height={Math.ceil(activeWaypointY) + 1}
+            viewBox={`0 0 42 ${Math.ceil(activeWaypointY) + 1}`}
+            fill="none"
+            style={{ position: "absolute", left: -42, top: 0 }}
+          >
+            <rect x="0" y="0" width="6" height="6" transform="rotate(45 3 3)" fill="var(--gold)" />
+            <path
+              d={`M0 0V${activeWaypointY}H41`}
+              stroke="var(--gold)"
+              strokeWidth="1"
+              strokeLinecap="square"
+              vectorEffect="non-scaling-stroke"
+            />
+          </svg>
+          <RailWaypoints count={3} activeIndex={activeIndex} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Page ── */
 
 export default function MockupsPage() {
@@ -538,6 +804,79 @@ export default function MockupsPage() {
         description="A bordered inner frame holds the route name and mode. The frame itself provides structural weight where the stats row was — visual mass without a stat. Card-in-card hierarchy."
         dashboard={<DashboardCard />}
         routePage={<V9Route />}
+      />
+
+      {/* ── Symbol explorations ── */}
+      <div style={{
+        marginTop: 32, marginBottom: 48, paddingTop: 32,
+        borderTop: "1px solid var(--dawn-08)",
+      }}>
+        <Mono size="11px" color="var(--gold)" style={{ display: "block" }}>Symbol Explorations</Mono>
+        <p style={{
+          fontFamily: "var(--font-sans)", fontSize: "12px", color: "var(--dawn-40)",
+          lineHeight: 1.5, maxWidth: 760, marginTop: 8,
+        }}>
+          Different approach: instead of filling the missing block inside a card, break out of the
+          CardFrame entirely. A symbol (ParticleIcon) marks the journey as a lightweight contextual
+          cue. The route name is promoted to the primary, larger title — it becomes the heading you
+          read first, not a subordinate tree-branch label.
+        </p>
+      </div>
+
+      <VariationRow
+        id="V10 — Icon + name, no frame"
+        title="Particle icon and journey name, frameless"
+        description="ParticleIcon and journey name float freely as a small contextual marker — no card, no border, no background. The route name below at 14px becomes the page-level heading. Typographic and minimal."
+        dashboard={<DashboardCard />}
+        routePage={<V10Route />}
+      />
+
+      <VariationRow
+        id="V11 — Bordered tile"
+        title="Icon in a bordered tile + journey name"
+        description="The icon sits inside a small bordered square — a tile that echoes the card vocabulary without committing to a full CardFrame. Journey name next to the tile. Route name is the bigger title below."
+        dashboard={<DashboardCard />}
+        routePage={<V11Route />}
+      />
+
+      <VariationRow
+        id="V12 — Readout badge + icon"
+        title="Journey name in a readout badge with icon"
+        description="The readoutLabel badge style (gold-10 background, gold-30 border) wraps both the ParticleIcon and journey name into one compact element. Echoes the metadata readouts on generation cards. Route name is the page title."
+        dashboard={<DashboardCard />}
+        routePage={<V12Route />}
+      />
+
+      <VariationRow
+        id="V13 — Icon-only marker"
+        title="Icon only, journey name as subtitle"
+        description="Only the ParticleIcon (18px) marks the journey — no inline name. Route name is the dominant 16px title. Journey name appears below as a tiny 8px subtitle. Most minimal option — the symbol carries the context."
+        dashboard={<DashboardCard />}
+        routePage={<V13Route />}
+      />
+
+      <VariationRow
+        id="V14 — Title + divider, no frame"
+        title="Journey title with arrow and divider, frameless"
+        description="Just the journey name at card-title size with the open-arrow action, then a horizontal divider. No CardFrame, no background — the title and divider float freely. Route name below the divider as the primary heading."
+        dashboard={<DashboardCard />}
+        routePage={<V14Route />}
+      />
+
+      <VariationRow
+        id="V15 — Title + tree branch to route"
+        title="Journey title with tree-line connector to route name"
+        description="The journey title with open-arrow, then a tree-line branch connecting down to the route name at 14px. No divider, no frame. The branch makes the parent–child relationship between journey and route explicit and structural."
+        dashboard={<DashboardCard />}
+        routePage={<V15Route />}
+      />
+
+      <VariationRow
+        id="V16 — Rail with active connector"
+        title="Route rail with connector to active waypoint"
+        description="Same journey → route header as V15, plus a mini left-rail preview. Below the route name, waypoint thumbnails sit without tree lines between them. A single gold-tinted connector emerges from the rail and points to the active waypoint only — the corner brackets and gold border mark it. No intersecting route-to-waypoint branches."
+        dashboard={<DashboardCard />}
+        routePage={<V16Route />}
       />
     </div>
   );
