@@ -202,6 +202,7 @@ export function DashboardView({
     <section
       className="dashboard-two-panel w-full animate-fade-in-up"
       style={{
+        alignSelf: "flex-start",
         width: "100%",
         maxWidth: "var(--layout-content-lg, 1400px)",
         margin: 0,

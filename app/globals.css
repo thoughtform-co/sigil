@@ -434,7 +434,7 @@ body {
   padding-bottom: calc(var(--hud-padding) + 40px);
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
 }
 
 /* Workspace pages own scrolling internally (gallery feed), so lock shell height
