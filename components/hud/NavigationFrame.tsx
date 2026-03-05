@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { NavSpineProvider, useNavSpine } from "@/context/NavSpineContext";
 import { SigilParticleLogo } from "./SigilParticleLogo";
 import { CardFrame } from "@/components/ui/CardFrame";
-import { CardTitle, CardArrowAction } from "@/components/ui/card";
+import { CardTitle, CardArrowAction, CardDivider, CardStats } from "@/components/ui/card";
 
 const THEME_KEY = "sigil-theme";
 const GRID = 3;
@@ -634,7 +634,8 @@ function NavigationFrameInner({
                 >
                   {journeyName}
                 </CardTitle>
-                <div style={{ borderBottom: "1px solid var(--dawn-08)", marginTop: 8 }} />
+                <CardDivider marginTop={8} marginBottom={6} />
+                <CardStats entries={[{ value: "route" }]} fontSize="10px" color="var(--dawn-40)" />
               </div>
 
               {routeName && (

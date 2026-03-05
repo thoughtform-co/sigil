@@ -62,10 +62,10 @@
   --layout-card-min-wide: 260px;
 
   /* Backgrounds (Void — The Depths) */
-  --void: #050403;
-  --surface-0: #0a0908;
-  --surface-1: #0f0e0c;
-  --surface-2: #141210;
+  --void: #0e0d0b;
+  --surface-0: #141310;
+  --surface-1: #1a1815;
+  --surface-2: #201e1a;
 
   /* Text (Dawn — Emergence into Light) */
   --dawn: #ece3d6;

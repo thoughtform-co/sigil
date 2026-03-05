@@ -32,7 +32,7 @@ const CHAMFER_CLIP =
 const STATE_STYLES: Record<CardState, CSSProperties> = {
   default: {
     background: "var(--surface-0)",
-    borderColor: "var(--dawn-08)",
+    borderColor: "var(--dawn-15)",
   },
   selected: {
     background: "var(--gold-10)",

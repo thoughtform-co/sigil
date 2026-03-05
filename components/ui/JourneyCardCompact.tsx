@@ -75,7 +75,7 @@ export function JourneyCardCompact({
         {statsEntries.length > 0 && (
           <CardStats
             entries={statsEntries}
-            fontSize="9px"
+            fontSize="10px"
             color={isSelected ? "var(--gold-50, var(--gold))" : "var(--dawn-50)"}
           />
         )}
