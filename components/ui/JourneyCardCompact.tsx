@@ -1,6 +1,6 @@
 import type { ReactNode, CSSProperties, ElementType } from "react";
 import { CardFrame, type CardState } from "./CardFrame";
-import { CardCategory, CardTitle, CardStats, CardDivider } from "./card";
+import { CardTitle, CardStats, CardDivider } from "./card";
 
 type JourneyCardCompactProps = {
   name: string;
@@ -14,15 +14,10 @@ type JourneyCardCompactProps = {
   state?: CardState;
   size?: "default" | "compact" | "mini";
   action?: ReactNode;
+  routeTree?: ReactNode;
   className?: string;
   style?: CSSProperties;
   prefetch?: boolean;
-};
-
-const PADDING: Record<string, string> = {
-  default: "10px 14px 14px",
-  compact: "8px 12px 12px",
-  mini: "6px 10px",
 };
 
 export function JourneyCardCompact({
@@ -37,28 +32,71 @@ export function JourneyCardCompact({
   state = "default",
   size = "default",
   action,
+  routeTree,
   className,
   style,
   prefetch,
 }: JourneyCardCompactProps) {
-  const category = type === "learn" ? "learn" : "create";
   const isMini = size === "mini";
   const isCompact = size === "compact";
   const isSelected = state === "selected" || state === "active";
+  const isDefault = !isMini && !isCompact;
 
-  const showDivider = !isMini;
-  const showStats = !isMini && (routeCount != null || generationCount != null);
+  if (isDefault) {
+    const statsEntries = [];
+    if (routeCount != null) statsEntries.push({ value: routeCount, label: "routes" });
+
+    return (
+      <CardFrame
+        as={as}
+        href={href}
+        onClick={onClick}
+        state={state}
+        className={className}
+        style={{
+          padding: "10px 14px 10px 14px",
+          textDecoration: "none",
+          cursor: href || onClick ? "pointer" : undefined,
+          ...style,
+        }}
+        prefetch={prefetch}
+      >
+        <CardTitle
+          fontSize="12px"
+          color={isSelected ? "var(--gold)" : "var(--dawn)"}
+          action={action}
+          style={{ marginBottom: 0 }}
+        >
+          {name}
+        </CardTitle>
+
+        <CardDivider marginTop={8} marginBottom={6} />
+
+        {statsEntries.length > 0 && (
+          <CardStats
+            entries={statsEntries}
+            fontSize="9px"
+            color={isSelected ? "var(--gold-50, var(--gold))" : "var(--dawn-50)"}
+          />
+        )}
+
+        {routeTree}
+      </CardFrame>
+    );
+  }
 
   const frameStyle: CSSProperties = {
-    padding: PADDING[size],
+    padding: isCompact ? "8px 12px 12px" : "6px 10px",
     textDecoration: "none",
     cursor: href || onClick ? "pointer" : undefined,
     ...style,
   };
 
-  const titleFontSize = isMini ? "11px" : isCompact ? "11px" : "12px";
+  const titleFontSize = "11px";
   const statsFontSize = isCompact ? "8px" : "9px";
   const dividerSpacing = isCompact ? 6 : 8;
+  const showDivider = isCompact;
+  const showStats = isCompact && (routeCount != null || generationCount != null);
 
   const statsEntries = [];
   if (routeCount != null) statsEntries.push({ value: routeCount, label: "routes" });
@@ -74,7 +112,22 @@ export function JourneyCardCompact({
       style={frameStyle}
       prefetch={prefetch}
     >
-      <CardCategory category={category} active={category === "learn"} />
+      {isCompact && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            fontFamily: "var(--font-mono)",
+            fontSize: "9px",
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            color: "var(--dawn-40)",
+          }}
+        >
+          {type === "learn" ? "learn" : "create"}
+        </div>
+      )}
 
       {showDivider && (
         <CardDivider marginTop={dividerSpacing} marginBottom={dividerSpacing} />
@@ -92,7 +145,7 @@ export function JourneyCardCompact({
         {name}
       </CardTitle>
 
-      {routeName && !isMini && (
+      {routeName && isCompact && (
         <div
           style={{
             fontFamily: "var(--font-mono)",

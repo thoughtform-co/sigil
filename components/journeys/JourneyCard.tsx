@@ -52,6 +52,7 @@ export function JourneyCard({ journey }: JourneyCardProps) {
         <CardTitle
           as="h2"
           fontSize="13px"
+          actionPlacement="end"
           action={
             <span
               className="transition-colors group-hover:text-[var(--gold)]"

@@ -1,9 +1,12 @@
 import type { ReactNode, CSSProperties } from "react";
 
+type ActionPlacement = "inline" | "end";
+
 type CardTitleProps = {
   children: ReactNode;
   as?: "h2" | "h3" | "span";
   action?: ReactNode;
+  actionPlacement?: ActionPlacement;
   fontSize?: string;
   color?: string;
   className?: string;
@@ -14,6 +17,7 @@ export function CardTitle({
   children,
   as: Tag = "span",
   action,
+  actionPlacement = "inline",
   fontSize = "13px",
   color = "var(--dawn)",
   className,
@@ -25,7 +29,7 @@ export function CardTitle({
       style={{
         display: "flex",
         alignItems: "center",
-        justifyContent: "space-between",
+        justifyContent: actionPlacement === "end" ? "space-between" : "flex-start",
         gap: 8,
         ...style,
       }}

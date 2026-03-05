@@ -1,10 +1,11 @@
 import type { CSSProperties, MouseEvent } from "react";
-import { ParticleIcon } from "../ParticleIcon";
+import { ParticleIcon, type ParticleSize } from "../ParticleIcon";
 
 type CardArrowActionProps = {
   onClick?: (e: MouseEvent<HTMLButtonElement>) => void;
   href?: string;
   active?: boolean;
+  size?: ParticleSize;
   className?: string;
   style?: CSSProperties;
 };
@@ -12,6 +13,7 @@ type CardArrowActionProps = {
 export function CardArrowAction({
   onClick,
   active = false,
+  size = "md",
   className,
   style,
 }: CardArrowActionProps) {
@@ -40,7 +42,7 @@ export function CardArrowAction({
         e.currentTarget.style.opacity = active ? "1" : "0.6";
       }}
     >
-      <ParticleIcon glyph="arrow" size="sm" active={active} />
+      <ParticleIcon glyph="arrow" size={size} active={active} />
     </button>
   );
 }

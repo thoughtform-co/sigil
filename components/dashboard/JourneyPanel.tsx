@@ -340,7 +340,6 @@ export function JourneyPanel({
                       name={journey.name}
                       type={journey.type === "learn" ? "learn" : "create"}
                       routeCount={journey.routeCount}
-                      generationCount={journey.generationCount}
                       onClick={() => onSelectJourney(journey.id)}
                       state={isSelected ? "selected" : "default"}
                       style={isHovered && !isSelected ? { background: "var(--dawn-04)" } : undefined}
@@ -353,115 +352,110 @@ export function JourneyPanel({
                           active={isHovered || isSelected}
                         />
                       }
-                    />
-
-                    {/* Collapsible route tree */}
-                    {isExpanded && journey.routes.length > 0 && (
-                      <div
-                        data-route-tree
-                        style={{
-                          paddingLeft: TREE_INDENT,
-                          paddingTop: 8,
-                          paddingBottom: 4,
-                          position: "relative",
-                        }}
-                      >
-                        {journey.routes.map((route, routeIdx) => {
-                          const isLastRoute = routeIdx === journey.routes.length - 1;
-                          const isRouteHovered = hoveredRouteId === route.id;
-                          return (
-                            <div
-                              key={route.id}
-                              style={{
-                                position: "relative",
-                                paddingLeft: TREE_GUTTER,
-                                marginBottom: isLastRoute ? 0 : 6,
-                                cursor: "pointer",
-                              }}
-                              onMouseEnter={() => setHoveredRouteId(route.id)}
-                              onMouseLeave={() => setHoveredRouteId(null)}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onSelectRoute?.(route.id);
-                              }}
-                              onDoubleClick={(e) => {
-                                e.stopPropagation();
-                                router.push(`/routes/${route.id}/image`);
-                              }}
-                            >
-                              {/* Tree connector */}
-                              <svg
-                                aria-hidden
-                                width={TREE_GUTTER}
-                                height="20"
-                                viewBox={`0 0 ${TREE_GUTTER} 20`}
-                                fill="none"
-                                style={{ position: "absolute", left: 0, top: -2 }}
-                              >
-                                <path
-                                  d={`M0 0V10H${TREE_GUTTER - 1}`}
-                                  stroke="var(--dawn-15)"
-                                  strokeWidth="1"
-                                  strokeLinecap="square"
-                                  strokeLinejoin="miter"
-                                  vectorEffect="non-scaling-stroke"
-                                />
-                              </svg>
-                              {!isLastRoute && (
+                      routeTree={
+                        isExpanded && journey.routes.length > 0 ? (
+                          <div
+                            data-route-tree
+                            style={{
+                              paddingLeft: TREE_INDENT - 12,
+                              paddingTop: 6,
+                              position: "relative",
+                            }}
+                          >
+                            {journey.routes.map((route, routeIdx) => {
+                              const isLastRoute = routeIdx === journey.routes.length - 1;
+                              const isRouteHovered = hoveredRouteId === route.id;
+                              return (
                                 <div
-                                  aria-hidden
+                                  key={route.id}
                                   style={{
-                                    position: "absolute",
-                                    left: 0,
-                                    top: 10,
-                                    bottom: -6,
-                                    width: 1,
-                                    background: "var(--dawn-15)",
+                                    position: "relative",
+                                    paddingLeft: TREE_GUTTER,
+                                    marginBottom: isLastRoute ? 0 : 6,
+                                    cursor: "pointer",
                                   }}
-                                />
-                              )}
-
-                              {/* Route row — line-only treatment */}
-                              <div
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "space-between",
-                                  gap: 6,
-                                  paddingBottom: 4,
-                                  borderBottom: `1px solid ${isRouteHovered ? "var(--dawn-15)" : "var(--dawn-08)"}`,
-                                  transition: "border-color 120ms ease",
-                                }}
-                              >
-                                <span
-                                  style={{
-                                    fontFamily: "var(--font-mono)",
-                                    fontSize: "10px",
-                                    letterSpacing: "0.06em",
-                                    textTransform: "uppercase",
-                                    color: isRouteHovered ? "var(--dawn)" : "var(--dawn-50)",
-                                    whiteSpace: "nowrap",
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    transition: "color 100ms",
-                                  }}
-                                >
-                                  {route.name}
-                                </span>
-                                <CardArrowAction
+                                  onMouseEnter={() => setHoveredRouteId(route.id)}
+                                  onMouseLeave={() => setHoveredRouteId(null)}
                                   onClick={(e) => {
+                                    e.stopPropagation();
+                                    onSelectRoute?.(route.id);
+                                  }}
+                                  onDoubleClick={(e) => {
                                     e.stopPropagation();
                                     router.push(`/routes/${route.id}/image`);
                                   }}
-                                  active={isRouteHovered}
-                                  style={{ opacity: isRouteHovered ? 1 : 0 }}
-                                />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                                >
+                                  <svg
+                                    aria-hidden
+                                    width={TREE_GUTTER}
+                                    height="20"
+                                    viewBox={`0 0 ${TREE_GUTTER} 20`}
+                                    fill="none"
+                                    style={{ position: "absolute", left: 0, top: -2 }}
+                                  >
+                                    <path
+                                      d={`M0 0V10H${TREE_GUTTER - 1}`}
+                                      stroke="var(--dawn-15)"
+                                      strokeWidth="1"
+                                      strokeLinecap="square"
+                                      strokeLinejoin="miter"
+                                      vectorEffect="non-scaling-stroke"
+                                    />
+                                  </svg>
+                                  {!isLastRoute && (
+                                    <div
+                                      aria-hidden
+                                      style={{
+                                        position: "absolute",
+                                        left: 0,
+                                        top: 10,
+                                        bottom: -6,
+                                        width: 1,
+                                        background: "var(--dawn-15)",
+                                      }}
+                                    />
+                                  )}
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "space-between",
+                                      gap: 6,
+                                      paddingBottom: 4,
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        fontFamily: "var(--font-mono)",
+                                        fontSize: "10px",
+                                        letterSpacing: "0.06em",
+                                        textTransform: "uppercase",
+                                        color: isRouteHovered ? "var(--dawn)" : "var(--dawn-50)",
+                                        whiteSpace: "nowrap",
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        transition: "color 100ms",
+                                      }}
+                                    >
+                                      {route.name}
+                                    </span>
+                                    <CardArrowAction
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        router.push(`/routes/${route.id}/image`);
+                                      }}
+                                      active={isRouteHovered}
+                                      size="sm"
+                                      style={{ opacity: isRouteHovered ? 1 : 0 }}
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : undefined
+                      }
+                    />
 
                     {showActions && (
                       <div

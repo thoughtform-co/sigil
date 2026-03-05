@@ -50,6 +50,7 @@ export function RouteCard({ route }: RouteCardProps) {
         <CardTitle
           as="h2"
           fontSize="13px"
+          actionPlacement="end"
           action={
             <span
               className="transition-colors group-hover:text-[var(--gold)]"

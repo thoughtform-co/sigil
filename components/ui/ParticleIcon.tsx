@@ -1,7 +1,7 @@
 type Pixel = { x: number; y: number; alpha: number };
 
 type ParticleGlyph = "arrow" | "logo" | "settings" | "theme-light" | "theme-dark";
-type ParticleSize = "sm" | "md" | "lg";
+export type ParticleSize = "sm" | "md" | "lg";
 
 const SIZE_CONFIG: Record<ParticleSize, { size: number; grid: number }> = {
   sm: { size: 12, grid: 2 },

@@ -1,7 +1,7 @@
 import type { ReactNode, CSSProperties, ElementType } from "react";
 
 export type CardState = "default" | "selected" | "active" | "dim";
-export type CardPresentation = "filled" | "line";
+export type CardPresentation = "filled" | "line" | "ghost";
 
 type CardFrameProps = {
   as?: ElementType;
@@ -18,16 +18,16 @@ type CardFrameProps = {
 
 const CORNER_STYLE: CSSProperties = {
   position: "absolute",
-  width: 14,
-  height: 14,
+  width: 10,
+  height: 10,
   pointerEvents: "none",
-  opacity: 0,
   transitionProperty: "opacity",
   transitionDuration: "var(--duration-base)",
 };
 
 const CHAMFER_CLIP =
   "polygon(12px 0, calc(100% - 12px) 0, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0 calc(100% - 12px), 0 12px)";
+
 
 const STATE_STYLES: Record<CardState, CSSProperties> = {
   default: {
@@ -65,35 +65,55 @@ export function CardFrame({
   const stateStyle = STATE_STYLES[state];
   const cornersAlwaysOn = CORNERS_ALWAYS_VISIBLE.has(state);
   const isLine = presentation === "line";
+  const isGhost = presentation === "ghost";
 
-  const baseStyle: CSSProperties = isLine
-    ? {
-        position: "relative",
-        display: "block",
-        background: "transparent",
-        border: "none",
-        padding: "0",
-        transitionProperty: "color",
-        transitionDuration: "var(--duration-base)",
-        transitionTimingFunction: "var(--ease-out)",
-        ...style,
-      }
-    : {
-        position: "relative",
-        display: "block",
-        overflow: "hidden",
-        background: stateStyle.background,
-        border: "1px solid transparent",
-        borderColor: stateStyle.borderColor,
-        padding: "12px 20px 20px",
-        transitionProperty: "border-color, background",
-        transitionDuration: "var(--duration-base)",
-        transitionTimingFunction: "var(--ease-out)",
-        ...(chamfer ? { clipPath: CHAMFER_CLIP } : {}),
-        ...style,
-      };
+  let baseStyle: CSSProperties;
+  if (isLine) {
+    baseStyle = {
+      position: "relative",
+      display: "block",
+      background: "transparent",
+      border: "none",
+      padding: "0",
+      transitionProperty: "color",
+      transitionDuration: "var(--duration-base)",
+      transitionTimingFunction: "var(--ease-out)",
+      ...style,
+    };
+  } else if (isGhost) {
+    baseStyle = {
+      position: "relative",
+      display: "block",
+      overflow: "visible",
+      background: "transparent",
+      border: "1px solid transparent",
+      borderColor: stateStyle.borderColor,
+      padding: "12px 20px 20px",
+      transitionProperty: "border-color",
+      transitionDuration: "var(--duration-base)",
+      transitionTimingFunction: "var(--ease-out)",
+      ...(chamfer ? { clipPath: CHAMFER_CLIP } : {}),
+      ...style,
+    };
+  } else {
+    baseStyle = {
+      position: "relative",
+      display: "block",
+      overflow: "hidden",
+      background: stateStyle.background,
+      border: "1px solid transparent",
+      borderColor: stateStyle.borderColor,
+      padding: "12px 20px 20px",
+      transitionProperty: "border-color, background",
+      transitionDuration: "var(--duration-base)",
+      transitionTimingFunction: "var(--ease-out)",
+      ...(chamfer ? { clipPath: CHAMFER_CLIP } : {}),
+      ...style,
+    };
+  }
 
-  const cornerVisibility = cornersAlwaysOn
+  const ghostCornersAlwaysOn = isGhost;
+  const cornerVisibility = (cornersAlwaysOn || ghostCornersAlwaysOn)
     ? "pointer-events-none absolute opacity-100 transition-opacity"
     : "pointer-events-none absolute opacity-0 transition-opacity group-hover:opacity-100";
 

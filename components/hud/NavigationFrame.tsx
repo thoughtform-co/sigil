@@ -6,6 +6,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { NavSpineProvider, useNavSpine } from "@/context/NavSpineContext";
 import { SigilParticleLogo } from "./SigilParticleLogo";
+import { CardFrame } from "@/components/ui/CardFrame";
+import { CardTitle, CardArrowAction } from "@/components/ui/card";
 
 const THEME_KEY = "sigil-theme";
 const GRID = 3;
@@ -606,66 +608,47 @@ function NavigationFrameInner({
           }}
         >
           {journeyName ? (
-            <div data-journey-selected style={{ width: NAV_SPINE_CARD_WIDTH }}>
-              {/* Journey header — line-only presentation */}
-              {breadcrumb.segments[0].href ? (
-                <Link
-                  href={breadcrumb.segments[0].href}
-                  style={{ display: "block", textDecoration: "none" }}
+            <CardFrame
+              presentation="ghost"
+              style={{
+                width: NAV_SPINE_CARD_WIDTH,
+                padding: "10px 14px",
+              }}
+            >
+              <div data-journey-selected>
+                <CardTitle
+                  fontSize="12px"
+                  color="var(--gold)"
+                  action={
+                    breadcrumb.segments[0].href ? (
+                      <CardArrowAction
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (breadcrumb.segments[0].href) router.push(breadcrumb.segments[0].href);
+                        }}
+                        active
+                      />
+                    ) : undefined
+                  }
                 >
-                  <span
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "11px",
-                      fontWeight: 400,
-                      letterSpacing: "0.08em",
-                      textTransform: "uppercase" as const,
-                      color: "var(--dawn)",
-                      whiteSpace: "nowrap" as const,
-                      overflow: "hidden" as const,
-                      textOverflow: "ellipsis",
-                      display: "block",
-                    }}
-                  >
-                    {journeyName}
-                  </span>
-                  <div style={{ borderBottom: "1px solid var(--dawn-08)", marginTop: 6 }} />
-                </Link>
-              ) : (
-                <div>
-                  <span
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "11px",
-                      fontWeight: 400,
-                      letterSpacing: "0.08em",
-                      textTransform: "uppercase" as const,
-                      color: "var(--dawn)",
-                      whiteSpace: "nowrap" as const,
-                      overflow: "hidden" as const,
-                      textOverflow: "ellipsis",
-                      display: "block",
-                    }}
-                  >
-                    {journeyName}
-                  </span>
-                  <div style={{ borderBottom: "1px solid var(--dawn-08)", marginTop: 6 }} />
-                </div>
-              )}
+                  {journeyName}
+                </CardTitle>
+                <div style={{ borderBottom: "1px solid var(--dawn-08)", marginTop: 8 }} />
+              </div>
 
-              {/* Route branch connector — current route only */}
               {routeName && (
-                <div style={{ paddingLeft: 20, paddingTop: 8, position: "relative" }}>
+                <div style={{ paddingLeft: 16, paddingTop: 8, position: "relative" }}>
                   <svg
                     aria-hidden
-                    width="14"
-                    height="18"
-                    viewBox="0 0 14 18"
+                    width="12"
+                    height="16"
+                    viewBox="0 0 12 16"
                     fill="none"
-                    style={{ position: "absolute", left: 2, top: 0 }}
+                    style={{ position: "absolute", left: 0, top: 1 }}
                   >
                     <path
-                      d="M0 0V9H13"
+                      d="M0 0V8H11"
                       stroke="var(--dawn-15)"
                       strokeWidth="1"
                       strokeLinecap="square"
@@ -684,15 +667,13 @@ function NavigationFrameInner({
                       overflow: "hidden" as const,
                       textOverflow: "ellipsis",
                       display: "block",
-                      paddingBottom: 4,
-                      borderBottom: "1px solid var(--dawn-08)",
                     }}
                   >
                     {routeName}
                   </span>
                 </div>
               )}
-            </div>
+            </CardFrame>
           ) : (
             <span
               style={{
