@@ -14,7 +14,9 @@ type ContextAnchorInlineProps = {
 type ContextAnchorSpineProps = {
   mode: "spine";
   label: string;
+  bearing?: string;
   subtitle?: string;
+  subtitleBearing?: string;
   href?: string;
   onNavigate?: () => void;
   width?: number;
@@ -42,10 +44,22 @@ export function ContextAnchor(props: ContextAnchorProps) {
     );
   }
 
-  const { label, subtitle, href, onNavigate, width } = props;
+  const { label, bearing, subtitle, subtitleBearing, href, onNavigate, width } = props;
+
+  const BEARING_STYLE: CSSProperties = {
+    fontFamily: "var(--font-mono)",
+    fontSize: "9px",
+    letterSpacing: "0.1em",
+    textTransform: "uppercase",
+    color: "var(--dawn-30)",
+    display: "block",
+    marginBottom: 4,
+  };
 
   return (
     <div style={{ width }}>
+      {bearing && <span style={BEARING_STYLE}>{bearing}</span>}
+
       <div style={{ display: "inline-flex", flexDirection: "column" }}>
         <div
           data-journey-selected
@@ -81,22 +95,29 @@ export function ContextAnchor(props: ContextAnchorProps) {
       </div>
 
       {subtitle && (
-        <span
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: "17px",
-            letterSpacing: "0.06em",
-            textTransform: "uppercase",
-            color: "var(--gold)",
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            display: "block",
-            marginTop: 14,
-          }}
-        >
-          {subtitle}
-        </span>
+        <>
+          {subtitleBearing && (
+            <span style={{ ...BEARING_STYLE, marginTop: 12, marginBottom: 4 }}>
+              {subtitleBearing}
+            </span>
+          )}
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "17px",
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              color: "var(--gold)",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              display: "block",
+              marginTop: subtitleBearing ? 0 : 14,
+            }}
+          >
+            {subtitle}
+          </span>
+        </>
       )}
     </div>
   );

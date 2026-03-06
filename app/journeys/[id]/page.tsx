@@ -28,8 +28,17 @@ export default async function JourneyDetailPage({
 }) {
   const { id } = await params;
 
+  const user = await getAuthedUser();
+  const result = user ? await prefetchJourneyDetail(user.id, id) : null;
+  const journeyName = result?.data?.journey.name;
+
   return (
-    <NavigationFrame title="SIGIL" modeLabel="journey">
+    <NavigationFrame
+      title="SIGIL"
+      modeLabel="journey"
+      journeyName={journeyName}
+      journeyId={id}
+    >
       <Suspense
         fallback={
           <div className="flex items-center gap-3 py-12">

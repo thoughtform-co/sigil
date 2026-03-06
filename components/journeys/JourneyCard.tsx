@@ -6,16 +6,9 @@ import { CardFrame } from "@/components/ui/CardFrame";
 import { CardCategory, CardTitle, CardStats, CardDivider } from "@/components/ui/card";
 import { ParticleIcon } from "@/components/ui/ParticleIcon";
 
-export type JourneyCardItem = {
-  id: string;
-  name: string;
-  description: string | null;
-  type?: string;
-  routeCount: number;
-  generationCount: number;
-  routes: { id: string; name: string; updatedAt: string; waypointCount: number }[];
-  thumbnails: ImageDiskStackImage[];
-};
+/** @deprecated Import JourneyCardItem from ./types instead. */
+export type { JourneyCardItem } from "./types";
+import type { JourneyCardItem } from "./types";
 
 type JourneyCardProps = {
   journey: JourneyCardItem;

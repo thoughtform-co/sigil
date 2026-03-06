@@ -3,7 +3,7 @@
 import useSWR from "swr";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import type { JourneyCardItem } from "@/components/journeys/JourneyCard";
+import type { JourneyCardItem } from "@/components/journeys/types";
 import { JourneyOverviewCard } from "@/components/journeys/JourneyOverviewCard";
 import { Dialog } from "@/components/ui/Dialog";
 import { HudPanel, HudEmptyState } from "@/components/ui/hud";

@@ -39,11 +39,11 @@ const TICK_LABELS: Record<number, string> = {
 };
 
 const LEFT_NAV = [
+  { href: "/dashboard", label: "dashboard" },
   { href: "/journeys", label: "journeys" },
-  { href: "/analytics", label: "analytics" },
 ];
 const RIGHT_NAV = [
-  { href: "/bookmarks", label: "bookmarks" },
+  { href: "/analytics", label: "analytics" },
   { href: "/documentation", label: "documentation" },
 ];
 
@@ -611,7 +611,9 @@ function NavigationFrameInner({
           {journeyName ? (
             <ContextAnchor
               mode="spine"
+              bearing="JOURNEY"
               label={journeyName}
+              subtitleBearing={routeName ? "ROUTE" : undefined}
               subtitle={routeName}
               href={breadcrumb.segments[0].href}
               onNavigate={() => {

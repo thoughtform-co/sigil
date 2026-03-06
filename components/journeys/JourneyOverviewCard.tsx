@@ -5,7 +5,7 @@ import { CardFrame } from "@/components/ui/CardFrame";
 import { CardCategory, CardTitle, CardStats, CardDivider } from "@/components/ui/card";
 import { ParticleIcon } from "@/components/ui/ParticleIcon";
 import { ImageDiskStack } from "./ImageDiskStack";
-import type { JourneyCardItem } from "./JourneyCard";
+import type { JourneyCardItem } from "./types";
 
 type JourneyOverviewCardProps = {
   journey: JourneyCardItem;
