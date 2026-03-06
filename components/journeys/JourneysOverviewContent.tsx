@@ -2,11 +2,9 @@
 
 import useSWR from "swr";
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import type { JourneyCardItem } from "@/components/journeys/JourneyCard";
-import { JourneyCardCompact } from "@/components/ui/JourneyCardCompact";
-import { CardArrowAction } from "@/components/ui/card";
+import { JourneyOverviewCard } from "@/components/journeys/JourneyOverviewCard";
 import { Dialog } from "@/components/ui/Dialog";
 import { HudPanel, HudEmptyState } from "@/components/ui/hud";
 import { SectionHeader } from "@/components/ui/SectionHeader";
@@ -28,11 +26,13 @@ function JourneyCardWithMenu({
   journey,
   index,
   isAdmin,
+  featured,
   onDelete,
 }: {
   journey: JourneyCardItem;
   index: number;
   isAdmin: boolean;
+  featured?: boolean;
   onDelete: (j: JourneyCardItem) => void;
 }) {
   const [hovered, setHovered] = useState(false);
@@ -57,16 +57,7 @@ function JourneyCardWithMenu({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => { setHovered(false); setMenuOpen(false); }}
     >
-      <JourneyCardCompact
-        as={Link}
-        href={`/journeys/${journey.id}`}
-        name={journey.name}
-        type={journey.type}
-        routeCount={journey.routeCount}
-        generationCount={journey.generationCount}
-        prefetch
-        action={<CardArrowAction active={hovered} />}
-      />
+      <JourneyOverviewCard journey={journey} featured={featured} />
       {isAdmin && (hovered || menuOpen) && (
         <button
           type="button"
@@ -78,7 +69,7 @@ function JourneyCardWithMenu({
           style={{
             position: "absolute",
             top: "14px",
-            right: "12px",
+            right: featured ? "140px" : "12px",
             width: 22,
             height: 22,
             display: "flex",
@@ -104,7 +95,7 @@ function JourneyCardWithMenu({
           style={{
             position: "absolute",
             top: "38px",
-            right: "12px",
+            right: featured ? "140px" : "12px",
             background: "var(--void)",
             border: "1px solid var(--dawn-15)",
             zIndex: 50,
@@ -239,8 +230,8 @@ export function JourneysOverviewContent({
     <section
       className="w-full animate-fade-in-up"
       style={{
-        maxWidth: "var(--layout-content-md, 1200px)",
-        margin: "0 auto",
+        maxWidth: "var(--layout-content-lg, 1400px)",
+        alignSelf: "flex-start",
       }}
     >
       <SectionHeader
@@ -317,16 +308,29 @@ export function JourneysOverviewContent({
             {error}
           </div>
         ) : data && data.journeys.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {data.journeys.map((journey, index) => (
-              <JourneyCardWithMenu
-                key={journey.id}
-                journey={journey}
-                index={index}
-                isAdmin={isAdmin}
-                onDelete={setDeleteTarget}
-              />
-            ))}
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-lg)" }}>
+            <JourneyCardWithMenu
+              key={data.journeys[0]!.id}
+              journey={data.journeys[0]!}
+              index={0}
+              isAdmin={isAdmin}
+              featured
+              onDelete={setDeleteTarget}
+            />
+
+            {data.journeys.length > 1 && (
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {data.journeys.slice(1).map((journey, index) => (
+                  <JourneyCardWithMenu
+                    key={journey.id}
+                    journey={journey}
+                    index={index + 1}
+                    isAdmin={isAdmin}
+                    onDelete={setDeleteTarget}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         ) : data ? (
           <HudEmptyState
