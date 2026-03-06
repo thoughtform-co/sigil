@@ -47,8 +47,16 @@ function createColumn(x: number, canvasH: number): Column {
 // ─────────────────────────────────────────────────────────────────
 // Sigil palette (gold on void)
 // ─────────────────────────────────────────────────────────────────
-const BG = "#050403";
+const BG_FALLBACK = "#1c1a18";
 const GOLD = { h: 43, s: 55, l: 54 };
+
+function readVoidColor(): string {
+  if (typeof window === "undefined") return BG_FALLBACK;
+  const value = getComputedStyle(document.documentElement)
+    .getPropertyValue("--void")
+    .trim();
+  return value || BG_FALLBACK;
+}
 
 // ─────────────────────────────────────────────────────────────────
 // Component
@@ -89,7 +97,8 @@ export function RunicRain({ className = "" }: RunicRainProps) {
     }
     columnsRef.current = cols;
 
-    ctx.fillStyle = BG;
+    const bg = readVoidColor();
+    ctx.fillStyle = bg;
     ctx.fillRect(0, 0, w, h);
   }, []);
 
@@ -101,7 +110,8 @@ export function RunicRain({ className = "" }: RunicRainProps) {
 
     const { w, h } = dimsRef.current;
 
-    ctx.fillStyle = BG;
+    const bg = readVoidColor();
+    ctx.fillStyle = bg;
     ctx.fillRect(0, 0, w, h);
 
     const columns = columnsRef.current;
@@ -159,7 +169,7 @@ export function RunicRain({ className = "" }: RunicRainProps) {
     <canvas
       ref={canvasRef}
       className={`absolute inset-0 w-full h-full pointer-events-none ${className}`}
-      style={{ background: BG }}
+      style={{ background: BG_FALLBACK }}
       aria-hidden="true"
     />
   );

@@ -35,11 +35,11 @@ const STATE_STYLES: Record<CardState, CSSProperties> = {
     borderColor: "var(--dawn-15)",
   },
   selected: {
-    background: "var(--gold-10)",
+    background: "var(--gold-surface)",
     borderColor: "var(--gold-30, rgba(202,165,84,0.3))",
   },
   active: {
-    background: "var(--gold-10)",
+    background: "var(--gold-surface-strong)",
     borderColor: "var(--gold)",
   },
   dim: {

@@ -61,11 +61,12 @@
   --layout-card-min: 200px;
   --layout-card-min-wide: 260px;
 
-  /* Backgrounds (Void — The Depths) */
-  --void: #0e0d0b;
-  --surface-0: #141310;
-  --surface-1: #1a1815;
-  --surface-2: #201e1a;
+  /* Backgrounds (Void — The Depths)
+     Dark mode uses a lifted charcoal field so cards can sit slightly deeper. */
+  --void: #1c1a18;
+  --surface-0: #13110f;
+  --surface-1: #161412;
+  --surface-2: #191715;
 
   /* Text (Dawn — Emergence into Light) */
   --dawn: #ece3d6;
@@ -85,6 +86,8 @@
   --gold-20: rgba(202, 165, 84, 0.2);
   --gold-15: rgba(202, 165, 84, 0.15);
   --gold-10: rgba(202, 165, 84, 0.1);
+  --gold-surface: color-mix(in srgb, var(--surface-0) 88%, var(--gold) 12%);
+  --gold-surface-strong: color-mix(in srgb, var(--surface-0) 82%, var(--gold) 18%);
 
   /* Status */
   --status-success: #5b8a7a;
@@ -120,7 +123,7 @@
   --hud-padding: clamp(24px, 4vw, 56px);
 
   /* Overlay (token-only; no hardcoded color) */
-  --overlay-bg: rgba(5, 4, 3, 0.75);
+  --overlay-bg: rgba(19, 17, 15, 0.76);
 }
 
 /* Light mode — Thoughtform Color System (warm parchment / ink) */
@@ -145,6 +148,8 @@
   --gold-20: rgba(154, 122, 46, 0.2);
   --gold-15: rgba(154, 122, 46, 0.15);
   --gold-10: rgba(154, 122, 46, 0.1);
+  --gold-surface: color-mix(in srgb, var(--surface-0) 90%, var(--gold) 10%);
+  --gold-surface-strong: color-mix(in srgb, var(--surface-0) 84%, var(--gold) 16%);
   --overlay-bg: rgba(17, 15, 9, 0.5);
   --alert: #b5623a;
   --gold-contrast: #F2EAE0;

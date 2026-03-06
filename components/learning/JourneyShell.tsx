@@ -115,7 +115,7 @@ export function JourneyShell({
       {/* Header */}
       <div className={styles.header}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-md)" }}>
-          <h1 className={styles.journeyTitle}>{profile?.name ?? journeyName}</h1>
+          <h1 className={styles.journeyTitle}>{journeyName || profile?.name}</h1>
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-sm)", flexShrink: 0 }}>
             {!isLearn && isAdmin && onUpgradeToLearn && (
               <button
