@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { SectionLabel } from "./SectionLabel";
+import { ContextAnchor } from "./ContextAnchor";
 
 type SectionHeaderProps = {
   bearing?: string;
@@ -24,7 +24,7 @@ export function SectionHeader({ bearing, label, action }: SectionHeaderProps) {
           alignItems: "center",
         }}
       >
-        <SectionLabel bearing={bearing}>{label}</SectionLabel>
+        <ContextAnchor mode="inline" label={label} bearing={bearing} />
       </h2>
       {action}
     </div>

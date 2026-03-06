@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import type { JourneyCardItem } from "@/components/journeys/JourneyCard";
 import { JourneyCardCompact } from "@/components/ui/JourneyCardCompact";
+import { CardArrowAction } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/Dialog";
 import { HudPanel, HudEmptyState } from "@/components/ui/hud";
 import { SectionHeader } from "@/components/ui/SectionHeader";
@@ -64,6 +65,7 @@ function JourneyCardWithMenu({
         routeCount={journey.routeCount}
         generationCount={journey.generationCount}
         prefetch
+        action={<CardArrowAction active={hovered} />}
       />
       {isAdmin && (hovered || menuOpen) && (
         <button
@@ -238,6 +240,7 @@ export function JourneysOverviewContent({
       className="w-full animate-fade-in-up"
       style={{
         maxWidth: "var(--layout-content-md, 1200px)",
+        margin: "0 auto",
       }}
     >
       <SectionHeader

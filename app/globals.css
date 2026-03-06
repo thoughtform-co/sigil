@@ -460,6 +460,15 @@ body {
   grid-column: 1 / -1;
 }
 
+@media (max-width: 1200px) {
+  .dashboard-two-panel {
+    grid-template-columns: 360px 1fr !important;
+  }
+  .dashboard-activity-col {
+    display: none !important;
+  }
+}
+
 @media (max-width: 900px) {
   .dashboard-two-panel {
     grid-template-columns: 1fr !important;

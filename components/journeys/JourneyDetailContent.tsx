@@ -135,7 +135,7 @@ export function JourneyDetailContent({
   return (
     <section
       className="w-full animate-fade-in-up"
-      style={{ paddingTop: "var(--space-2xl)", maxWidth: "var(--layout-content-md, 1200px)" }}
+      style={{ paddingTop: "var(--space-2xl)", maxWidth: "var(--layout-content-md, 1200px)", margin: "0 auto" }}
     >
       {loading ? (
         <div className="flex items-center gap-3 py-12">

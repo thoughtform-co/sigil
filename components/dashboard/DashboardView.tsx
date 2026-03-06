@@ -15,6 +15,11 @@ const RouteCardsPanel = dynamic(
   { ssr: false },
 );
 
+const RouteActivityPanel = dynamic(
+  () => import("@/components/dashboard/RouteActivityPanel").then((m) => m.RouteActivityPanel),
+  { ssr: false },
+);
+
 export type DashboardRouteItem = {
   id: string;
   name: string;
@@ -210,7 +215,7 @@ export function DashboardView({
         minHeight: 0,
         position: "relative",
         display: "grid",
-        gridTemplateColumns: "360px 1fr",
+        gridTemplateColumns: "360px 1fr 280px",
         gap: "var(--space-xl)",
       }}
     >
@@ -269,6 +274,20 @@ export function DashboardView({
           onRouteDeleted={handleRouteDeleted}
           onRouteRenamed={handleRouteRenamed}
         />
+      </div>
+
+      <div
+        className="dashboard-activity-col"
+        style={{
+          minHeight: 0,
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          borderLeft: "1px solid var(--dawn-08)",
+          paddingLeft: "var(--space-md)",
+        }}
+      >
+        <RouteActivityPanel routeId={selectedRouteId} />
       </div>
     </section>
   );

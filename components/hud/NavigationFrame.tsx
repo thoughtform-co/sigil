@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { NavSpineProvider, useNavSpine } from "@/context/NavSpineContext";
 import { SigilParticleLogo } from "./SigilParticleLogo";
-import { CardTitle, CardArrowAction } from "@/components/ui/card";
+import { ContextAnchor } from "@/components/ui/ContextAnchor";
 
 const THEME_KEY = "sigil-theme";
 const GRID = 3;
@@ -609,74 +609,27 @@ function NavigationFrameInner({
           }}
         >
           {journeyName ? (
-            <div style={{ width: NAV_SPINE_CARD_WIDTH }}>
-              <div style={{ display: "inline-flex", flexDirection: "column" }}>
-                <div
-                  data-journey-selected
-                  onClick={() => {
-                    if (breadcrumb.segments[0].href) router.push(breadcrumb.segments[0].href);
-                  }}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    padding: "4px 8px",
-                    background: "var(--surface-0)",
-                    border: "1px solid var(--dawn-08)",
-                    cursor: breadcrumb.segments[0].href ? "pointer" : undefined,
-                    transition: "border-color 120ms ease",
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--gold-30)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--dawn-08)"; }}
-                >
-                  <CardTitle
-                    fontSize="12px"
-                    color="var(--gold)"
-                    action={
-                      breadcrumb.segments[0].href ? (
-                        <CardArrowAction active />
-                      ) : undefined
-                    }
-                  >
-                    {journeyName}
-                  </CardTitle>
-                </div>
-                <div style={{ borderBottom: "1px solid var(--dawn-08)", marginTop: 10 }} />
-              </div>
-
-              {routeName && (
-                <span
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "17px",
-                    letterSpacing: "0.06em",
-                    textTransform: "uppercase" as const,
-                    color: "var(--gold)",
-                    whiteSpace: "nowrap" as const,
-                    overflow: "hidden" as const,
-                    textOverflow: "ellipsis",
-                    display: "block",
-                    marginTop: 14,
-                  }}
-                >
-                  {routeName}
-                </span>
-              )}
-            </div>
+            <ContextAnchor
+              mode="spine"
+              label={journeyName}
+              subtitle={routeName}
+              href={breadcrumb.segments[0].href}
+              onNavigate={() => {
+                if (breadcrumb.segments[0].href) router.push(breadcrumb.segments[0].href);
+              }}
+              width={NAV_SPINE_CARD_WIDTH}
+            />
           ) : (
-            <span
+            <ContextAnchor
+              mode="inline"
+              label={breadcrumb.segments[0].label}
               style={{
-                fontFamily: "var(--font-mono)",
                 fontSize: "13px",
                 fontWeight: 500,
                 letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                color: "var(--gold)",
                 whiteSpace: "nowrap",
               }}
-            >
-              {breadcrumb.segments[0].label}
-            </span>
+            />
           )}
 
           {/* Portal target for page-specific tree extensions (e.g. waypoints) */}
