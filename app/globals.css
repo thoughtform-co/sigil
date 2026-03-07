@@ -435,7 +435,7 @@ body {
 
 .hud-shell {
   min-height: 100vh;
-  padding-top: calc(var(--hud-padding) + 56px);
+  padding-top: calc(var(--hud-padding) + 24px);
   padding-bottom: calc(var(--hud-padding) + 40px);
   display: flex;
   flex-direction: column;
@@ -448,7 +448,7 @@ body {
   height: 100vh;
   min-height: 0;
   overflow: hidden;
-  padding-top: calc(var(--hud-padding) + 56px);
+  padding-top: calc(var(--hud-padding) + 24px);
   /* Bottom padding so content ends above the bottom HUD corners (24px); match corner inset so content bottom = corner top */
   padding-bottom: calc(var(--hud-padding) + 24px);
 }

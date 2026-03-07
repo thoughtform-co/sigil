@@ -22,7 +22,7 @@ async function JourneysContent() {
 
 export default function JourneysPage() {
   return (
-    <NavigationFrame title="SIGIL" modeLabel="journeys">
+    <NavigationFrame title="SIGIL" modeLabel="journeys" workspaceLayout>
       <Suspense
         fallback={
           <div className="flex items-center gap-3 py-12">

@@ -411,8 +411,8 @@ function NavigationFrameInner({
       <aside
         className="hud-rail-tick fixed z-30 pointer-events-none"
         style={{
-          top: "calc(var(--hud-padding) + 32px)",
-          bottom: "calc(var(--hud-padding) + 32px)",
+          top: "calc(var(--hud-padding) + 24px)",
+          bottom: "calc(var(--hud-padding) + 24px)",
           left: "var(--hud-padding)",
           width: RAIL_WIDTH,
         }}
@@ -462,8 +462,8 @@ function NavigationFrameInner({
         data-hud-rail="right"
         className="hud-rail-tick fixed z-30 pointer-events-none"
         style={{
-          top: "calc(var(--hud-padding) + 32px)",
-          bottom: "calc(var(--hud-padding) + 32px)",
+          top: "calc(var(--hud-padding) + 24px)",
+          bottom: "calc(var(--hud-padding) + 24px)",
           right: "var(--hud-padding)",
           width: RAIL_WIDTH,
         }}
@@ -604,7 +604,7 @@ function NavigationFrameInner({
           aria-label="Breadcrumb"
           className="nav-spine fixed z-40 pointer-events-auto animate-fade-in-up"
           style={{
-            top: "calc(var(--hud-padding) + 32px)",
+            top: "calc(var(--hud-padding) + 24px)",
             left: `calc(var(--hud-padding) + ${RAIL_WIDTH + 8}px)`,
           }}
         >
@@ -644,7 +644,7 @@ function NavigationFrameInner({
         style={{
           paddingLeft: `calc(var(--hud-padding) + ${journeyName ? RAIL_WIDTH + NAV_SPINE_CARD_WIDTH + 24 : RAIL_WIDTH + 8}px)`,
           paddingRight: `calc(var(--hud-padding) + 20px)`,
-          paddingTop: workspaceLayout ? "64px" : "calc(var(--hud-padding) + 56px)",
+          paddingTop: "calc(var(--hud-padding) + 24px)",
           ...({ "--content-inset-left": `calc(var(--hud-padding) + ${journeyName ? RAIL_WIDTH + NAV_SPINE_CARD_WIDTH + 24 : RAIL_WIDTH + 8}px)` } as React.CSSProperties),
         }}
       >
