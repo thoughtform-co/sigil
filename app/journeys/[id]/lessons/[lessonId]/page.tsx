@@ -1,14 +1,21 @@
 "use client";
 
-import { useMemo } from "react";
 import { useParams } from "next/navigation";
-import { NavigationFrame, type BreadcrumbSegment } from "@/components/hud/NavigationFrame";
+import useSWR from "swr";
+import { NavigationFrame } from "@/components/hud/NavigationFrame";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { LessonView } from "@/components/learning/LessonView";
 import { EmbeddedPractice } from "@/components/learning/EmbeddedPractice";
 import { LatentSpaceScene } from "@/components/learning/LatentSpaceScene";
 import { getJourneyContentByWorkspaceId, findLesson } from "@/lib/learning";
 import type { ContentBlock } from "@/lib/learning";
+
+type JourneyApiData = { journey: { name: string } };
+async function journeyFetcher(url: string): Promise<JourneyApiData> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Failed to load journey");
+  return res.json() as Promise<JourneyApiData>;
+}
 
 export default function LessonPage() {
   const params = useParams();
@@ -18,13 +25,11 @@ export default function LessonPage() {
   const content = getJourneyContentByWorkspaceId(journeyId);
   const found = content ? findLesson(content, lessonId) : null;
 
-  const breadcrumb = useMemo((): BreadcrumbSegment[] | undefined => {
-    if (!content || !found) return undefined;
-    return [
-      { label: content.profile.name, href: `/journeys/${journeyId}` },
-      { label: found.lesson.title },
-    ];
-  }, [content, found, journeyId]);
+  const { data: journeyData } = useSWR(
+    `/api/journeys/${journeyId}`,
+    journeyFetcher,
+    { revalidateOnFocus: false, dedupingInterval: 60_000 },
+  );
 
   if (!content || !found) {
     return (
@@ -49,10 +54,17 @@ export default function LessonPage() {
   }
 
   const { chapter, lesson } = found;
+  const journeyName = journeyData?.journey.name || content.profile.name;
 
   return (
     <RequireAuth>
-      <NavigationFrame title="SIGIL" modeLabel="lesson" breadcrumbOverride={breadcrumb}>
+      <NavigationFrame
+        title="SIGIL"
+        modeLabel="lesson"
+        journeyName={journeyName}
+        journeyId={journeyId}
+        lessonName={lesson.title}
+      >
         <section
           className="w-full animate-fade-in-up"
           style={{ paddingTop: "var(--space-xl)" }}

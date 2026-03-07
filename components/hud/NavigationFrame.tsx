@@ -26,6 +26,8 @@ type NavigationFrameProps = {
   journeyName?: string;
   journeyId?: string;
   routeName?: string;
+  /** Lesson context — used to show lesson title in the spine on curriculum pages. */
+  lessonName?: string;
 };
 
 export const NAV_SPINE_CARD_WIDTH = 280;
@@ -39,7 +41,6 @@ const TICK_LABELS: Record<number, string> = {
 };
 
 const LEFT_NAV = [
-  { href: "/dashboard", label: "dashboard" },
   { href: "/journeys", label: "journeys" },
 ];
 const RIGHT_NAV = [
@@ -270,6 +271,7 @@ function NavigationFrameInner({
   journeyName,
   journeyId,
   routeName,
+  lessonName,
 }: NavigationFrameProps) {
   const { portalRef } = useNavSpine();
   const pathname = usePathname();
@@ -375,11 +377,13 @@ function NavigationFrameInner({
 
     if (parts[0] === "journeys" && parts.length >= 2) {
       if (parts.length >= 4 && parts[2] === "lessons") {
+        const jId = parts[1];
+        const jName = journeyName ?? "journey";
         return {
-          backHref: `/journeys/${parts[1]}`,
+          backHref: `/journeys/${jId}`,
           segments: [
-            { label: "journey", href: `/journeys/${parts[1]}` },
-            { label: "lesson" },
+            { label: jName, href: `/journeys/${jId}` },
+            { label: lessonName ?? "lesson" },
           ],
         };
       }
@@ -390,7 +394,7 @@ function NavigationFrameInner({
     }
 
     return null;
-  }, [pathname, breadcrumbOverride, journeyName, journeyId, routeName]);
+  }, [pathname, breadcrumbOverride, journeyName, journeyId, routeName, lessonName]);
 
   const handleBack = useCallback(() => {
     if (breadcrumb?.backHref) {
@@ -613,8 +617,8 @@ function NavigationFrameInner({
               mode="spine"
               bearing="JOURNEY"
               label={journeyName}
-              subtitleBearing={routeName ? "ROUTE" : undefined}
-              subtitle={routeName}
+              subtitleBearing={routeName ? "ROUTE" : lessonName ? "LESSON" : undefined}
+              subtitle={routeName ?? lessonName}
               href={breadcrumb.segments[0].href}
               onNavigate={() => {
                 if (breadcrumb.segments[0].href) router.push(breadcrumb.segments[0].href);

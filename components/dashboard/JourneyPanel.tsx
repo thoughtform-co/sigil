@@ -44,6 +44,7 @@ type JourneyPanelProps = {
   onJourneyRenamed?: (id: string, name: string) => void;
   adminStats?: AdminStatRow[] | null;
   isAdmin?: boolean;
+  action?: React.ReactNode;
 };
 
 function PencilIcon() {
@@ -79,6 +80,7 @@ export function JourneyPanel({
   onJourneyRenamed,
   adminStats,
   isAdmin,
+  action: externalAction,
 }: JourneyPanelProps) {
   const router = useRouter();
   const totalGenerations = journeys.reduce((sum, j) => sum + j.generationCount, 0);
@@ -234,36 +236,39 @@ export function JourneyPanel({
       <SectionHeader
         label="JOURNEYS"
         action={
-          isAdmin ? (
-            <button
-              type="button"
-              onClick={() => setDialogOpen(true)}
-              title="Create journey"
-              style={{
-                width: 24,
-                height: 24,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "transparent",
-                border: "none",
-                color: "var(--dawn-30)",
-                fontFamily: "var(--font-mono)",
-                fontSize: "14px",
-                lineHeight: 1,
-                cursor: "pointer",
-                transition: "all 150ms ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "var(--gold)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "var(--dawn-30)";
-              }}
-            >
-              +
-            </button>
-          ) : undefined
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-sm)" }}>
+            {externalAction}
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => setDialogOpen(true)}
+                title="Create journey"
+                style={{
+                  width: 24,
+                  height: 24,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: "transparent",
+                  border: "none",
+                  color: "var(--dawn-30)",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "14px",
+                  lineHeight: 1,
+                  cursor: "pointer",
+                  transition: "all 150ms ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "var(--gold)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "var(--dawn-30)";
+                }}
+              >
+                +
+              </button>
+            )}
+          </div>
         }
       />
 

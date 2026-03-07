@@ -2,8 +2,12 @@
 
 import useSWR from "swr";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { JourneyOverviewCard } from "@/components/journeys/JourneyOverviewCard";
+import { SectionHeader } from "@/components/ui/SectionHeader";
+import type { JourneyCardItem } from "@/components/journeys/types";
 
 const JourneyPanel = dynamic(
   () => import("@/components/dashboard/JourneyPanel").then((m) => m.JourneyPanel),
@@ -94,6 +98,7 @@ export function DashboardView({
   );
   const [selectedJourneyId, setSelectedJourneyId] = useState<string | null>(null);
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"focused" | "overview">("focused");
 
   const handleJourneyDeleted = useCallback((id: string) => {
     void mutate(
@@ -203,6 +208,98 @@ export function DashboardView({
   const selectedJourney = data.journeys.find((j) => j.id === selectedJourneyId);
   const routes = selectedJourney?.routes ?? [];
 
+  const toggleBtn = (
+    <button
+      type="button"
+      onClick={() => setViewMode((m) => (m === "focused" ? "overview" : "focused"))}
+      style={{
+        background: "transparent",
+        border: "1px solid var(--dawn-08)",
+        color: "var(--dawn-40)",
+        fontFamily: "var(--font-mono)",
+        fontSize: "9px",
+        letterSpacing: "0.08em",
+        textTransform: "uppercase",
+        padding: "4px 10px",
+        cursor: "pointer",
+        transition: "color 120ms, border-color 120ms",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.color = "var(--gold)";
+        e.currentTarget.style.borderColor = "var(--gold-30)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.color = "var(--dawn-40)";
+        e.currentTarget.style.borderColor = "var(--dawn-08)";
+      }}
+    >
+      {viewMode === "focused" ? "all journeys" : "focused"}
+    </button>
+  );
+
+  if (viewMode === "overview") {
+    const overviewJourneys: JourneyCardItem[] = data.journeys.map((j) => ({
+      id: j.id,
+      name: j.name,
+      description: j.description,
+      type: j.type,
+      routeCount: j.routeCount,
+      generationCount: j.generationCount,
+      routes: j.routes.map((r) => ({
+        id: r.id,
+        name: r.name,
+        updatedAt: r.updatedAt,
+        waypointCount: r.waypointCount,
+      })),
+      thumbnails: j.routes.flatMap((r) =>
+        r.thumbnails.map((t) => ({
+          id: t.id,
+          fileUrl: t.fileUrl,
+          fileType: t.fileType,
+          width: t.width,
+          height: t.height,
+        })),
+      ),
+    }));
+
+    return (
+      <section
+        className="w-full animate-fade-in-up"
+        style={{
+          alignSelf: "flex-start",
+          maxWidth: "var(--layout-content-lg, 1400px)",
+        }}
+      >
+        <SectionHeader
+          label="JOURNEYS"
+          action={toggleBtn}
+        />
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-lg)", paddingTop: "var(--space-sm)" }}>
+          {overviewJourneys.length > 0 && (
+            <div
+              className="animate-fade-in-up"
+            >
+              <Link href={`/journeys/${overviewJourneys[0]!.id}`} style={{ textDecoration: "none" }}>
+                <JourneyOverviewCard journey={overviewJourneys[0]!} featured />
+              </Link>
+            </div>
+          )}
+          {overviewJourneys.length > 1 && (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {overviewJourneys.slice(1).map((journey, index) => (
+                <div key={journey.id} className="animate-fade-in-up" style={{ animationDelay: `${(index + 1) * 0.06}s` }}>
+                  <Link href={`/journeys/${journey.id}`} style={{ textDecoration: "none" }}>
+                    <JourneyOverviewCard journey={journey} />
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section
       className="dashboard-two-panel w-full animate-fade-in-up"
@@ -254,6 +351,7 @@ export function DashboardView({
           onJourneyRenamed={handleJourneyRenamed}
           adminStats={adminStatsData?.adminStats ?? undefined}
           isAdmin={isAdmin}
+          action={toggleBtn}
         />
       </div>
 

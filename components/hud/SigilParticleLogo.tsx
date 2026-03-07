@@ -45,7 +45,7 @@ const pixels = sigilLogoPixels();
 export function SigilParticleLogo() {
   return (
     <Link
-      href="/dashboard"
+      href="/"
       className="sigil-particle-logo"
       style={{
         display: "flex",

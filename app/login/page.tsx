@@ -67,7 +67,7 @@ export default function LoginPage() {
       setErrorMsg(error.message);
       setView("error");
     } else {
-      router.replace("/dashboard");
+      router.replace("/journeys");
       router.refresh();
     }
   };

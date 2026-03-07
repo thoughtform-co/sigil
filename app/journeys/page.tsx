@@ -1,19 +1,19 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { NavigationFrame } from "@/components/hud/NavigationFrame";
-import { JourneysOverviewContent } from "@/components/journeys/JourneysOverviewContent";
+import { DashboardView } from "@/components/dashboard/DashboardView";
 import { getAuthedUser } from "@/lib/auth/server";
-import { prefetchJourneysList } from "@/lib/prefetch/journeys";
+import { prefetchDashboard } from "@/lib/prefetch/dashboard";
 
-async function JourneysContent() {
+async function JourneysWorkspaceContent() {
   const user = await getAuthedUser();
   if (!user) redirect("/login");
 
-  const result = await prefetchJourneysList(user.id, { includeThumbnails: false });
+  const result = await prefetchDashboard(user.id, { includeThumbnails: false });
 
   return (
-    <JourneysOverviewContent
-      initialJourneys={result?.journeys}
+    <DashboardView
+      initialData={result?.data}
       initialIsAdmin={result?.isAdmin}
       initialDataIncludesThumbnails={false}
     />
@@ -33,7 +33,7 @@ export default function JourneysPage() {
           </div>
         }
       >
-        <JourneysContent />
+        <JourneysWorkspaceContent />
       </Suspense>
     </NavigationFrame>
   );

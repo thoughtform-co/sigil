@@ -9,6 +9,7 @@ import type {
   JourneyContent,
 } from "@/lib/learning/types";
 import styles from "@/app/journeys/[id]/lessons/[lessonId]/LessonPage.module.css";
+import { LessonProgressBranch } from "./LessonProgressBranch";
 
 const EXPLORED_KEY = "sigil:lesson-explored";
 
@@ -117,6 +118,11 @@ export function LessonView({
 
   return (
     <div className={styles.layout}>
+      <LessonProgressBranch
+        blocks={lesson.blocks}
+        activeBlockIdx={activeBlockIdx}
+        onScrollToBlock={scrollToBlock}
+      />
       {/* Main narrative column */}
       <div className={styles.narrative}>
         <div className={styles.lessonHeader}>

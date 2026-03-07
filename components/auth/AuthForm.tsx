@@ -9,7 +9,7 @@ type AuthFormProps = {
   nextPath?: string;
 };
 
-export function AuthForm({ mode, nextPath = "/dashboard" }: AuthFormProps) {
+export function AuthForm({ mode, nextPath = "/journeys" }: AuthFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
