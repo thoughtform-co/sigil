@@ -2,12 +2,11 @@
 
 import useSWR from "swr";
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { JourneyOverviewCard } from "@/components/journeys/JourneyOverviewCard";
+import { JourneyCardCompact } from "@/components/ui/JourneyCardCompact";
 import { SectionHeader } from "@/components/ui/SectionHeader";
-import type { JourneyCardItem } from "@/components/journeys/types";
+import { ParticleIcon } from "@/components/ui/ParticleIcon";
 
 const JourneyPanel = dynamic(
   () => import("@/components/dashboard/JourneyPanel").then((m) => m.JourneyPanel),
@@ -207,98 +206,32 @@ export function DashboardView({
 
   const selectedJourney = data.journeys.find((j) => j.id === selectedJourneyId);
   const routes = selectedJourney?.routes ?? [];
+  const isOverview = viewMode === "overview";
 
-  const toggleBtn = (
+  const disclosureBtn = (
     <button
       type="button"
       onClick={() => setViewMode((m) => (m === "focused" ? "overview" : "focused"))}
+      aria-expanded={isOverview}
+      aria-label={isOverview ? "Show focused workspace" : "Show all journeys"}
+      title={isOverview ? "Show focused workspace" : "Show all journeys"}
       style={{
         background: "transparent",
         border: "1px solid var(--dawn-08)",
-        color: "var(--dawn-40)",
-        fontFamily: "var(--font-mono)",
-        fontSize: "9px",
-        letterSpacing: "0.08em",
-        textTransform: "uppercase",
-        padding: "4px 10px",
+        padding: "3px 6px",
         cursor: "pointer",
-        transition: "color 120ms, border-color 120ms",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        transition: "transform 200ms ease, border-color 150ms ease",
+        transform: isOverview ? "rotate(90deg)" : "rotate(0deg)",
       }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.color = "var(--gold)";
-        e.currentTarget.style.borderColor = "var(--gold-30)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.color = "var(--dawn-40)";
-        e.currentTarget.style.borderColor = "var(--dawn-08)";
-      }}
+      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--gold-30)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--dawn-08)"; }}
     >
-      {viewMode === "focused" ? "all journeys" : "focused"}
+      <ParticleIcon glyph="chevron" size="md" active={isOverview} />
     </button>
   );
-
-  if (viewMode === "overview") {
-    const overviewJourneys: JourneyCardItem[] = data.journeys.map((j) => ({
-      id: j.id,
-      name: j.name,
-      description: j.description,
-      type: j.type,
-      routeCount: j.routeCount,
-      generationCount: j.generationCount,
-      routes: j.routes.map((r) => ({
-        id: r.id,
-        name: r.name,
-        updatedAt: r.updatedAt,
-        waypointCount: r.waypointCount,
-      })),
-      thumbnails: j.routes.flatMap((r) =>
-        r.thumbnails.map((t) => ({
-          id: t.id,
-          fileUrl: t.fileUrl,
-          fileType: t.fileType,
-          width: t.width,
-          height: t.height,
-        })),
-      ),
-    }));
-
-    return (
-      <section
-        className="w-full animate-fade-in-up"
-        style={{
-          alignSelf: "flex-start",
-          maxWidth: "var(--layout-content-lg, 1400px)",
-        }}
-      >
-        <SectionHeader
-          label="JOURNEYS"
-          action={toggleBtn}
-        />
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-lg)", paddingTop: "var(--space-sm)" }}>
-          {overviewJourneys.length > 0 && (
-            <div
-              className="animate-fade-in-up"
-            >
-              <Link href={`/journeys/${overviewJourneys[0]!.id}`} style={{ textDecoration: "none" }}>
-                <JourneyOverviewCard journey={overviewJourneys[0]!} featured />
-              </Link>
-            </div>
-          )}
-          {overviewJourneys.length > 1 && (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {overviewJourneys.slice(1).map((journey, index) => (
-                <div key={journey.id} className="animate-fade-in-up" style={{ animationDelay: `${(index + 1) * 0.06}s` }}>
-                  <Link href={`/journeys/${journey.id}`} style={{ textDecoration: "none" }}>
-                    <JourneyOverviewCard journey={journey} />
-                  </Link>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-    );
-  }
 
   return (
     <section
@@ -312,81 +245,184 @@ export function DashboardView({
         minHeight: 0,
         position: "relative",
         display: "grid",
-        gridTemplateColumns: "360px 1fr 280px",
+        gridTemplateColumns: isOverview ? "1fr" : "360px 1fr 280px",
         gap: "var(--space-xl)",
       }}
     >
-      <svg
-        aria-hidden
-        width="60"
-        height="1"
-        viewBox="0 0 60 1"
-        fill="none"
-        style={{
-          position: "absolute",
-          left: 344,
-          top: 38,
-          pointerEvents: "none",
-        }}
-      >
-        <path
-          d="M0 0H60"
-          stroke="var(--dawn-15)"
-          strokeWidth="1"
-          strokeLinecap="square"
-          vectorEffect="non-scaling-stroke"
-        />
-      </svg>
-      <div style={{ minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-        <JourneyPanel
-          journeys={data.journeys}
-          selectedJourneyId={selectedJourneyId}
-          onSelectJourney={(id) => {
-            setSelectedJourneyId(id);
-            setSelectedRouteId(null);
+      {!isOverview && (
+        <svg
+          aria-hidden
+          width="60"
+          height="1"
+          viewBox="0 0 60 1"
+          fill="none"
+          style={{
+            position: "absolute",
+            left: 344,
+            top: 38,
+            pointerEvents: "none",
           }}
-          onSelectRoute={setSelectedRouteId}
-          onJourneyCreated={() => void mutate()}
-          onJourneyDeleted={handleJourneyDeleted}
-          onJourneyRenamed={handleJourneyRenamed}
-          adminStats={adminStatsData?.adminStats ?? undefined}
-          isAdmin={isAdmin}
-          action={toggleBtn}
-        />
+        >
+          <path
+            d="M0 0H60"
+            stroke="var(--dawn-15)"
+            strokeWidth="1"
+            strokeLinecap="square"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
+      )}
+
+      <div style={{ minHeight: 0, overflow: isOverview ? "auto" : "hidden", display: "flex", flexDirection: "column" }}>
+        {isOverview ? (
+          <>
+            <SectionHeader
+              label="JOURNEYS"
+              action={
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--space-sm)" }}>
+                  {disclosureBtn}
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("focused")}
+                      title="Create journey"
+                      style={{
+                        width: 24,
+                        height: 24,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: "transparent",
+                        border: "none",
+                        color: "var(--dawn-30)",
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "14px",
+                        lineHeight: 1,
+                        cursor: "pointer",
+                        transition: "all 150ms ease",
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.color = "var(--gold)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.color = "var(--dawn-30)"; }}
+                    >
+                      +
+                    </button>
+                  )}
+                </div>
+              }
+            />
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)", paddingTop: "var(--space-sm)", maxWidth: 360 }}>
+              {data.journeys.map((j, index) => (
+                <div key={j.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 0.04}s` }}>
+                  <JourneyCardCompact
+                    name={j.name}
+                    type={j.type === "learn" ? "learn" : "create"}
+                    routeCount={j.routeCount}
+                    href={`/journeys/${j.id}`}
+                    routeTree={
+                      j.routes.length > 0 ? (
+                        <div style={{ paddingLeft: 12, paddingTop: 6 }}>
+                          {j.routes.map((r, ri) => (
+                            <div
+                              key={r.id}
+                              style={{
+                                position: "relative",
+                                paddingLeft: 14,
+                                marginBottom: ri === j.routes.length - 1 ? 0 : 6,
+                              }}
+                            >
+                              <svg
+                                aria-hidden
+                                width="14"
+                                height="20"
+                                viewBox="0 0 14 20"
+                                fill="none"
+                                style={{ position: "absolute", left: 0, top: -2 }}
+                              >
+                                <path
+                                  d="M0 0V10H13"
+                                  stroke="var(--dawn-15)"
+                                  strokeWidth="1"
+                                  strokeLinecap="square"
+                                  strokeLinejoin="miter"
+                                  vectorEffect="non-scaling-stroke"
+                                />
+                              </svg>
+                              <span
+                                style={{
+                                  fontFamily: "var(--font-mono)",
+                                  fontSize: "9px",
+                                  letterSpacing: "0.06em",
+                                  textTransform: "uppercase",
+                                  color: "var(--dawn-50)",
+                                }}
+                              >
+                                {r.name}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : undefined
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <JourneyPanel
+            journeys={data.journeys}
+            selectedJourneyId={selectedJourneyId}
+            onSelectJourney={(id) => {
+              setSelectedJourneyId(id);
+              setSelectedRouteId(null);
+            }}
+            onSelectRoute={setSelectedRouteId}
+            onJourneyCreated={() => void mutate()}
+            onJourneyDeleted={handleJourneyDeleted}
+            onJourneyRenamed={handleJourneyRenamed}
+            adminStats={adminStatsData?.adminStats ?? undefined}
+            isAdmin={isAdmin}
+            action={disclosureBtn}
+          />
+        )}
       </div>
 
-      <div
-        style={{
-          minHeight: 0,
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <RouteCardsPanel
-          routes={routes}
-          journeyId={selectedJourneyId}
-          selectedRouteId={selectedRouteId}
-          onSelectRoute={setSelectedRouteId}
-          onRouteCreated={() => void mutate()}
-          onRouteDeleted={handleRouteDeleted}
-          onRouteRenamed={handleRouteRenamed}
-        />
-      </div>
+      {!isOverview && (
+        <div
+          style={{
+            minHeight: 0,
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <RouteCardsPanel
+            routes={routes}
+            journeyId={selectedJourneyId}
+            selectedRouteId={selectedRouteId}
+            onSelectRoute={setSelectedRouteId}
+            onRouteCreated={() => void mutate()}
+            onRouteDeleted={handleRouteDeleted}
+            onRouteRenamed={handleRouteRenamed}
+          />
+        </div>
+      )}
 
-      <div
-        className="dashboard-activity-col"
-        style={{
-          minHeight: 0,
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-          borderLeft: "1px solid var(--dawn-08)",
-          paddingLeft: "var(--space-md)",
-        }}
-      >
-        <RouteActivityPanel routeId={selectedRouteId} />
-      </div>
+      {!isOverview && (
+        <div
+          className="dashboard-activity-col"
+          style={{
+            minHeight: 0,
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            borderLeft: "1px solid var(--dawn-08)",
+            paddingLeft: "var(--space-md)",
+          }}
+        >
+          <RouteActivityPanel routeId={selectedRouteId} />
+        </div>
+      )}
     </section>
   );
 }

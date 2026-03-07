@@ -1,6 +1,6 @@
 type Pixel = { x: number; y: number; alpha: number };
 
-type ParticleGlyph = "arrow" | "logo" | "settings" | "theme-light" | "theme-dark";
+type ParticleGlyph = "arrow" | "chevron" | "logo" | "settings" | "theme-light" | "theme-dark";
 export type ParticleSize = "sm" | "md" | "lg";
 
 const SIZE_CONFIG: Record<ParticleSize, { size: number; grid: number }> = {
@@ -24,6 +24,32 @@ function arrowPixels(grid: number): Pixel[] {
     { x: 1 + grid * 3, y: mid, alpha: 1 },
     { x: 1 + grid * 3, y: mid + grid, alpha: 1 },
     { x: 1 + grid * 4, y: mid, alpha: 1 },
+  ];
+}
+
+function chevronPixels(grid: number): Pixel[] {
+  const s = grid === 2 ? 12 : 18;
+  const mid = Math.floor(s / 2);
+  if (grid === 2) {
+    return [
+      { x: 2, y: mid - grid * 2, alpha: 0.45 },
+      { x: 2 + grid, y: mid - grid, alpha: 0.7 },
+      { x: 2 + grid * 2, y: mid, alpha: 1 },
+      { x: 2 + grid, y: mid + grid, alpha: 0.7 },
+      { x: 2, y: mid + grid * 2, alpha: 0.45 },
+    ];
+  }
+  return [
+    { x: 3, y: 3, alpha: 0.4 },
+    { x: 3 + grid, y: 3, alpha: 0.5 },
+    { x: 6, y: 6, alpha: 0.7 },
+    { x: 6 + grid, y: 6, alpha: 0.8 },
+    { x: 9, y: mid, alpha: 1 },
+    { x: 9 + grid, y: mid, alpha: 1 },
+    { x: 6, y: mid + grid, alpha: 0.8 },
+    { x: 6 + grid, y: mid + grid, alpha: 0.7 },
+    { x: 3, y: mid + grid * 2, alpha: 0.5 },
+    { x: 3 + grid, y: mid + grid * 2, alpha: 0.4 },
   ];
 }
 
@@ -95,6 +121,7 @@ function themePixels(size: number, grid: number, isLight: boolean): Pixel[] {
 function getPixels(glyph: ParticleGlyph, size: number, grid: number): Pixel[] {
   switch (glyph) {
     case "arrow": return arrowPixels(grid);
+    case "chevron": return chevronPixels(grid);
     case "logo": return logoPixels(size, grid);
     case "settings": return settingsPixels(size, grid);
     case "theme-light": return themePixels(size, grid, true);
