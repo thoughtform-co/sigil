@@ -279,9 +279,10 @@ export function ForgeGenerationCard({
           {copied && <span className={styles.copiedBadge}>COPIED</span>}
         </button>
 
-        {refImageUrl && (
-          <>
-            <div className={styles.promptPanelDivider} aria-hidden />
+        <div className={styles.promptPanelDivider} aria-hidden />
+
+        <div className={styles.promptFooter}>
+          {refImageUrl && (
             <button
               type="button"
               className={styles.refThumb}
@@ -291,69 +292,65 @@ export function ForgeGenerationCard({
               <img src={refImageUrl} alt="Reference" className={styles.refThumbImg} />
               <span className={styles.refThumbLabel}>REF</span>
             </button>
-          </>
-        )}
-
-        <div className={styles.promptPanelDivider} aria-hidden />
-
-        <div className={styles.metaReadouts}>
-          <span className={styles.readout}>
-            <span className={styles.readoutLabel}>ID</span>
-            <span className={styles.readoutValue}>{idShort}</span>
-          </span>
-          <span className={styles.readout}>
-            <span className={styles.readoutLabel}>MODEL</span>
-            <span className={styles.readoutValue}>{generation.modelId || "Unknown"}</span>
-          </span>
-          <span className={styles.readout}>
-            <span className={styles.readoutLabel}>DATE</span>
-            <span className={styles.readoutValue}>{createdAt}</span>
-          </span>
-          <span className={styles.readout}>
-            <span className={styles.readoutLabel}>STATUS</span>
-            <span className={styles.readoutValue}>{statusLabel}</span>
-          </span>
-          {generation.source === "workflow" && (
-            <span className={styles.readout} title="Created from canvas workflow">
-              <span className={styles.canvasBadge}>CANVAS</span>
-            </span>
           )}
-        </div>
 
-        <div className={styles.promptPanelDivider} aria-hidden />
+          <div className={styles.metaReadouts}>
+            <span className={styles.readout}>
+              <span className={styles.readoutLabel}>ID</span>
+              <span className={styles.readoutValue}>{idShort}</span>
+            </span>
+            <span className={styles.readout}>
+              <span className={styles.readoutLabel}>MODEL</span>
+              <span className={styles.readoutValue}>{generation.modelId || "Unknown"}</span>
+            </span>
+            <span className={styles.readout}>
+              <span className={styles.readoutLabel}>DATE</span>
+              <span className={styles.readoutValue}>{createdAt}</span>
+            </span>
+            <span className={styles.readout}>
+              <span className={styles.readoutLabel}>STATUS</span>
+              <span className={styles.readoutValue}>{statusLabel}</span>
+            </span>
+            {generation.source === "workflow" && (
+              <span className={styles.readout} title="Created from canvas workflow">
+                <span className={styles.canvasBadge}>CANVAS</span>
+              </span>
+            )}
+          </div>
 
-        <div className={styles.promptActions}>
-          {failed ? (
-            <button
-              type="button"
-              className={styles.textAction}
-              onClick={() => onRetry(generation.id)}
-              disabled={busy}
-            >
-              Retry
-            </button>
-          ) : (
-            onRerun && (
+          <div className={styles.promptActions}>
+            {failed ? (
               <button
                 type="button"
                 className={styles.textAction}
-                onClick={() => onRerun(generation.id)}
+                onClick={() => onRetry(generation.id)}
                 disabled={busy}
               >
-                Rerun
+                Retry
               </button>
-            )
-          )}
-          {onDismiss && failed && (
-            <button
-              type="button"
-              className={styles.textAction}
-              onClick={() => onDismiss(generation.id)}
-              disabled={busy}
-            >
-              Dismiss
-            </button>
-          )}
+            ) : (
+              onRerun && (
+                <button
+                  type="button"
+                  className={styles.textAction}
+                  onClick={() => onRerun(generation.id)}
+                  disabled={busy}
+                >
+                  Rerun
+                </button>
+              )
+            )}
+            {onDismiss && failed && (
+              <button
+                type="button"
+                className={styles.textAction}
+                onClick={() => onDismiss(generation.id)}
+                disabled={busy}
+              >
+                Dismiss
+              </button>
+            )}
+          </div>
         </div>
       </aside>
 

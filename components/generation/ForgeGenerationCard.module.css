@@ -20,15 +20,17 @@
   display: flex;
   flex-direction: column;
   gap: 0;
-  padding: 10px 10px 10px 16px;
-  min-height: 200px;
-  background: transparent;
+  padding: 12px 14px;
+  height: 280px;
+  align-self: start;
+  background: var(--surface-0);
+  border: 1px solid var(--dawn-08);
 }
 
 .promptPanelDivider {
   height: 1px;
-  background: var(--dawn-08);
-  margin: 10px 0;
+  background: var(--dawn-06, rgba(236, 227, 214, 0.06));
+  margin: 8px 0;
   flex-shrink: 0;
 }
 
@@ -42,7 +44,10 @@
   text-align: left;
   cursor: pointer;
   transition: opacity 120ms ease;
-  flex: 1;
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .promptBlock:hover {
@@ -61,9 +66,14 @@
   color: var(--dawn-70);
   white-space: pre-wrap;
   word-break: break-word;
-  max-height: 120px;
-  overflow: auto;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
   scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.promptPanel:hover .promptText {
   scrollbar-color: var(--dawn-15) transparent;
 }
 
@@ -76,10 +86,14 @@
 }
 
 .promptText::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+.promptPanel:hover .promptText::-webkit-scrollbar-thumb {
   background: var(--dawn-15);
 }
 
-.promptText::-webkit-scrollbar-thumb:hover {
+.promptPanel:hover .promptText::-webkit-scrollbar-thumb:hover {
   background: var(--dawn-30);
 }
 
@@ -136,12 +150,18 @@
   background: rgba(202, 165, 84, 0.08);
 }
 
+.promptFooter {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .promptActions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px 12px;
-  margin-top: auto;
-  padding-top: 0;
+  padding-top: 2px;
 }
 
 .textAction {
@@ -176,9 +196,8 @@
 .mediaPanel {
   min-height: 200px;
   padding: 12px 28px 12px 12px;
-  background: var(--void);
+  background: transparent;
   display: flex;
-  border-left: 1px solid var(--dawn-08);
 }
 
 .mediaGrid {
@@ -420,7 +439,19 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  background: radial-gradient(circle at center, var(--gold-10) 0%, transparent 70%);
+  background: var(--surface-0);
+  border: 1px solid var(--dawn-08);
+}
+
+.cardProcessing .mediaState {
+  border-color: var(--gold-15);
+  background:
+    radial-gradient(circle at center, var(--gold-10) 0%, transparent 70%),
+    var(--surface-0);
+}
+
+.cardFailed .mediaState {
+  border-color: rgba(255, 107, 53, 0.15);
 }
 
 /* Corner brackets on processing/failed/empty state (same HUD style as media frame) */
@@ -615,7 +646,9 @@
   }
 
   .promptPanel {
-    padding-left: 18px;
+    height: auto;
+    max-height: 240px;
+    align-self: stretch;
   }
 
   .mediaGridMulti {
