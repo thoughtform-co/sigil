@@ -516,6 +516,24 @@
   to { transform: rotate(360deg); }
 }
 
+@media (min-width: 1536px) {
+  .promptBarContainer {
+    max-width: 1040px;
+  }
+}
+
+@media (min-width: 1920px) {
+  .promptBarContainer {
+    max-width: 1120px;
+  }
+}
+
+@media (min-width: 2560px) {
+  .promptBarContainer {
+    max-width: 1200px;
+  }
+}
+
 @media (max-width: 1100px) {
   .promptBarContainer {
     left: var(--content-inset-left, calc(var(--hud-padding) + 88px));

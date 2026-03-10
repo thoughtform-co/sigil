@@ -396,6 +396,11 @@ export function ForgeGenerationCard({
           >
             <div className={styles.mediaStateCornerMarks} aria-hidden />
             <div className={styles.mediaStateCornerMarksSecondary} aria-hidden />
+            <SigilLoadingField
+              seed={generation.id}
+              createdAt={generation.createdAt}
+              modelId={generation.modelId}
+            />
             <div className={styles.mediaStateContent}>
               {stuck ? (
                 <>
@@ -425,10 +430,7 @@ export function ForgeGenerationCard({
                   </div>
                 </>
               ) : (
-                <>
-                  <SigilLoadingField seed={generation.id} />
-                  <span className={styles.phaseMessage}>{phaseMessage}</span>
-                </>
+                <span className={styles.phaseMessage}>{phaseMessage}</span>
               )}
             </div>
           </div>

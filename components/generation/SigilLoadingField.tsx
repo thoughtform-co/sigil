@@ -5,92 +5,136 @@ import { useRef, useEffect, useCallback } from "react";
 const GRID = 3;
 const GOLD = { r: 202, g: 165, b: 84 };
 const DAWN = { r: 236, g: 227, b: 214 };
+const PARTICLE_COUNT = 140;
+const TEXT_SAFE_HALF = 18;
 
-type Particle = {
-  x: number;
-  y: number;
-  homeX: number;
-  homeY: number;
-  vx: number;
-  vy: number;
-  alpha: number;
-  size: number;
-  ring: number;
-};
+function estimateGenerationSeconds(modelId: string): number {
+  if (!modelId) return 40;
+  const id = modelId.toLowerCase();
+  if (id.includes("kling")) return 120;
+  if (id.includes("veo")) return 90;
+  if (id.includes("gemini") || id.includes("nano-banana")) return 30;
+  if (id.includes("seedream") || id.includes("reve")) return 45;
+  return 40;
+}
 
 function snap(v: number): number {
   return Math.round(v / GRID) * GRID;
 }
 
-function createSigilParticles(w: number, h: number): Particle[] {
-  const particles: Particle[] = [];
+function seededRandom(seed: number): () => number {
+  let s = seed;
+  return () => {
+    s = (s * 1664525 + 1013904223) & 0x7fffffff;
+    return s / 0x7fffffff;
+  };
+}
+
+type Particle = {
+  x: number;
+  y: number;
+  homeAngle: number;
+  homeRadius: number;
+  normalizedR: number;
+  vx: number;
+  vy: number;
+  baseAlpha: number;
+  size: number;
+  isGold: boolean;
+  angularDrift: number;
+  jitterPhase: number;
+};
+
+function createParticles(w: number, h: number, seed: number): Particle[] {
   const cx = w / 2;
   const cy = h / 2;
-  const scale = Math.min(w, h) * 0.35;
+  const maxR = Math.sqrt(cx * cx + cy * cy);
+  const rand = seededRandom(seed);
+  const particles: Particle[] = [];
 
-  for (let i = 0; i < 4; i++) {
-    const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
-    const r = scale * 0.8;
-    particles.push({
-      x: snap(cx + Math.cos(a) * r),
-      y: snap(cy + Math.sin(a) * r),
-      homeX: snap(cx + Math.cos(a) * r),
-      homeY: snap(cy + Math.sin(a) * r),
-      vx: 0, vy: 0,
-      alpha: 0.9,
-      size: GRID,
-      ring: 0,
-    });
-  }
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    const angle = rand() * Math.PI * 2;
+    const rNorm = rand();
+    const radius = rNorm * maxR;
+    const isGold = rNorm < 0.35 || rand() < 0.15;
 
-  for (let i = 0; i < 8; i++) {
-    const a = (i / 8) * Math.PI * 2;
-    const r = scale * 0.5;
     particles.push({
-      x: snap(cx + Math.cos(a) * r),
-      y: snap(cy + Math.sin(a) * r),
-      homeX: snap(cx + Math.cos(a) * r),
-      homeY: snap(cy + Math.sin(a) * r),
-      vx: 0, vy: 0,
-      alpha: 0.6,
-      size: GRID - 1,
-      ring: 1,
-    });
-  }
-
-  for (let d = -3; d <= 3; d++) {
-    if (d === 0) continue;
-    const off = d * GRID * 3;
-    particles.push({
-      x: snap(cx + off), y: snap(cy),
-      homeX: snap(cx + off), homeY: snap(cy),
-      vx: 0, vy: 0, alpha: 0.7, size: GRID - 1, ring: 2,
-    });
-    particles.push({
-      x: snap(cx), y: snap(cy + off),
-      homeX: snap(cx), homeY: snap(cy + off),
-      vx: 0, vy: 0, alpha: 0.7, size: GRID - 1, ring: 2,
+      x: snap(cx),
+      y: snap(cy),
+      homeAngle: angle,
+      homeRadius: radius,
+      normalizedR: rNorm,
+      vx: 0,
+      vy: 0,
+      baseAlpha: 0.25 + rand() * 0.55,
+      size: rand() < 0.3 ? GRID : GRID - 1,
+      isGold,
+      angularDrift: (rand() - 0.5) * 0.4,
+      jitterPhase: rand() * Math.PI * 2,
     });
   }
 
   particles.push({
-    x: snap(cx), y: snap(cy),
-    homeX: snap(cx), homeY: snap(cy),
-    vx: 0, vy: 0, alpha: 1, size: GRID, ring: 3,
+    x: snap(cx),
+    y: snap(cy),
+    homeAngle: 0,
+    homeRadius: 0,
+    normalizedR: 0,
+    vx: 0,
+    vy: 0,
+    baseAlpha: 1,
+    size: GRID,
+    isGold: true,
+    angularDrift: 0,
+    jitterPhase: 0,
   });
 
-  for (let i = 0; i < 16; i++) {
-    const a = Math.random() * Math.PI * 2;
-    const r = scale * (0.2 + Math.random() * 0.7);
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
     particles.push({
-      x: snap(cx + Math.cos(a) * r),
-      y: snap(cy + Math.sin(a) * r),
-      homeX: snap(cx + Math.cos(a) * r),
-      homeY: snap(cy + Math.sin(a) * r),
+      x: snap(cx),
+      y: snap(cy),
+      homeAngle: a,
+      homeRadius: Math.min(w, h) * 0.12,
+      normalizedR: 0.08,
+      vx: 0,
+      vy: 0,
+      baseAlpha: 0.9,
+      size: GRID,
+      isGold: true,
+      angularDrift: 0,
+      jitterPhase: i * 1.5,
+    });
+  }
+
+  for (let d = -4; d <= 4; d++) {
+    if (d === 0) continue;
+    const off = Math.abs(d) / 4;
+    particles.push({
+      x: snap(cx),
+      y: snap(cy),
+      homeAngle: d > 0 ? 0 : Math.PI,
+      homeRadius: Math.abs(d) * GRID * 4,
+      normalizedR: off * 0.15,
       vx: 0, vy: 0,
-      alpha: 0.2 + Math.random() * 0.3,
+      baseAlpha: 0.6,
       size: GRID - 1,
-      ring: 4,
+      isGold: true,
+      angularDrift: 0,
+      jitterPhase: d,
+    });
+    particles.push({
+      x: snap(cx),
+      y: snap(cy),
+      homeAngle: d > 0 ? Math.PI / 2 : -Math.PI / 2,
+      homeRadius: Math.abs(d) * GRID * 4,
+      normalizedR: off * 0.15,
+      vx: 0, vy: 0,
+      baseAlpha: 0.6,
+      size: GRID - 1,
+      isGold: true,
+      angularDrift: 0,
+      jitterPhase: d + 10,
     });
   }
 
@@ -99,15 +143,19 @@ function createSigilParticles(w: number, h: number): Particle[] {
 
 type SigilLoadingFieldProps = {
   seed?: string;
+  createdAt?: string;
+  modelId?: string;
 };
 
-export function SigilLoadingField({ seed }: SigilLoadingFieldProps) {
+export function SigilLoadingField({ seed, createdAt, modelId }: SigilLoadingFieldProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
   const animRef = useRef<number>(0);
   const dimsRef = useRef({ w: 0, h: 0 });
-  const timeRef = useRef(0);
-  const seedOffset = seed ? seed.charCodeAt(0) * 0.01 : 0;
+
+  const seedNum = seed ? seed.split("").reduce((a, c) => a + c.charCodeAt(0), 0) : 42;
+  const createdAtMs = createdAt ? new Date(createdAt).getTime() : Date.now();
+  const expectedSeconds = estimateGenerationSeconds(modelId ?? "");
 
   const setup = useCallback(() => {
     const canvas = canvasRef.current;
@@ -124,8 +172,8 @@ export function SigilLoadingField({ seed }: SigilLoadingFieldProps) {
     canvas.height = h * dpr;
     ctx.scale(dpr, dpr);
     dimsRef.current = { w, h };
-    particlesRef.current = createSigilParticles(w, h);
-  }, []);
+    particlesRef.current = createParticles(w, h, seedNum);
+  }, [seedNum]);
 
   const animate = useCallback(() => {
     const canvas = canvasRef.current;
@@ -134,59 +182,103 @@ export function SigilLoadingField({ seed }: SigilLoadingFieldProps) {
     if (!ctx) return;
 
     const { w, h } = dimsRef.current;
-    const particles = particlesRef.current;
-    timeRef.current += 0.016;
-    const t = timeRef.current + seedOffset;
+    if (w === 0 || h === 0) {
+      animRef.current = requestAnimationFrame(animate);
+      return;
+    }
 
-    ctx.clearRect(0, 0, w, h);
+    const particles = particlesRef.current;
+    const now = Date.now();
+    const elapsed = Math.max(0, (now - createdAtMs) / 1000);
+    const raw = elapsed / expectedSeconds;
+    const progress = 1 - 1 / (1 + raw * 1.8);
+    const t = elapsed;
+
     const cx = w / 2;
     const cy = h / 2;
+    const maxR = Math.sqrt(cx * cx + cy * cy);
 
-    ctx.strokeStyle = `rgba(${GOLD.r}, ${GOLD.g}, ${GOLD.b}, 0.06)`;
+    ctx.clearRect(0, 0, w, h);
+
+    const crossSize = 14 + progress * 10;
+    const crossAlpha = 0.04 + progress * 0.04;
+    ctx.strokeStyle = `rgba(${GOLD.r}, ${GOLD.g}, ${GOLD.b}, ${crossAlpha})`;
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(cx - 20, cy);
-    ctx.lineTo(cx + 20, cy);
-    ctx.moveTo(cx, cy - 20);
-    ctx.lineTo(cx, cy + 20);
+    ctx.moveTo(cx - crossSize, cy);
+    ctx.lineTo(cx + crossSize, cy);
+    ctx.moveTo(cx, cy - crossSize);
+    ctx.lineTo(cx, cy + crossSize);
     ctx.stroke();
 
-    const breathe = 0.8 + 0.2 * Math.sin(t * 1.2);
-    const drift = Math.sin(t * 0.7) * 2;
+    const waveCount = Math.floor(progress * 4);
+    for (let i = 0; i <= waveCount; i++) {
+      const waveR = (i + 1) / 5 * maxR * progress;
+      if (waveR < 8) continue;
+      const waveAlpha = 0.03 * (1 - i / 5);
+      ctx.strokeStyle = `rgba(${GOLD.r}, ${GOLD.g}, ${GOLD.b}, ${waveAlpha})`;
+      ctx.beginPath();
+      const half = GRID * 0.5;
+      for (let a = 0; a < Math.PI * 2; a += Math.PI / 16) {
+        const px = snap(cx + Math.cos(a) * waveR);
+        const py = snap(cy + Math.sin(a) * waveR);
+        ctx.moveTo(px, py);
+        ctx.lineTo(px + half, py + half);
+      }
+      ctx.stroke();
+    }
 
     for (const p of particles) {
-      let tx = p.homeX;
-      let ty = p.homeY;
+      const frontier = progress * maxR * 1.1;
+      const revealed = p.homeRadius <= frontier;
 
-      if (p.ring <= 1) {
-        const angle = Math.atan2(p.homeY - cy, p.homeX - cx);
-        const dist = Math.sqrt((p.homeX - cx) ** 2 + (p.homeY - cy) ** 2);
-        tx = cx + Math.cos(angle + t * 0.3) * dist * breathe;
-        ty = cy + Math.sin(angle + t * 0.3) * dist * breathe;
-      } else if (p.ring === 2) {
-        tx = p.homeX + drift;
-        ty = p.homeY + drift * 0.5;
-      } else if (p.ring === 4) {
-        tx = p.homeX + Math.sin(t * 0.5 + p.homeX * 0.1) * 4;
-        ty = p.homeY + Math.cos(t * 0.5 + p.homeY * 0.1) * 4;
+      let targetR: number;
+      if (!revealed) {
+        targetR = 0;
+      } else {
+        const overshoot = 1 + 0.03 * Math.sin(t * 2 + p.jitterPhase);
+        targetR = p.homeRadius * overshoot;
       }
 
-      p.vx += (tx - p.x) * 0.04;
-      p.vy += (ty - p.y) * 0.04;
-      p.vx *= 0.9;
-      p.vy *= 0.9;
+      const driftAngle = p.angularDrift * Math.sin(t * 0.4 + p.jitterPhase);
+      const angle = p.homeAngle + driftAngle;
+
+      const tx = cx + Math.cos(angle) * targetR;
+      const ty = cy + Math.sin(angle) * targetR;
+
+      p.vx += (tx - p.x) * 0.06;
+      p.vy += (ty - p.y) * 0.06;
+      p.vx *= 0.88;
+      p.vy *= 0.88;
       p.x += p.vx;
       p.y += p.vy;
 
-      const isGold = p.ring <= 1 || p.ring === 3;
-      const col = isGold ? GOLD : DAWN;
-      const pulseAlpha = p.alpha * (0.7 + 0.3 * Math.sin(t * 1.5 + p.homeX * 0.05));
-      ctx.fillStyle = `rgba(${col.r}, ${col.g}, ${col.b}, ${pulseAlpha})`;
+      if (!revealed && Math.abs(p.x - cx) < 2 && Math.abs(p.y - cy) < 2) continue;
+
+      const distFromCenter = Math.sqrt((p.y - cy) ** 2);
+      let safeZoneFade = 1;
+      if (distFromCenter < TEXT_SAFE_HALF) {
+        const horizDist = Math.abs(p.x - cx);
+        if (horizDist < w * 0.28) {
+          safeZoneFade = Math.max(0, distFromCenter / TEXT_SAFE_HALF);
+          safeZoneFade = safeZoneFade * safeZoneFade;
+        }
+      }
+
+      const breatheRate = 1.2 + (1 - p.normalizedR) * 0.8;
+      const pulse = 0.65 + 0.35 * Math.sin(t * breatheRate + p.jitterPhase);
+      const fadeIn = revealed ? Math.min(1, (frontier - p.homeRadius) / (maxR * 0.15)) : 0;
+      const alpha = p.baseAlpha * pulse * safeZoneFade * fadeIn;
+
+      if (alpha < 0.01) continue;
+
+      const col = p.isGold ? GOLD : DAWN;
+      ctx.fillStyle = `rgba(${col.r}, ${col.g}, ${col.b}, ${alpha})`;
       ctx.fillRect(snap(p.x), snap(p.y), p.size, p.size);
     }
 
     animRef.current = requestAnimationFrame(animate);
-  }, [seedOffset]);
+  }, [createdAtMs, expectedSeconds]);
 
   useEffect(() => {
     setup();
