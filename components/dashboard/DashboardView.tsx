@@ -6,7 +6,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { JourneyCardCompact } from "@/components/ui/JourneyCardCompact";
 import { SectionHeader } from "@/components/ui/SectionHeader";
-import { ParticleIcon } from "@/components/ui/ParticleIcon";
 
 const JourneyPanel = dynamic(
   () => import("@/components/dashboard/JourneyPanel").then((m) => m.JourneyPanel),
@@ -208,7 +207,7 @@ export function DashboardView({
   const routes = selectedJourney?.routes ?? [];
   const isOverview = viewMode === "overview";
 
-  const disclosureBtn = (
+  const disclosureToggle = (
     <button
       type="button"
       onClick={() => setViewMode((m) => (m === "focused" ? "overview" : "focused"))}
@@ -216,39 +215,54 @@ export function DashboardView({
       aria-label={isOverview ? "Show focused workspace" : "Show all journeys"}
       title={isOverview ? "Show focused workspace" : "Show all journeys"}
       style={{
+        position: "fixed",
+        bottom: "var(--hud-padding)",
+        left: "calc(var(--hud-padding) + 28px)",
+        zIndex: 45,
         background: "transparent",
-        border: "1px solid var(--dawn-08)",
-        padding: "3px 6px",
-        cursor: "pointer",
-        display: "inline-flex",
+        border: "none",
+        width: 24,
+        height: 24,
+        display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        transition: "transform 200ms ease, border-color 150ms ease",
-        transform: isOverview ? "rotate(90deg)" : "rotate(0deg)",
+        cursor: "pointer",
+        fontFamily: "var(--font-mono)",
+        fontSize: "14px",
+        lineHeight: 1,
+        color: isOverview ? "var(--gold)" : "var(--dawn-40)",
+        transition: "color 150ms ease",
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--gold-30)"; }}
-      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--dawn-08)"; }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.color = "var(--gold)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.color = isOverview ? "var(--gold)" : "var(--dawn-40)";
+      }}
     >
-      <ParticleIcon glyph="chevron" size="md" active={isOverview} />
+      {isOverview ? "\u2039" : "\u203A"}
     </button>
   );
 
   return (
-    <section
-      className="dashboard-two-panel w-full animate-fade-in-up"
-      style={{
-        alignSelf: "flex-start",
-        width: "100%",
-        maxWidth: "var(--layout-content-lg, 1400px)",
-        margin: 0,
-        height: "100%",
-        minHeight: 0,
-        position: "relative",
-        display: "grid",
-        gridTemplateColumns: isOverview ? "1fr" : "360px 1fr 280px",
-        gap: "var(--space-xl)",
-      }}
-    >
+    <>
+      {disclosureToggle}
+      <section
+        className="dashboard-two-panel w-full animate-fade-in-up"
+        style={{
+          alignSelf: "flex-start",
+          width: "100%",
+          maxWidth: "var(--layout-content-lg, 1400px)",
+          margin: 0,
+          height: "100%",
+          minHeight: 0,
+          position: "relative",
+          display: "grid",
+          gridTemplateColumns: isOverview ? "1fr" : "360px 1fr 280px",
+          gap: "var(--space-xl)",
+        }}
+      >
+
       {!isOverview && (
         <svg
           aria-hidden
@@ -279,35 +293,32 @@ export function DashboardView({
             <SectionHeader
               label="JOURNEYS"
               action={
-                <div style={{ display: "flex", alignItems: "center", gap: "var(--space-sm)" }}>
-                  {disclosureBtn}
-                  {isAdmin && (
-                    <button
-                      type="button"
-                      onClick={() => setViewMode("focused")}
-                      title="Create journey"
-                      style={{
-                        width: 24,
-                        height: 24,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        background: "transparent",
-                        border: "none",
-                        color: "var(--dawn-30)",
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "14px",
-                        lineHeight: 1,
-                        cursor: "pointer",
-                        transition: "all 150ms ease",
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.color = "var(--gold)"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.color = "var(--dawn-30)"; }}
-                    >
-                      +
-                    </button>
-                  )}
-                </div>
+                isAdmin ? (
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("focused")}
+                    title="Create journey"
+                    style={{
+                      width: 24,
+                      height: 24,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: "transparent",
+                      border: "none",
+                      color: "var(--dawn-30)",
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "14px",
+                      lineHeight: 1,
+                      cursor: "pointer",
+                      transition: "all 150ms ease",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = "var(--gold)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = "var(--dawn-30)"; }}
+                  >
+                    +
+                  </button>
+                ) : undefined
               }
             />
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)", paddingTop: "var(--space-sm)", maxWidth: 360 }}>
@@ -382,7 +393,6 @@ export function DashboardView({
             onJourneyRenamed={handleJourneyRenamed}
             adminStats={adminStatsData?.adminStats ?? undefined}
             isAdmin={isAdmin}
-            action={disclosureBtn}
           />
         )}
       </div>
@@ -423,6 +433,7 @@ export function DashboardView({
           <RouteActivityPanel routeId={selectedRouteId} />
         </div>
       )}
-    </section>
+      </section>
+    </>
   );
 }
