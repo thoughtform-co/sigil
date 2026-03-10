@@ -84,6 +84,9 @@ const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
 const GEMINI_MODEL = "gemini-3-pro-image-preview";
 const MAX_RETRIES = 4;
 const IMAGE_DELAY_MS = 2000;
+const GEMINI_API_TIMEOUT_MS = 30_000;
+const REPLICATE_FETCH_TIMEOUT_MS = 15_000;
+const MAX_CONSECUTIVE_UNAVAILABLE = 2;
 
 const GEMINI_MODEL_MAP: Record<string, string> = {
   "gemini-nano-banana-pro": "gemini-3-pro-image-preview",
@@ -217,6 +220,7 @@ export class GeminiAdapter extends BaseModelAdapter {
     request: GenerationRequest,
   ): Promise<{ url: string; width: number; height: number }> {
     let lastError: Error | null = null;
+    let consecutiveUnavailable = 0;
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
@@ -229,10 +233,20 @@ export class GeminiAdapter extends BaseModelAdapter {
           break;
         }
 
+        if (isTransientError(err)) {
+          consecutiveUnavailable++;
+          if (consecutiveUnavailable >= MAX_CONSECUTIVE_UNAVAILABLE) {
+            console.log(`[Gemini] ${consecutiveUnavailable} consecutive 5xx errors, bailing to fallback`);
+            break;
+          }
+        } else {
+          consecutiveUnavailable = 0;
+        }
+
         const retryable = isRateLimitError(err) || isTransientError(err);
         if (retryable && attempt < MAX_RETRIES) {
           const baseDelay = isTransientError(err)
-            ? Math.min((attempt + 1) * 2000, 16000)
+            ? Math.min((attempt + 1) * 1500, 6000)
             : Math.pow(2, attempt - 1) * 1000;
           const delay = baseDelay + Math.random() * baseDelay * 0.5;
           console.log(
@@ -289,11 +303,19 @@ export class GeminiAdapter extends BaseModelAdapter {
       },
     };
 
-    const response = await fetch(`${endpoint}?key=${this.apiKey}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const controller = new AbortController();
+    const fetchTimeout = setTimeout(() => controller.abort(), GEMINI_API_TIMEOUT_MS);
+    let response: Response;
+    try {
+      response = await fetch(`${endpoint}?key=${this.apiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(fetchTimeout);
+    }
 
     if (!response.ok) {
       const errorBody = await response.json().catch(() => ({ error: { message: response.statusText } }));
@@ -381,9 +403,17 @@ export class GeminiAdapter extends BaseModelAdapter {
     const aspectRatio = request.aspectRatio || "1:1";
     const resolution = typeof request.resolution === "number" ? request.resolution : 1024;
 
-    const modelRes = await fetch(`${baseUrl}/models/${modelPath}`, {
-      headers: { Authorization: `Token ${this.replicateKey}` },
-    });
+    const modelController = new AbortController();
+    const modelTimeout = setTimeout(() => modelController.abort(), REPLICATE_FETCH_TIMEOUT_MS);
+    let modelRes: Response;
+    try {
+      modelRes = await fetch(`${baseUrl}/models/${modelPath}`, {
+        headers: { Authorization: `Token ${this.replicateKey}` },
+        signal: modelController.signal,
+      });
+    } finally {
+      clearTimeout(modelTimeout);
+    }
     if (!modelRes.ok) throw new Error(`Replicate model lookup failed: ${await modelRes.text()}`);
     const modelData = (await modelRes.json()) as { latest_version?: { id?: string } };
     const version = modelData.latest_version?.id;
@@ -399,14 +429,22 @@ export class GeminiAdapter extends BaseModelAdapter {
       request.referenceImage ?? request.referenceImages?.[0] ?? undefined;
     if (refImage) input.image_input = [refImage];
 
-    const predRes = await fetch(`${baseUrl}/predictions`, {
-      method: "POST",
-      headers: {
-        Authorization: `Token ${this.replicateKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ version, input }),
-    });
+    const predController = new AbortController();
+    const predTimeout = setTimeout(() => predController.abort(), REPLICATE_FETCH_TIMEOUT_MS);
+    let predRes: Response;
+    try {
+      predRes = await fetch(`${baseUrl}/predictions`, {
+        method: "POST",
+        headers: {
+          Authorization: `Token ${this.replicateKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ version, input }),
+        signal: predController.signal,
+      });
+    } finally {
+      clearTimeout(predTimeout);
+    }
     if (!predRes.ok) throw new Error(`Replicate prediction failed: ${await predRes.text()}`);
     const prediction = (await predRes.json()) as { id: string };
 
