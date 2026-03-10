@@ -264,114 +264,126 @@ function WaypointThumb({
         </>
       )}
 
-      <div style={{ display: "flex", width: "100%", height: "100%" }}>
-        {/* Thumbnail region */}
-        <div style={{ width: THUMB - 2, height: THUMB - 2, flexShrink: 0, overflow: "hidden" }}>
-          {thumbUrl ? (
-            thumbUrl.match(/\.(webm|mp4|mov)$/i) ? (
-              <video
-                src={thumbUrl}
-                muted
-                preload="metadata"
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              />
-            ) : (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img
-                src={thumbUrl}
-                alt=""
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              />
-            )
-          ) : (
-            <div
-              style={{
-                width: "100%",
-                height: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "var(--surface-1)",
-              }}
-            >
-              <span
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "14px",
-                  color: "var(--dawn-15)",
-                }}
-              >
-                ◇
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Expanded content: name + delete */}
+      {/* Full-bleed media layer */}
+      {thumbUrl ? (
+        thumbUrl.match(/\.(webm|mp4|mov)$/i) ? (
+          <video
+            src={thumbUrl}
+            muted
+            preload="metadata"
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              objectPosition: "center",
+            }}
+          />
+        ) : (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={thumbUrl}
+            alt=""
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              objectPosition: "center",
+            }}
+          />
+        )
+      ) : (
         <div
           style={{
-            flex: 1,
+            position: "absolute",
+            inset: 0,
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
-            padding: "0 10px",
-            opacity: isHovered ? 1 : 0,
-            transition: "opacity 200ms ease",
-            pointerEvents: isHovered ? "auto" : "none",
-            minWidth: 0,
+            justifyContent: "center",
+            background: "var(--surface-1)",
           }}
         >
           <span
             style={{
               fontFamily: "var(--font-mono)",
-              fontSize: "9px",
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              color: "var(--dawn)",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
+              fontSize: "14px",
+              color: "var(--dawn-15)",
             }}
           >
-            {label}
+            ◇
           </span>
-
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-            disabled={busy}
-            style={{
-              flexShrink: 0,
-              width: 22,
-              height: 22,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: "transparent",
-              border: "1px solid var(--dawn-15)",
-              color: "var(--dawn-50)",
-              cursor: "pointer",
-              padding: 0,
-              transition: "border-color 120ms ease, color 120ms ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "rgba(139, 90, 90, 0.6)";
-              e.currentTarget.style.color = "var(--alert)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "var(--dawn-15)";
-              e.currentTarget.style.color = "var(--dawn-50)";
-            }}
-            aria-label={`Delete ${label}`}
-          >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </button>
         </div>
+      )}
+
+      {/* Hover overlay: label + delete */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0 10px",
+          background: isHovered ? "rgba(5, 4, 3, 0.55)" : "transparent",
+          opacity: isHovered ? 1 : 0,
+          transition: "opacity 200ms ease, background 200ms ease",
+          pointerEvents: isHovered ? "auto" : "none",
+          zIndex: 2,
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "9px",
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            color: "var(--dawn)",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {label}
+        </span>
+
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          disabled={busy}
+          style={{
+            flexShrink: 0,
+            width: 22,
+            height: 22,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "transparent",
+            border: "1px solid var(--dawn-15)",
+            color: "var(--dawn-50)",
+            cursor: "pointer",
+            padding: 0,
+            transition: "border-color 120ms ease, color 120ms ease",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = "rgba(139, 90, 90, 0.6)";
+            e.currentTarget.style.color = "var(--alert)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = "var(--dawn-15)";
+            e.currentTarget.style.color = "var(--dawn-50)";
+          }}
+          aria-label={`Delete ${label}`}
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </button>
       </div>
     </div>
   );

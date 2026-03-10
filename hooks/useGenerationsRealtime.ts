@@ -13,6 +13,11 @@ function mapPayloadToItem(payload: {
   status: string;
   modelId: string;
   createdAt: string;
+  source?: string;
+  errorMessage?: string | null;
+  errorCategory?: string | null;
+  errorRetryable?: boolean | null;
+  lastHeartbeatAt?: string | null;
   outputs?: Array<{
     id: string;
     fileUrl: string;
@@ -31,6 +36,11 @@ function mapPayloadToItem(payload: {
     status: payload.status,
     modelId: payload.modelId,
     createdAt: payload.createdAt,
+    source: payload.source,
+    errorMessage: payload.errorMessage ?? null,
+    errorCategory: payload.errorCategory ?? null,
+    errorRetryable: payload.errorRetryable ?? null,
+    lastHeartbeatAt: payload.lastHeartbeatAt ?? null,
     outputs: payload.outputs ?? [],
   };
 }

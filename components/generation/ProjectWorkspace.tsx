@@ -558,7 +558,6 @@ export function ProjectWorkspace({
         void mutateGenerations();
       }
 
-      setPrompt("");
       setMessage(data.generation ? `Generation queued: ${data.generation.id}` : "Generation queued.");
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Failed to submit generation");

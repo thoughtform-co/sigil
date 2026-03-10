@@ -6,6 +6,7 @@ import Image from "next/image";
 import type { GenerationItem, OutputItem } from "@/components/generation/types";
 import { useVideoIterationCount } from "@/components/generation/VideoIterationCountsContext";
 import { VideoIterationsStackGlow, VideoIterationsBarButton } from "@/components/generation/VideoIterationsStackHint";
+import { SigilLoadingField } from "./SigilLoadingField";
 import styles from "./ForgeGenerationCard.module.css";
 
 function isProcessing(status: string): boolean {
@@ -93,6 +94,8 @@ function getPlaceholderAspectRatio(generation: GenerationItem): string {
   return "16 / 9";
 }
 
+const NOISE_SVG = `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
+
 function OutputCard({
   output,
   generation,
@@ -112,6 +115,7 @@ function OutputCard({
   onLightboxOpen?: (url: string) => void;
   busy: boolean;
 }) {
+  const [loaded, setLoaded] = useState(false);
   const showVideoIterations = output.fileType !== "video" && Boolean(onConvertToVideo);
   const { count: iterCount, hasProcessing: iterProcessing } = useVideoIterationCount(
     showVideoIterations ? output.id : null,
@@ -139,6 +143,7 @@ function OutputCard({
                 src={output.fileUrl}
                 preload="metadata"
                 playsInline
+                onLoadedData={() => setLoaded(true)}
               />
             ) : onLightboxOpen ? (
               <button
@@ -154,6 +159,7 @@ function OutputCard({
                   src={output.fileUrl}
                   alt="Generated output"
                   sizes="(max-width: 980px) 90vw, 660px"
+                  onLoad={() => setLoaded(true)}
                 />
               </button>
             ) : (
@@ -164,8 +170,36 @@ function OutputCard({
                 src={output.fileUrl}
                 alt="Generated output"
                 sizes="(max-width: 980px) 90vw, 660px"
+                onLoad={() => setLoaded(true)}
               />
             )}
+          </div>
+
+          {/* Reveal overlay: noise + scanlines that dissolve when media loads */}
+          <div
+            className={styles.revealOverlay}
+            style={{ opacity: loaded ? 0 : 1 }}
+            aria-hidden
+          >
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                backgroundImage: NOISE_SVG,
+                backgroundSize: "256px 256px",
+                opacity: 0.12,
+                mixBlendMode: "overlay",
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background:
+                  "repeating-linear-gradient(0deg, transparent 0px, transparent 2px, rgba(0,0,0,0.06) 2px, rgba(0,0,0,0.06) 4px)",
+              }}
+            />
+            {!loaded && <SigilLoadingField seed={output.id} />}
           </div>
         </div>
       </div>
@@ -189,7 +223,7 @@ function OutputCard({
         <div className={styles.actionBarSpacer} />
         {output.fileType !== "video" && onUseAsReference && (
           <button type="button" className={styles.actionButton} onClick={() => onUseAsReference(output.fileUrl)} disabled={busy} title="Use as reference">
-            <svg className={styles.actionIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg className={styles.actionIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: "rotate(-45deg)" }}>
               <path d="M17 7H7v10" />
               <path d="M17 7L7 17" />
             </svg>
@@ -324,7 +358,7 @@ export function ForgeGenerationCard({
                 </button>
               )
             )}
-            {onDismiss && failed && (
+            {onDismiss && (failed || stuck) && (
               <button
                 type="button"
                 className={styles.textAction}
@@ -392,9 +426,7 @@ export function ForgeGenerationCard({
                 </>
               ) : (
                 <>
-                  <div className={styles.progressDiamond}>
-                    <span className={styles.progressPercent}>…</span>
-                  </div>
+                  <SigilLoadingField seed={generation.id} />
                   <span className={styles.phaseMessage}>{phaseMessage}</span>
                 </>
               )}
