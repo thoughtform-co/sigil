@@ -93,19 +93,6 @@ function getPlaceholderAspectRatio(generation: GenerationItem): string {
   return "16 / 9";
 }
 
-function getFlowDuration(output: OutputItem, generation: GenerationItem): number {
-  if (typeof output.duration === "number" && output.duration > 0) {
-    return Math.min(14, Math.max(6, output.duration));
-  }
-  const sec = new Date(generation.createdAt).getSeconds();
-  return 7 + (sec % 4);
-}
-
-function getFlowDelay(generation: GenerationItem): number {
-  const ms = new Date(generation.createdAt).getTime();
-  return -((ms % 6000) / 1000);
-}
-
 function OutputCard({
   output,
   generation,
@@ -132,8 +119,6 @@ function OutputCard({
 
   const frameStyle = {
     aspectRatio: getAspectRatioStyle(output, generation),
-    ["--flow-duration" as const]: `${getFlowDuration(output, generation)}s`,
-    ["--flow-delay" as const]: `${getFlowDelay(generation)}s`,
   } as CSSProperties;
 
   return (
@@ -145,7 +130,6 @@ function OutputCard({
         {showVideoIterations && (
           <VideoIterationsStackGlow count={iterCount} hasProcessing={iterProcessing} />
         )}
-        <div className={styles.energyFlow} aria-hidden />
         <div className={styles.mediaInset}>
           <div className={styles.mediaViewport}>
             {output.fileType === "video" ? (

@@ -8,6 +8,21 @@ import styles from "./ForgeGallery.module.css";
 
 const VIRTUAL_THRESHOLD = 20;
 
+function FeedSeparator() {
+  return (
+    <div className={styles.feedSeparator} aria-hidden>
+      <svg
+        className={styles.separatorVector}
+        viewBox="0 0 176 176"
+        fill="currentColor"
+        aria-hidden="true"
+      >
+        <path d="M163.569 90.0186H107.114V83.8456H101.935V79.8677H98.2913V74.0075H92.0107V18.46H83.9799V74.0075H77.6895V79.8677H74.0343V83.8456H68.8651V90.0186H12.4229V98.0494H68.8651V104.222H74.0343V107.77H77.6895V114.061H83.9799V169.606H92.0107V114.061H98.2913V107.77H101.935V104.222H107.114V98.0494H163.569V90.0186Z" />
+      </svg>
+    </div>
+  );
+}
+
 type ForgeGalleryProps = {
   generations: GenerationItem[];
   onRetry: (generationId: string) => void;
@@ -223,9 +238,9 @@ export function ForgeGallery({
   const rowVirtualizer = useVirtualizer({
     count: generations.length,
     getScrollElement: () => feedRef.current,
-    estimateSize: () => 400,
+    estimateSize: (index: number) => (index === 0 ? 400 : 464),
     overscan: 3,
-    gap: 24,
+    gap: 0,
   });
 
   const renderCard = useCallback(
@@ -281,13 +296,21 @@ export function ForgeGallery({
                   className={styles.virtualRow}
                   style={{ transform: `translateY(${virtualRow.start}px)` }}
                 >
-                  {renderCard(generation)}
+                  <div className={styles.generationRow}>
+                    {virtualRow.index > 0 && <FeedSeparator />}
+                    {renderCard(generation)}
+                  </div>
                 </div>
               );
             })}
           </div>
         ) : (
-          generations.map((generation) => renderCard(generation))
+          generations.map((generation, index) => (
+            <div key={generation.id} className={styles.generationRow}>
+              {index > 0 && <FeedSeparator />}
+              {renderCard(generation)}
+            </div>
+          ))
         )}
         {hasMore && (
           <div ref={sentinelRef} className={styles.sentinel}>
