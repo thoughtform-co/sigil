@@ -14,8 +14,9 @@
 
 .panel {
   width: 100%;
-  max-width: 960px;
-  height: min(84vh, 720px);
+  max-width: 1120px;
+  min-height: min(64vh, 560px);
+  max-height: min(90vh, 900px);
   margin: 0 var(--space-lg);
   background: var(--surface-0);
   backdrop-filter: blur(32px);
@@ -27,13 +28,17 @@
   overflow: hidden;
 }
 
+.panel[data-source-orientation="portrait"] {
+  max-height: min(92vh, 960px);
+}
+
 /* Atlas-style telemetry bar */
 .telemetryBar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
-  height: 32px;
+  padding: 0 0 0 24px;
+  min-height: 36px;
   background: var(--dawn-08);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -42,6 +47,27 @@
   letter-spacing: 0.1em;
   flex-shrink: 0;
   gap: 16px;
+}
+
+.telemetryMeta {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+  padding: 7px 0;
+  gap: 0;
+}
+
+.telemetryMeta > * {
+  flex: 1;
+  text-align: center;
+}
+
+.telemetryMeta > :first-child {
+  flex: none;
+  text-align: left;
+  margin-right: 12px;
 }
 
 .telemetryBrand {
@@ -63,20 +89,29 @@
   color: var(--dawn-50);
 }
 
-.closeBtn {
+.closeSlot {
   margin-left: auto;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding: 0 14px 0 12px;
+  border-left: 1px solid var(--dawn-12);
+  flex-shrink: 0;
+}
+
+.closeBtn {
   width: 24px;
   height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: transparent;
-  border: 1px solid var(--dawn-08);
+  border: none;
   color: var(--dawn-50);
   font-size: 16px;
   line-height: 1;
   cursor: pointer;
-  transition: border-color var(--duration-fast), color var(--duration-fast);
+  transition: color var(--duration-fast), opacity var(--duration-fast);
   flex-shrink: 0;
 }
 
@@ -110,16 +145,16 @@
 }
 
 .closeBtn:hover {
-  border-color: var(--dawn-30);
-  color: var(--dawn);
+  color: var(--gold);
 }
 
 /* Body: two-panel layout */
 .body {
   flex: 1;
+  min-height: 0;
   overflow: hidden;
   display: grid;
-  grid-template-columns: 1fr 300px;
+  grid-template-columns: 1fr 340px;
   gap: 0;
 }
 
@@ -134,9 +169,13 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
-  padding: var(--space-lg);
+  padding: 20px 24px 18px;
   overflow-y: auto;
   scrollbar-width: none;
+}
+
+.panel[data-source-orientation="portrait"] .formSection {
+  gap: 6px;
 }
 
 .formSection::-webkit-scrollbar {
@@ -159,6 +198,26 @@
   overflow: hidden;
   background: var(--dawn-04);
   border: 1px solid var(--dawn-08);
+}
+
+.panel[data-source-orientation="portrait"] .frameCard,
+.panel[data-source-orientation="portrait"] .endFrameCard {
+  aspect-ratio: 3 / 4;
+}
+
+.panel[data-source-orientation="square"] .frameCard,
+.panel[data-source-orientation="square"] .endFrameCard {
+  aspect-ratio: 1 / 1;
+}
+
+.panel[data-source-orientation="portrait"] .framesRow {
+  max-height: clamp(200px, 42vh, 380px);
+}
+
+.panel[data-source-orientation="portrait"] .frameCard,
+.panel[data-source-orientation="portrait"] .endFrameCard,
+.panel[data-source-orientation="portrait"] .endFrameCardEmpty {
+  max-height: 100%;
 }
 
 .endFrameCardEmpty {
@@ -504,6 +563,39 @@
 .iterationsEmpty {
   font-size: 12px;
   color: var(--dawn-40);
+  text-align: center;
+  max-width: 220px;
+}
+
+.iterationsEmptyState {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px 20px 28px;
+}
+
+.iterationsEmptyIcon {
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--dawn-08);
+  color: var(--dawn-15);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.iterationsEmptyTitle {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--dawn-70);
+  text-align: center;
 }
 
 .iterationsList {

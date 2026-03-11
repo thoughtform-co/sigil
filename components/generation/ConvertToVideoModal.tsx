@@ -117,6 +117,7 @@ export function ConvertToVideoModal({
   const [endFrameUrl, setEndFrameUrl] = useState<string | null>(null);
   const [endFrameFile, setEndFrameFile] = useState<File | null>(null);
   const [detectedAspectRatio, setDetectedAspectRatio] = useState<string | null>(null);
+  const [sourceOrientation, setSourceOrientation] = useState<"landscape" | "portrait" | "square">("landscape");
   const [showEndFrameMenu, setShowEndFrameMenu] = useState(false);
   const [endFrameBrowseOpen, setEndFrameBrowseOpen] = useState(false);
   const endFrameInputRef = useRef<HTMLInputElement>(null);
@@ -174,15 +175,17 @@ export function ConvertToVideoModal({
       .finally(() => setModelsLoading(false));
   }, [open]);
 
-  // Detect start-frame aspect ratio for Kling auto behavior.
   useEffect(() => {
-    if (!open || !modelId.includes("kling")) {
-      setDetectedAspectRatio(null);
-      return;
-    }
-    const img = new Image();
+    if (!open || !imageUrl) return;
+    const img = new window.Image();
     img.onload = () => {
       const ratio = img.naturalWidth / img.naturalHeight;
+      setSourceOrientation(ratio < 0.95 ? "portrait" : ratio > 1.05 ? "landscape" : "square");
+
+      if (!modelId.includes("kling")) {
+        setDetectedAspectRatio(null);
+        return;
+      }
       const known = [
         { label: "16:9", value: 16 / 9 },
         { label: "9:16", value: 9 / 16 },
@@ -201,7 +204,10 @@ export function ConvertToVideoModal({
       }
       setDetectedAspectRatio(closest.label);
     };
-    img.onerror = () => setDetectedAspectRatio(null);
+    img.onerror = () => {
+      setDetectedAspectRatio(null);
+      setSourceOrientation("landscape");
+    };
     img.src = imageUrl;
   }, [open, modelId, imageUrl]);
 
@@ -366,45 +372,50 @@ export function ConvertToVideoModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="convert-modal-title"
+        data-source-orientation={sourceOrientation}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
         {/* Telemetry bar */}
         <header className={styles.telemetryBar} id="convert-modal-title">
-          <span className={styles.telemetryBrand}>SIGIL FORGE</span>
-          <span className={styles.telemetryLabel}>
-            MODE: <span className={styles.telemetryValue}>IMG→VID</span>
-          </span>
-          {sourceGenerationId && (
+          <div className={styles.telemetryMeta}>
+            <span className={styles.telemetryBrand}>SIGIL FORGE</span>
             <span className={styles.telemetryLabel}>
-              ID: <span className={styles.telemetryValue}>{sourceGenerationId.slice(0, 8).toUpperCase()}</span>
+              MODE: <span className={styles.telemetryValue}>IMG→VID</span>
             </span>
-          )}
-          {sourceModelId && (
-            <span className={styles.telemetryLabel}>
-              SRC: <span className={styles.telemetryValue}>{sourceModelId.toUpperCase()}</span>
-            </span>
-          )}
-          {sourceCreatedAt && (
-            <span className={styles.telemetryLabel}>
-              DATE: <span className={styles.telemetryValue}>
-                {new Date(sourceCreatedAt).toLocaleDateString(undefined, { month: "short", day: "2-digit", year: "numeric" }).toUpperCase()}
+            {sourceGenerationId && (
+              <span className={styles.telemetryLabel}>
+                ID: <span className={styles.telemetryValue}>{sourceGenerationId.slice(0, 8).toUpperCase()}</span>
               </span>
-            </span>
-          )}
-          {sourceStatus && (
-            <span className={styles.telemetryLabel}>
-              SIG: <span className={styles.telemetryValue}>{sourceStatus.toUpperCase()}</span>
-            </span>
-          )}
-          <button
-            type="button"
-            className={styles.closeBtn}
-            onClick={onClose}
-            aria-label="Close"
-          >
-            ×
-          </button>
+            )}
+            {sourceModelId && (
+              <span className={styles.telemetryLabel}>
+                SRC: <span className={styles.telemetryValue}>{sourceModelId.toUpperCase()}</span>
+              </span>
+            )}
+            {sourceCreatedAt && (
+              <span className={styles.telemetryLabel}>
+                DATE: <span className={styles.telemetryValue}>
+                  {new Date(sourceCreatedAt).toLocaleDateString(undefined, { month: "short", day: "2-digit", year: "numeric" }).toUpperCase()}
+                </span>
+              </span>
+            )}
+            {sourceStatus && (
+              <span className={styles.telemetryLabel}>
+                SIG: <span className={styles.telemetryValue}>{sourceStatus.toUpperCase()}</span>
+              </span>
+            )}
+          </div>
+          <div className={styles.closeSlot}>
+            <button
+              type="button"
+              className={styles.closeBtn}
+              onClick={onClose}
+              aria-label="Close"
+            >
+              ×
+            </button>
+          </div>
         </header>
 
         <div className={styles.body}>
@@ -647,7 +658,13 @@ export function ConvertToVideoModal({
             {iterationsLoading ? (
               <p className={styles.iterationsEmpty}>Loading…</p>
             ) : iterations.length === 0 ? (
-              <p className={styles.iterationsEmpty}>No iterations yet. Generate to create one.</p>
+              <div className={styles.iterationsEmptyState}>
+                <div className={styles.iterationsEmptyIcon} aria-hidden>◈</div>
+                <p className={styles.iterationsEmptyTitle}>No iterations yet</p>
+                <p className={styles.iterationsEmpty}>
+                  Enter a prompt and generate to create the first video iteration.
+                </p>
+              </div>
             ) : (
               <ul className={styles.iterationsList}>
                 {iterations.map((it) => (
