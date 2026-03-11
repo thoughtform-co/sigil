@@ -9,6 +9,7 @@ const windowMs = 60 * 1000; // 1 minute
 const maxPerWindow: Record<string, number> = {
   generate: 30,
   upload: 20,
+  "check-email": 10,
 };
 
 const store = new Map<string, { count: number; resetAt: number }>();

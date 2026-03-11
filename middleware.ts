@@ -13,7 +13,8 @@ function isPublicPath(pathname: string): boolean {
 const AUTH_BYPASS =
   process.env.NODE_ENV === "development" && process.env.SIGIL_AUTH_BYPASS === "true";
 
-const PUBLIC_DEMO = process.env.SIGIL_PUBLIC_DEMO === "true";
+const PUBLIC_DEMO =
+  process.env.NODE_ENV === "development" && process.env.SIGIL_PUBLIC_DEMO === "true";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

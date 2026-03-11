@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { CHANNEL_NAME, EVENT_GENERATION } from "@/lib/supabase/realtime";
+import { sessionChannelName, EVENT_GENERATION } from "@/lib/supabase/realtime";
 import type { GenerationItem } from "@/components/generation/types";
 
 function mapPayloadToItem(payload: {
@@ -62,15 +62,14 @@ export function useGenerationsRealtime(
     if (!sessionId) return;
 
     const supabase = createClient();
-    const channel = supabase.channel(CHANNEL_NAME);
+    const channel = supabase.channel(sessionChannelName(sessionId));
 
     channel
       .on("broadcast", { event: EVENT_GENERATION }, ({ payload }) => {
-        const { sessionId: payloadSessionId, generation } = payload as {
+        const { generation } = payload as {
           sessionId: string;
           generation: Parameters<typeof mapPayloadToItem>[0];
         };
-        if (payloadSessionId !== sessionId) return;
         callbackRef.current(mapPayloadToItem(generation));
       })
       .subscribe((status) => {

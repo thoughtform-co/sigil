@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getAuthedUser } from "@/lib/auth/server";
+import { projectAccessFilter } from "@/lib/auth/project-access";
 import { getModel, getModelConfig } from "@/lib/models/registry";
 import { routeModel } from "@/lib/models/routing";
 import { calculateGenerationCost } from "@/lib/cost/calculator";
@@ -117,8 +118,12 @@ export async function POST(request: Request) {
     return badRequest("Validation failed", parsed.error.flatten());
   }
 
-  const generation = await prisma.generation.findUnique({
-    where: { id: parsed.data.generationId },
+  const accessFilter = await projectAccessFilter(user.id);
+  const generation = await prisma.generation.findFirst({
+    where: {
+      id: parsed.data.generationId,
+      session: { project: accessFilter },
+    },
     select: {
       id: true,
       sessionId: true,
@@ -132,7 +137,7 @@ export async function POST(request: Request) {
   });
 
   if (!generation) {
-    return notFound("Generation not found");
+    return notFound("Generation not found or access denied");
   }
 
   if (!isProcessable(generation.status)) {

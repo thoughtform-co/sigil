@@ -49,7 +49,7 @@ async function ensureReferencesBucketExists(admin: ReturnType<typeof createAdmin
   }
   const exists = buckets.some((item) => item.id === bucket || item.name === bucket);
   if (exists) return;
-  const { error: createError } = await admin.storage.createBucket(bucket, { public: true });
+  const { error: createError } = await admin.storage.createBucket(bucket, { public: false });
   if (createError && !/already exists/i.test(createError.message)) {
     throw new Error(`Unable to create storage bucket "${bucket}": ${createError.message}`);
   }
@@ -87,6 +87,17 @@ export async function uploadBase64ToStorage(
     cacheControl: opts?.cacheControl ?? "31536000",
   });
   if (error) throw new Error(`Storage upload failed: ${error.message}`);
+
+  if (bucket === REFERENCES_BUCKET) {
+    const { data: signedData, error: signError } = await admin.storage
+      .from(bucket)
+      .createSignedUrl(path, 3600);
+    if (signError || !signedData?.signedUrl) {
+      throw new Error(`Failed to create signed URL: ${signError?.message ?? "unknown"}`);
+    }
+    return signedData.signedUrl;
+  }
+
   const { data } = admin.storage.from(bucket).getPublicUrl(path);
   if (!data.publicUrl) throw new Error("Supabase public URL generation failed");
   return data.publicUrl;

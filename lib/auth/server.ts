@@ -9,7 +9,8 @@ export type AuthedUser = {
 
 const AUTH_BYPASS =
   process.env.NODE_ENV === "development" && process.env.SIGIL_AUTH_BYPASS === "true";
-const PUBLIC_DEMO = process.env.SIGIL_PUBLIC_DEMO === "true";
+const PUBLIC_DEMO =
+  process.env.NODE_ENV === "development" && process.env.SIGIL_PUBLIC_DEMO === "true";
 const BYPASS_USER_ID = "dcd1da5c-773c-4029-910c-e360fa415fd0";
 const BYPASS_USER_EMAIL = "vince@thoughtform.co";
 
@@ -31,14 +32,13 @@ export const getAuthedUser = cache(async (): Promise<AuthedUser | null> => {
       await prisma.profile.upsert({
         where: { id: BYPASS_USER_ID },
         update: {
-          role: "admin",
           displayName: "Sigil Local",
         },
         create: {
           id: BYPASS_USER_ID,
           username: "sigil-local",
           displayName: "Sigil Local",
-          role: "admin",
+          role: "user",
         },
       });
     }

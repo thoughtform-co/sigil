@@ -1,7 +1,11 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 
-const CHANNEL_NAME = "sigil:generations";
+const CHANNEL_PREFIX = "sigil:session:";
 const EVENT_GENERATION = "generation";
+
+export function sessionChannelName(sessionId: string): string {
+  return `${CHANNEL_PREFIX}${sessionId}`;
+}
 
 export type BroadcastGenerationPayload = {
   sessionId: string;
@@ -29,13 +33,13 @@ export type BroadcastGenerationPayload = {
 };
 
 /**
- * Broadcast a generation update to Realtime so subscribed clients can update without polling.
- * Safe to call from API routes; runs fire-and-forget (no await).
+ * Broadcast a generation update to the session-scoped Realtime channel.
+ * Only clients subscribed to this specific session receive the update.
  */
 export function broadcastGenerationUpdate(payload: BroadcastGenerationPayload): void {
   try {
     const supabase = createAdminClient();
-    const channel = supabase.channel(CHANNEL_NAME);
+    const channel = supabase.channel(sessionChannelName(payload.sessionId));
     channel.send({
       type: "broadcast",
       event: EVENT_GENERATION,
@@ -46,4 +50,4 @@ export function broadcastGenerationUpdate(payload: BroadcastGenerationPayload): 
   }
 }
 
-export { CHANNEL_NAME, EVENT_GENERATION };
+export { EVENT_GENERATION };

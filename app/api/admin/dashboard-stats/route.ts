@@ -58,5 +58,5 @@ export async function GET() {
 
   const response = json({ adminStats });
   response.headers.set("Server-Timing", `total;dur=${Math.round(performance.now() - t0)}`);
-  return withCacheHeaders(response, "short");
+  return withCacheHeaders(response, "private-short");
 }

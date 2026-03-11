@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit } from "@/lib/api/rate-limit";
 
 export async function POST(request: Request) {
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const rateLimited = checkRateLimit("check-email", ip);
+  if (rateLimited) return rateLimited;
+
   let body: { email?: string };
   try {
     body = await request.json();
@@ -10,8 +15,8 @@ export async function POST(request: Request) {
   }
 
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
-  if (!email) {
-    return NextResponse.json({ error: "Email required" }, { status: 400 });
+  if (!email || !email.includes("@")) {
+    return NextResponse.json({ error: "Valid email required" }, { status: 400 });
   }
 
   const allowed = await prisma.allowedEmail.findUnique({

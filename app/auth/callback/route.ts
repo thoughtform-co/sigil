@@ -37,8 +37,8 @@ export async function GET(request: Request) {
   }
 
   console.error(
-    "[auth/callback] Auth failed. Params:",
-    Object.fromEntries(searchParams.entries()),
+    "[auth/callback] Auth failed for flow:",
+    code ? "pkce" : tokenHash ? "otp" : "unknown",
   );
 
   return NextResponse.redirect(`${origin}/login?error=auth`);
