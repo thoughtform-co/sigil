@@ -136,9 +136,9 @@ export async function prefetchWorkspaceData(
 }
 
 /**
- * Lightweight prefetch for the route layout — fetches only project info
- * (including parent journey) and sessions. Generations are deferred to the
- * client via SWR, keeping navigation instant.
+ * Lightweight prefetch for the route layout — fetches project info, sessions,
+ * and the latest generation page so the route opens on the newest content
+ * without a client-side scroll cascade.
  */
 export async function prefetchWorkspaceShell(
   projectId: string,
@@ -160,7 +160,34 @@ export async function prefetchWorkspaceShell(
       ? { id: projectId }
       : { id: projectId, ...accessFilter };
 
-    const [project, sessionsRaw] = await Promise.all([
+    const generationSelect = {
+      id: true,
+      sessionId: true,
+      prompt: true,
+      negativePrompt: true,
+      parameters: true,
+      status: true,
+      modelId: true,
+      createdAt: true,
+      source: true,
+      errorMessage: true,
+      errorCategory: true,
+      errorRetryable: true,
+      lastHeartbeatAt: true,
+      outputs: {
+        select: {
+          id: true,
+          fileUrl: true,
+          fileType: true,
+          isApproved: true,
+          width: true,
+          height: true,
+          duration: true,
+        },
+      },
+    } as const;
+
+    const [project, sessionsRaw, generationsRaw] = await Promise.all([
       prisma.project.findFirst({
         where: projectWhere,
         select: {
@@ -174,6 +201,12 @@ export async function prefetchWorkspaceShell(
         orderBy: { createdAt: "desc" },
         select: { id: true, name: true, type: true, updatedAt: true },
       }),
+      prisma.generation.findMany({
+        where: { session: { projectId } },
+        orderBy: { createdAt: "desc" },
+        take: PREFETCH_LIMIT,
+        select: generationSelect,
+      }),
     ]);
 
     if (!project) return null;
@@ -185,12 +218,40 @@ export async function prefetchWorkspaceShell(
       updatedAt: s.updatedAt.toISOString(),
     }));
 
+    generationsRaw.reverse();
+
+    const generations: GenerationItem[] = generationsRaw.map((g) => ({
+      id: g.id,
+      sessionId: g.sessionId,
+      prompt: g.prompt,
+      negativePrompt: g.negativePrompt,
+      parameters: g.parameters as Record<string, unknown>,
+      status: g.status,
+      modelId: g.modelId,
+      createdAt: g.createdAt.toISOString(),
+      source: g.source,
+      errorMessage: g.errorMessage,
+      errorCategory: g.errorCategory,
+      errorRetryable: g.errorRetryable,
+      lastHeartbeatAt: g.lastHeartbeatAt?.toISOString() ?? null,
+      outputs: g.outputs.map((o) => ({
+        id: o.id,
+        fileUrl: o.fileUrl,
+        fileType: o.fileType,
+        isApproved: o.isApproved,
+        width: o.width,
+        height: o.height,
+        duration: o.duration,
+      })),
+    }));
+
     return {
       projectName: project.name,
       journeyId: project.workspaceProject?.id,
       journeyName: project.workspaceProject?.name,
       sessions,
-      includesGenerationOutputs: false,
+      generationsPage: { generations, nextCursor: null },
+      includesGenerationOutputs: true,
     };
   } catch {
     return null;

@@ -22,7 +22,7 @@
   overflow-y: auto;
   min-height: 0;
   flex: 1;
-  padding: calc(var(--hud-padding, 40px) + 16px) 16px var(--feed-padding-bottom, 260px);
+  padding: calc(var(--hud-padding, 40px) + 16px) 16px calc(var(--prompt-bar-height, 200px) + 120px);
   scrollbar-width: none;
   -ms-overflow-style: none;
 }

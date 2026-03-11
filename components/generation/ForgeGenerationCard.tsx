@@ -154,7 +154,6 @@ function OutputCard({
               >
                 <Image
                   fill
-                  unoptimized
                   className={styles.media}
                   src={output.fileUrl}
                   alt="Generated output"
@@ -165,7 +164,6 @@ function OutputCard({
             ) : (
               <Image
                 fill
-                unoptimized
                 className={styles.media}
                 src={output.fileUrl}
                 alt="Generated output"
@@ -199,7 +197,6 @@ function OutputCard({
                   "repeating-linear-gradient(0deg, transparent 0px, transparent 2px, rgba(0,0,0,0.06) 2px, rgba(0,0,0,0.06) 4px)",
               }}
             />
-            {!loaded && <SigilLoadingField seed={output.id} />}
           </div>
         </div>
       </div>

@@ -59,6 +59,43 @@ export async function GET(request: Request) {
 
     const limit = Math.min(Number(searchParams.get("limit")) || DEFAULT_LIMIT, MAX_LIMIT);
     const cursor = searchParams.get("cursor");
+    const latest = searchParams.get("latest") === "true";
+    const before = searchParams.get("before");
+
+    if (latest) {
+      const tQuery = performance.now();
+      const raw = await prisma.generation.findMany({
+        where: { session: { projectId } },
+        orderBy: { createdAt: "desc" },
+        take: limit,
+        select: GENERATION_SELECT,
+      });
+      raw.reverse();
+      const queryMs = Math.round(performance.now() - tQuery);
+      const totalMs = Math.round(performance.now() - t0);
+      const response = NextResponse.json({ generations: raw, nextCursor: null });
+      response.headers.set("Server-Timing", `query;dur=${queryMs}, total;dur=${totalMs}`);
+      return withCacheHeaders(response, "private-short");
+    }
+
+    if (before) {
+      const tQuery = performance.now();
+      const raw = await prisma.generation.findMany({
+        where: { session: { projectId } },
+        orderBy: { createdAt: "asc" },
+        take: -(limit + 1),
+        cursor: { id: before },
+        skip: 1,
+        select: GENERATION_SELECT,
+      });
+      const queryMs = Math.round(performance.now() - tQuery);
+      const hasOlder = raw.length > limit;
+      const items = hasOlder ? raw.slice(1) : raw;
+      const totalMs = Math.round(performance.now() - t0);
+      const response = NextResponse.json({ generations: items, nextCursor: null, hasOlder });
+      response.headers.set("Server-Timing", `query;dur=${queryMs}, total;dur=${totalMs}`);
+      return withCacheHeaders(response, "private-short");
+    }
 
     const tQuery = performance.now();
     const generations = await prisma.generation.findMany({

@@ -6,7 +6,7 @@ import type { GenerationItem } from "@/components/generation/types";
 import { ForgeGenerationCard } from "@/components/generation/ForgeGenerationCard";
 import styles from "./ForgeGallery.module.css";
 
-const VIRTUAL_THRESHOLD = 20;
+const VIRTUAL_THRESHOLD = 4;
 
 function FeedSeparator() {
   return (
@@ -37,6 +37,9 @@ type ForgeGalleryProps = {
   hasMore?: boolean;
   isLoadingMore?: boolean;
   isLoading?: boolean;
+  onLoadOlder?: () => void;
+  hasOlder?: boolean;
+  isLoadingOlder?: boolean;
 };
 
 export function ForgeGallery({
@@ -53,13 +56,18 @@ export function ForgeGallery({
   hasMore,
   isLoadingMore,
   isLoading,
+  onLoadOlder,
+  hasOlder,
+  isLoadingOlder,
 }: ForgeGalleryProps) {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const feedRef = useRef<HTMLDivElement>(null);
   const lastSeenLastIdRef = useRef<string | null>(null);
   const lastSeenStatusRef = useRef<string | null>(null);
   const lastSeenOutputCountRef = useRef<number>(0);
+  const initialScrollDoneRef = useRef(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const olderSentinelRef = useRef<HTMLDivElement>(null);
   const scrollTargetRef = useRef<number | null>(null);
   const scrollAnimRef = useRef(0);
 
@@ -185,6 +193,7 @@ export function ForgeGallery({
       lastSeenLastIdRef.current = null;
       lastSeenStatusRef.current = null;
       lastSeenOutputCountRef.current = 0;
+      initialScrollDoneRef.current = false;
       return;
     }
 
@@ -202,20 +211,41 @@ export function ForgeGallery({
       lastSeenStatusRef.current = status;
       lastSeenOutputCountRef.current = outputCount;
 
-      scrollTargetRef.current = null;
-      if (scrollAnimRef.current) {
-        cancelAnimationFrame(scrollAnimRef.current);
-        scrollAnimRef.current = 0;
+      if (!initialScrollDoneRef.current) {
+        initialScrollDoneRef.current = true;
+        const feed = feedRef.current;
+        if (feed) {
+          feed.scrollTo({ top: feed.scrollHeight, behavior: "auto" });
+          const ro = new ResizeObserver(() => {
+            if (feed.scrollHeight - feed.scrollTop - feed.clientHeight > 10) {
+              feed.scrollTo({ top: feed.scrollHeight, behavior: "auto" });
+            }
+          });
+          ro.observe(feed);
+          setTimeout(() => ro.disconnect(), 3000);
+        }
+        return;
       }
 
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          feedRef.current?.scrollTo({
-            top: feedRef.current.scrollHeight,
-            behavior: isNewGen ? "smooth" : "auto",
+      const feed = feedRef.current;
+      if (feed) {
+        const distFromBottom = feed.scrollHeight - feed.scrollTop - feed.clientHeight;
+        if (distFromBottom < 400) {
+          scrollTargetRef.current = null;
+          if (scrollAnimRef.current) {
+            cancelAnimationFrame(scrollAnimRef.current);
+            scrollAnimRef.current = 0;
+          }
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              feedRef.current?.scrollTo({
+                top: feedRef.current?.scrollHeight ?? 0,
+                behavior: "smooth",
+              });
+            });
           });
-        });
-      });
+        }
+      }
     }
   }, [generations]);
 
@@ -232,6 +262,29 @@ export function ForgeGallery({
     observer.observe(el);
     return () => observer.disconnect();
   }, [onLoadMore, hasMore]);
+
+  const prevOlderCountRef = useRef(0);
+  useEffect(() => {
+    if (!onLoadOlder || !hasOlder || !initialScrollDoneRef.current) return;
+    const el = olderSentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) onLoadOlder();
+      },
+      { root: feedRef.current, rootMargin: "300px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [onLoadOlder, hasOlder]);
+
+  useEffect(() => {
+    const feed = feedRef.current;
+    if (!feed || generations.length === 0) return;
+    const olderCount = generations.length - (prevOlderCountRef.current || generations.length);
+    prevOlderCountRef.current = generations.length;
+    if (olderCount <= 0) return;
+  }, [generations.length]);
 
   const useVirtual = generations.length >= VIRTUAL_THRESHOLD;
 
@@ -265,6 +318,13 @@ export function ForgeGallery({
   return (
     <div className={styles.gallery}>
       <div ref={feedRef} className={styles.feed}>
+        {hasOlder && generations.length > 0 && (
+          <div ref={olderSentinelRef} className={styles.sentinel}>
+            {isLoadingOlder && (
+              <span className={styles.loadingMore}>Loading older…</span>
+            )}
+          </div>
+        )}
         {isLoading && generations.length === 0 ? (
           <>
             {Array.from({ length: 3 }).map((_, i) => (

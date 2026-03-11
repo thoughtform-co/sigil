@@ -60,6 +60,7 @@ const GENERATIONS_PAGE_SIZE = 20;
 type GenerationsPage = {
   generations: GenerationItem[];
   nextCursor: string | null;
+  hasOlder?: boolean;
 };
 
 const jsonFetcher = <T,>(url: string): Promise<T> =>
@@ -110,6 +111,10 @@ export function ProjectWorkspace({
   const hasPrefetch = Boolean(prefetchedData);
   const generationsNeedHydration = prefetchedData?.includesGenerationOutputs === false;
 
+  const [olderGenerations, setOlderGenerations] = useState<GenerationItem[]>([]);
+  const [hasOlderHistory, setHasOlderHistory] = useState(true);
+  const [isLoadingOlder, setIsLoadingOlder] = useState(false);
+
   // --- SWR: sessions (stable, rarely changes) ---
   const { data: sessionsData, mutate: mutateSessions } = useSWR<{ sessions: SessionItem[] }>(
     `/api/sessions?projectId=${projectId}`,
@@ -146,7 +151,9 @@ export function ProjectWorkspace({
       if (mode === "canvas") return null;
       if (previousPageData && !previousPageData.nextCursor) return null;
       const params = new URLSearchParams({ projectId, limit: String(GENERATIONS_PAGE_SIZE) });
-      if (pageIndex > 0 && previousPageData?.nextCursor) {
+      if (pageIndex === 0) {
+        params.set("latest", "true");
+      } else if (previousPageData?.nextCursor) {
         params.set("cursor", previousPageData.nextCursor);
       }
       return `/api/generations?${params}`;
@@ -165,8 +172,11 @@ export function ProjectWorkspace({
   );
 
   const generations = useMemo(
-    () => generationsPages?.flatMap((p) => p.generations) ?? [],
-    [generationsPages],
+    () => [
+      ...olderGenerations,
+      ...(generationsPages?.flatMap((p) => p.generations) ?? []),
+    ],
+    [olderGenerations, generationsPages],
   );
 
   const hasMoreGenerations =
@@ -185,6 +195,38 @@ export function ProjectWorkspace({
       void setGenerationsPageCount((s) => s + 1);
     }
   }, [hasMoreGenerations, isLoadingMoreGenerations, setGenerationsPageCount]);
+
+  const oldestVisibleId = useMemo(() => {
+    if (olderGenerations.length > 0) return olderGenerations[0].id;
+    const firstPage = generationsPages?.[0];
+    if (firstPage && firstPage.generations.length > 0) return firstPage.generations[0].id;
+    return null;
+  }, [olderGenerations, generationsPages]);
+
+  const loadOlderGenerations = useCallback(async () => {
+    if (!oldestVisibleId || isLoadingOlder || !hasOlderHistory) return;
+    setIsLoadingOlder(true);
+    try {
+      const params = new URLSearchParams({
+        projectId,
+        limit: String(GENERATIONS_PAGE_SIZE),
+        before: oldestVisibleId,
+      });
+      const res = await fetch(`/api/generations?${params}`);
+      if (!res.ok) return;
+      const data = (await res.json()) as GenerationsPage;
+      if (data.generations.length === 0) {
+        setHasOlderHistory(false);
+        return;
+      }
+      setOlderGenerations((prev) => [...data.generations, ...prev]);
+      if (data.hasOlder === false || data.generations.length < GENERATIONS_PAGE_SIZE) {
+        setHasOlderHistory(false);
+      }
+    } finally {
+      setIsLoadingOlder(false);
+    }
+  }, [oldestVisibleId, isLoadingOlder, hasOlderHistory, projectId]);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)");
@@ -918,6 +960,9 @@ export function ProjectWorkspace({
             hasMore={hasMoreGenerations}
             isLoadingMore={isLoadingMoreGenerations}
             isLoading={isLoadingGenerations}
+            onLoadOlder={loadOlderGenerations}
+            hasOlder={hasOlderHistory}
+            isLoadingOlder={isLoadingOlder}
           />
         </div>
       </div>

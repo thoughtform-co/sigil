@@ -214,6 +214,7 @@ export function SigilLoadingField({ seed, createdAt, modelId }: SigilLoadingFiel
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<MycelialScene | null>(null);
   const animRef = useRef<number>(0);
+  const visibleRef = useRef(true);
   const dimsRef = useRef({ w: 0, h: 0 });
   const startRef = useRef<number>(Date.now());
 
@@ -227,7 +228,7 @@ export function SigilLoadingField({ seed, createdAt, modelId }: SigilLoadingFiel
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = 1;
     const rect = canvas.getBoundingClientRect();
     const w = rect.width;
     const h = rect.height;
@@ -240,6 +241,11 @@ export function SigilLoadingField({ seed, createdAt, modelId }: SigilLoadingFiel
   }, [seedNum]);
 
   const animate = useCallback(() => {
+    if (!visibleRef.current) {
+      animRef.current = 0;
+      return;
+    }
+
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -386,9 +392,25 @@ export function SigilLoadingField({ seed, createdAt, modelId }: SigilLoadingFiel
     const onResize = () => setup();
     window.addEventListener("resize", onResize);
 
+    const canvas = canvasRef.current;
+    const observer = canvas
+      ? new IntersectionObserver(
+          ([entry]) => {
+            const wasVisible = visibleRef.current;
+            visibleRef.current = entry.isIntersecting;
+            if (entry.isIntersecting && !wasVisible && !animRef.current) {
+              animRef.current = requestAnimationFrame(animate);
+            }
+          },
+          { threshold: 0 },
+        )
+      : null;
+    if (canvas && observer) observer.observe(canvas);
+
     return () => {
       if (animRef.current) cancelAnimationFrame(animRef.current);
       window.removeEventListener("resize", onResize);
+      observer?.disconnect();
     };
   }, [setup, animate]);
 

@@ -102,6 +102,7 @@ export function ForgePromptBar({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const modelPickerRef = useRef<HTMLDivElement>(null);
   const attachMenuRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const [inputHeight, setInputHeight] = useState(52);
   const [isResizing, setIsResizing] = useState(false);
@@ -149,6 +150,20 @@ export function ForgePromptBar({
       window.removeEventListener("touchend", handleResizeEnd);
     };
   }, [isResizing, handleResizeMove, handleResizeEnd]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      const h = Math.ceil(entry.borderBoxSize?.[0]?.blockSize ?? entry.contentRect.height);
+      document.documentElement.style.setProperty("--prompt-bar-height", `${h}px`);
+    });
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      document.documentElement.style.removeProperty("--prompt-bar-height");
+    };
+  }, []);
 
   const selectedModel = models.find((m) => m.id === modelId);
   const displayModelName = selectedModel ? selectedModel.name : modelId || "Model";
@@ -268,7 +283,7 @@ export function ForgePromptBar({
 
   if (minimal) {
     return (
-      <div className={styles.promptBarContainer}>
+      <div ref={containerRef} className={styles.promptBarContainer}>
         <div className={styles.promptBarRow}>
           <div className={styles.sideStrip}>
             <div className={styles.modeBar}>
@@ -326,7 +341,7 @@ export function ForgePromptBar({
   }
 
   return (
-    <div className={styles.promptBarContainer}>
+    <div ref={containerRef} className={styles.promptBarContainer}>
       <div className={styles.promptBarRow}>
         <div
           className={`${styles.unifiedPromptContainer} ${enhancing ? styles.enhancingGlow : ""}`}
