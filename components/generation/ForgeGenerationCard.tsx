@@ -157,7 +157,8 @@ function OutputCard({
                   className={styles.media}
                   src={output.fileUrl}
                   alt="Generated output"
-                  sizes="(max-width: 980px) 90vw, 660px"
+                  quality={85}
+                  sizes="(max-width: 980px) 90vw, min(900px, 60vw)"
                   onLoad={() => setLoaded(true)}
                 />
               </button>
@@ -167,7 +168,8 @@ function OutputCard({
                 className={styles.media}
                 src={output.fileUrl}
                 alt="Generated output"
-                sizes="(max-width: 980px) 90vw, 660px"
+                quality={85}
+                sizes="(max-width: 980px) 90vw, min(900px, 60vw)"
                 onLoad={() => setLoaded(true)}
               />
             )}
@@ -284,6 +286,7 @@ export function ForgeGenerationCard({
   return (
     <div className={cardClass}>
       <aside className={styles.promptPanel}>
+        <span className={styles.sectionTitle}>Prompt</span>
         <button
           type="button"
           className={`${styles.promptBlock} ${copied ? styles.promptCopied : ""}`}
@@ -294,21 +297,22 @@ export function ForgeGenerationCard({
           {copied && <span className={styles.copiedBadge}>COPIED</span>}
         </button>
 
-        <div className={styles.promptPanelDivider} aria-hidden />
-
         <div className={styles.promptFooter}>
           {refImageUrl && (
-            <button
-              type="button"
-              className={styles.refThumb}
-              onClick={() => setRefPopupOpen(true)}
-              title="View reference image"
-            >
-              <img src={refImageUrl} alt="Reference" className={styles.refThumbImg} />
-              <span className={styles.refThumbLabel}>REF</span>
-            </button>
+            <>
+              <span className={styles.sectionTitle}>Reference</span>
+              <button
+                type="button"
+                className={styles.refThumb}
+                onClick={() => setRefPopupOpen(true)}
+                title="View reference image"
+              >
+                <img src={refImageUrl} alt="Reference" className={styles.refThumbImg} />
+              </button>
+            </>
           )}
 
+          <span className={styles.sectionTitle}>Parameters</span>
           <div className={styles.metaReadouts}>
             <span className={styles.readout}>
               <span className={styles.readoutLabel}>ID</span>

@@ -21,10 +21,25 @@
   flex-direction: column;
   gap: 0;
   padding: 14px 16px;
-  height: 320px;
+  height: 380px;
   align-self: start;
   background: transparent;
-  border: 1px solid var(--dawn-08);
+}
+
+.sectionTitle {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dawn-30);
+  display: block;
+  margin-top: 12px;
+  margin-bottom: 4px;
+  flex-shrink: 0;
+}
+
+.sectionTitle:first-child {
+  margin-top: 0;
 }
 
 .promptPanelDivider {
@@ -154,6 +169,7 @@
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
+  margin-top: 16px;
   gap: 6px;
 }
 

@@ -243,6 +243,17 @@ export function ForgeGallery({
       const scrollable = feed.scrollHeight - feed.clientHeight;
       if (scrollable <= 0) return;
 
+      let el = event.target as HTMLElement | null;
+      while (el && el !== feed) {
+        if (el.scrollHeight > el.clientHeight + 1) {
+          const atTop = el.scrollTop <= 0 && event.deltaY < 0;
+          const atBottom =
+            el.scrollTop + el.clientHeight >= el.scrollHeight - 1 && event.deltaY > 0;
+          if (!atTop && !atBottom) return;
+        }
+        el = el.parentElement;
+      }
+
       event.preventDefault();
 
       const base = scrollTargetRef.current ?? feed.scrollTop;
