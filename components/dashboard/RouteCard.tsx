@@ -50,7 +50,8 @@ export function RouteCard({ route, isActive, onSelect, onNavigate, onRename, onD
 
   const thumb = route.thumbnails[0];
   const isVideo = thumb?.fileType?.startsWith("video");
-  const cardWidth = isActive ? 400 : 280;
+  const cardWidthPx = isActive ? 400 : 280;
+  const cardWidth = isActive ? "min(100%, 400px)" : "min(100%, 280px)";
 
   useEffect(() => {
     const v = videoRef.current;
@@ -85,6 +86,7 @@ export function RouteCard({ route, isActive, onSelect, onNavigate, onRename, onD
       style={{
         position: "relative",
         width: cardWidth,
+        maxWidth: "100%",
         flexShrink: 0,
         cursor: "pointer",
         transition: "all 400ms cubic-bezier(0.19, 1, 0.22, 1)",
@@ -147,7 +149,7 @@ export function RouteCard({ route, isActive, onSelect, onNavigate, onRename, onD
                       transition: "transform 500ms cubic-bezier(0.19, 1, 0.22, 1)",
                       transform: hovered || isActive ? "scale(1.03)" : "scale(1)",
                     }}
-                    sizes={`${cardWidth}px`}
+                    sizes={`${cardWidthPx}px`}
                   />
                 )}
 

@@ -947,6 +947,7 @@ export function ProjectWorkspace({
       <div className={styles.body}>
         <div className={styles.main}>
           <ForgeGallery
+            key={projectId}
             generations={generationsVisible}
             onRetry={retryGeneration}
             onReuse={reuseGeneration}

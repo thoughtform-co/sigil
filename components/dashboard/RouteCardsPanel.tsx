@@ -215,10 +215,12 @@ export function RouteCardsPanel({ routes, journeyId, selectedRouteId: controlled
             style={{
               position: "relative",
               width: "100%",
-              overflowX: "auto",
-              display: "flex",
-              justifyContent: "flex-start",
+              height: "100%",
+              overflowY: "auto",
+              overflowX: "hidden",
               paddingLeft: 22,
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
             }}
           >
             <svg
@@ -234,10 +236,12 @@ export function RouteCardsPanel({ routes, journeyId, selectedRouteId: controlled
             <div
               style={{
                 display: "flex",
+                flexWrap: "wrap",
                 alignItems: "flex-start",
+                alignContent: "flex-start",
                 gap: "var(--space-xl)",
                 padding: "0 var(--space-xl) var(--space-xl)",
-                flexShrink: 0,
+                minWidth: 0,
               }}
             >
               {routes.map((route) => (

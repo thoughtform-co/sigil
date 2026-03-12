@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { GenerationItem } from "@/components/generation/types";
@@ -7,6 +8,7 @@ import { ForgeGenerationCard } from "@/components/generation/ForgeGenerationCard
 import styles from "./ForgeGallery.module.css";
 
 const VIRTUAL_THRESHOLD = 4;
+const INITIAL_ANCHOR_STABLE_FRAMES = 8;
 
 function FeedSeparator() {
   return (
@@ -60,6 +62,7 @@ export function ForgeGallery({
   hasOlder,
   isLoadingOlder,
 }: ForgeGalleryProps) {
+  const pathname = usePathname();
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const feedRef = useRef<HTMLDivElement>(null);
   const lastSeenLastIdRef = useRef<string | null>(null);
@@ -70,6 +73,10 @@ export function ForgeGallery({
   const olderSentinelRef = useRef<HTMLDivElement>(null);
   const scrollTargetRef = useRef<number | null>(null);
   const scrollAnimRef = useRef(0);
+  const initialAnchorFrameRef = useRef(0);
+  const initialAnchorLastMaxScrollRef = useRef(-1);
+  const initialAnchorStableFramesRef = useRef(0);
+  const hasSeenScrollableContentRef = useRef(false);
 
   const perfMarked = useRef(false);
   useEffect(() => {
@@ -111,6 +118,57 @@ export function ForgeGallery({
     }
   }, []);
 
+  const stopInitialBottomLock = useCallback(() => {
+    if (initialAnchorFrameRef.current) {
+      cancelAnimationFrame(initialAnchorFrameRef.current);
+      initialAnchorFrameRef.current = 0;
+    }
+  }, []);
+
+  const runInitialBottomLock = useCallback(() => {
+    stopInitialBottomLock();
+    initialAnchorLastMaxScrollRef.current = -1;
+    initialAnchorStableFramesRef.current = 0;
+    hasSeenScrollableContentRef.current = false;
+
+    const syncToBottom = () => {
+      const feed = feedRef.current;
+      if (!feed) {
+        initialAnchorFrameRef.current = 0;
+        return;
+      }
+
+      const maxScroll = Math.max(feed.scrollHeight - feed.clientHeight, 0);
+      feed.scrollTop = maxScroll;
+      updateScrollBeam();
+
+      if (maxScroll > 0) {
+        hasSeenScrollableContentRef.current = true;
+      }
+
+      if (!hasSeenScrollableContentRef.current) {
+        initialAnchorFrameRef.current = requestAnimationFrame(syncToBottom);
+        return;
+      }
+
+      if (Math.abs(maxScroll - initialAnchorLastMaxScrollRef.current) < 1) {
+        initialAnchorStableFramesRef.current += 1;
+      } else {
+        initialAnchorStableFramesRef.current = 0;
+        initialAnchorLastMaxScrollRef.current = maxScroll;
+      }
+
+      if (initialAnchorStableFramesRef.current >= INITIAL_ANCHOR_STABLE_FRAMES) {
+        initialAnchorFrameRef.current = 0;
+        return;
+      }
+
+      initialAnchorFrameRef.current = requestAnimationFrame(syncToBottom);
+    };
+
+    initialAnchorFrameRef.current = requestAnimationFrame(syncToBottom);
+  }, [stopInitialBottomLock, updateScrollBeam]);
+
   useEffect(() => {
     const feed = feedRef.current;
     if (!feed) return;
@@ -129,6 +187,27 @@ export function ForgeGallery({
       rail?.classList.remove("has-scroll");
     };
   }, [updateScrollBeam]);
+
+  useEffect(() => stopInitialBottomLock, [stopInitialBottomLock]);
+
+  useEffect(() => {
+    if (!pathname?.startsWith("/routes/")) return;
+
+    const currentLast = generations[generations.length - 1];
+    if (!currentLast) {
+      lastSeenLastIdRef.current = null;
+      lastSeenStatusRef.current = null;
+      lastSeenOutputCountRef.current = 0;
+      initialScrollDoneRef.current = false;
+      return;
+    }
+
+    lastSeenLastIdRef.current = currentLast.id;
+    lastSeenStatusRef.current = currentLast.status;
+    lastSeenOutputCountRef.current = currentLast.outputs?.length ?? 0;
+    initialScrollDoneRef.current = true;
+    runInitialBottomLock();
+  }, [pathname, generations, runInitialBottomLock]);
 
   const animateScroll = useCallback(() => {
     const feed = feedRef.current;
@@ -215,14 +294,7 @@ export function ForgeGallery({
         initialScrollDoneRef.current = true;
         const feed = feedRef.current;
         if (feed) {
-          feed.scrollTo({ top: feed.scrollHeight, behavior: "auto" });
-          const ro = new ResizeObserver(() => {
-            if (feed.scrollHeight - feed.scrollTop - feed.clientHeight > 10) {
-              feed.scrollTo({ top: feed.scrollHeight, behavior: "auto" });
-            }
-          });
-          ro.observe(feed);
-          setTimeout(() => ro.disconnect(), 3000);
+          runInitialBottomLock();
         }
         return;
       }
@@ -318,6 +390,7 @@ export function ForgeGallery({
   return (
     <div className={styles.gallery}>
       <div ref={feedRef} className={styles.feed}>
+        <div className={styles.feedInner}>
         {hasOlder && generations.length > 0 && (
           <div ref={olderSentinelRef} className={styles.sentinel}>
             {isLoadingOlder && (
@@ -366,7 +439,10 @@ export function ForgeGallery({
           </div>
         ) : (
           generations.map((generation, index) => (
-            <div key={generation.id} className={styles.generationRow}>
+            <div
+              key={generation.id}
+              className={styles.generationRow}
+            >
               {index > 0 && <FeedSeparator />}
               {renderCard(generation)}
             </div>
@@ -379,6 +455,7 @@ export function ForgeGallery({
             )}
           </div>
         )}
+        </div>
       </div>
 
       {lightboxUrl && (

@@ -1,6 +1,10 @@
 /* ForgeGallery — single-column centered feed (Atlas pattern) */
 
-/* Reserve space above fixed prompt bar so last card stays visible (prompt bar ~bottom 24–48px + bar height) */
+/* Reserve space above fixed prompt bar so last card stays visible.
+   Clearance is on .feedInner (non-flex wrapper inside the scroll
+   container) following the Vesper pb-72 pattern. This avoids the
+   Chrome bug where padding-bottom on a flex scroll container is
+   ignored, while keeping the feed full-height (no viewport clip). */
 .gallery {
   display: flex;
   flex-direction: column;
@@ -12,19 +16,23 @@
 }
 
 .feed {
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
+  width: 100%;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.feedInner {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0;
   width: 100%;
   max-width: var(--layout-content-md, 1200px);
-  align-self: center;
-  overflow-y: auto;
-  min-height: 0;
-  flex: 1;
-  padding: calc(var(--hud-padding, 40px) + 16px) 16px calc(var(--prompt-bar-height, 200px) + 120px);
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  margin: 0 auto;
+  padding: calc(var(--hud-padding, 40px) + 16px) 16px calc(var(--prompt-bar-height, 200px) + clamp(24px, 4vw, 48px) + 24px);
 }
 
 .feed::-webkit-scrollbar {
