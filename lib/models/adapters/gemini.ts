@@ -84,7 +84,7 @@ const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
 const GEMINI_MODEL = "gemini-3-pro-image-preview";
 const MAX_RETRIES = 4;
 const IMAGE_DELAY_MS = 2000;
-const GEMINI_API_TIMEOUT_MS = 30_000;
+const GEMINI_API_TIMEOUT_MS = 120_000;
 const REPLICATE_FETCH_TIMEOUT_MS = 15_000;
 const MAX_CONSECUTIVE_UNAVAILABLE = 2;
 
@@ -120,6 +120,11 @@ function isTransientError(err: unknown): boolean {
   if (!(err instanceof Error)) return false;
   const e = err as Error & { status?: number };
   return e.status === 502 || e.status === 503 || e.status === 504 || /502|503|504|service.?unavailable/i.test(e.message);
+}
+
+function isTimeoutAbortError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  return /aborted|aborterror|timeout/i.test(err.message);
 }
 
 function isQuotaExhaustedError(err: unknown): boolean {
@@ -239,18 +244,23 @@ export class GeminiAdapter extends BaseModelAdapter {
             console.log(`[Gemini] ${consecutiveUnavailable} consecutive 5xx errors, bailing to fallback`);
             break;
           }
+        } else if (isTimeoutAbortError(err)) {
+          // Timeout/abort should be retried, but it should not count as API unavailability.
+          consecutiveUnavailable = 0;
         } else {
           consecutiveUnavailable = 0;
         }
 
-        const retryable = isRateLimitError(err) || isTransientError(err);
+        const retryable = isRateLimitError(err) || isTransientError(err) || isTimeoutAbortError(err);
         if (retryable && attempt < MAX_RETRIES) {
           const baseDelay = isTransientError(err)
             ? Math.min((attempt + 1) * 1500, 6000)
+            : isTimeoutAbortError(err)
+              ? Math.min((attempt + 1) * 2000, 8000)
             : Math.pow(2, attempt - 1) * 1000;
           const delay = baseDelay + Math.random() * baseDelay * 0.5;
           console.log(
-            `[Gemini] Attempt ${attempt}/${MAX_RETRIES} hit ${isRateLimitError(err) ? "429" : "5xx"}. Retrying in ${Math.round(delay)}ms...`,
+            `[Gemini] Attempt ${attempt}/${MAX_RETRIES} hit ${isRateLimitError(err) ? "429" : isTimeoutAbortError(err) ? "timeout" : "5xx"}. Retrying in ${Math.round(delay)}ms...`,
           );
           await new Promise((r) => setTimeout(r, delay));
           continue;
