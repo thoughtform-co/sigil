@@ -74,8 +74,6 @@ export async function POST(request: Request, context: RouteContext) {
       status: generation.status,
       modelId: generation.modelId,
       createdAt: generation.createdAt.toISOString(),
-      source: generation.source ?? undefined,
-      workflowExecutionId: generation.workflowExecutionId ?? undefined,
     },
   });
 
