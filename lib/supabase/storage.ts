@@ -8,6 +8,7 @@ import { getSafeFetchUrl } from "@/lib/security/url-safety";
  */
 
 export const REFERENCES_BUCKET = "references";
+const REFERENCE_SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 30;
 let outputsBucketReady: Promise<void> | null = null;
 let referencesBucketReady: Promise<void> | null = null;
 
@@ -91,7 +92,7 @@ export async function uploadBase64ToStorage(
   if (bucket === REFERENCES_BUCKET) {
     const { data: signedData, error: signError } = await admin.storage
       .from(bucket)
-      .createSignedUrl(path, 3600);
+      .createSignedUrl(path, REFERENCE_SIGNED_URL_TTL_SECONDS);
     if (signError || !signedData?.signedUrl) {
       throw new Error(`Failed to create signed URL: ${signError?.message ?? "unknown"}`);
     }

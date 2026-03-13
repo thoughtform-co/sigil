@@ -335,17 +335,26 @@
 
 /* ── Reference image thumbnail (prompt panel) ───────────────────── */
 
+.refThumbGrid {
+  display: grid;
+  gap: 4px;
+  width: fit-content;
+  max-width: 100%;
+  align-items: start;
+  justify-content: start;
+}
+
 .refThumb {
   position: relative;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: fit-content;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
   padding: 0;
   border: 1px solid var(--dawn-12);
   background: transparent;
   cursor: pointer;
-  transition: border-color 120ms ease;
+  overflow: hidden;
+  transition: border-color 120ms ease, opacity 120ms ease;
 }
 
 .refThumb:hover {
@@ -353,8 +362,8 @@
 }
 
 .refThumbImg {
-  width: 48px;
-  height: 48px;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
   display: block;
 }

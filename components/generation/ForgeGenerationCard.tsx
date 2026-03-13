@@ -277,7 +277,7 @@ export function ForgeGenerationCard({
   busy,
 }: ForgeGenerationCardProps) {
   const [copied, setCopied] = useState(false);
-  const [refPopupOpen, setRefPopupOpen] = useState(false);
+  const [refPopupUrl, setRefPopupUrl] = useState<string | null>(null);
   const processing = isProcessing(generation.status);
   const stuck = isLikelyStuck(generation);
   const failed = isFailed(generation.status);
@@ -286,9 +286,46 @@ export function ForgeGenerationCard({
   const hasBookmarked = generation.outputs.some((o) => o.isApproved);
   const phaseMessage = PHASE_MESSAGES[generation.id.length % PHASE_MESSAGES.length];
   const createdAt = formatCreatedAt(generation.createdAt);
-  const refImageUrl = typeof generation.parameters?.referenceImageUrl === "string"
-    ? generation.parameters.referenceImageUrl
-    : null;
+  const referenceImageUrls = (() => {
+    const refs: string[] = [];
+    const multi = generation.parameters?.referenceImages;
+    if (Array.isArray(multi)) {
+      for (const item of multi) {
+        if (typeof item !== "string") continue;
+        const value = item.trim();
+        if (!value || refs.includes(value)) continue;
+        refs.push(value);
+      }
+    }
+    const single = generation.parameters?.referenceImageUrl;
+    if (refs.length === 0 && typeof single === "string" && single.trim().length > 0) {
+      refs.push(single.trim());
+    }
+    return refs;
+  })();
+  const refImageUrl = referenceImageUrls[0] ?? null;
+  const referenceRowCount =
+    referenceImageUrls.length <= 5 ? 1 : Math.ceil(referenceImageUrls.length / 5);
+  const referenceColumnCount = Math.max(
+    1,
+    Math.ceil(referenceImageUrls.length / referenceRowCount),
+  );
+  const referenceThumbGap = 4;
+  const referenceGridMaxWidth = 156;
+  const referenceThumbSize = Math.max(
+    24,
+    Math.min(
+      56,
+      Math.floor(
+        (referenceGridMaxWidth - referenceThumbGap * (referenceColumnCount - 1)) /
+          referenceColumnCount,
+      ),
+    ),
+  );
+  const referenceGridStyle = {
+    gridTemplateColumns: `repeat(${referenceColumnCount}, ${referenceThumbSize}px)`,
+    gap: `${referenceThumbGap}px`,
+  } as CSSProperties;
 
   const copyPrompt = useCallback(() => {
     if (!generation.prompt) return;
@@ -322,23 +359,30 @@ export function ForgeGenerationCard({
         </button>
 
         <div className={styles.promptFooter}>
-          {refImageUrl && (
+          {referenceImageUrls.length > 0 && (
             <>
-              <span className={styles.sectionTitle}>Reference</span>
-              <button
-                type="button"
-                className={styles.refThumb}
-                onClick={() => {
-                  if (onLightboxOpen) {
-                    onLightboxOpen(refImageUrl);
-                    return;
-                  }
-                  setRefPopupOpen(true);
-                }}
-                title={onLightboxOpen ? "Open reference image" : "View reference image"}
-              >
-                <img src={refImageUrl} alt="Reference" className={styles.refThumbImg} />
-              </button>
+              <span className={styles.sectionTitle}>
+                {referenceImageUrls.length === 1 ? "Reference" : `References / ${referenceImageUrls.length}`}
+              </span>
+              <div className={styles.refThumbGrid} style={referenceGridStyle}>
+                {referenceImageUrls.map((url, index) => (
+                  <button
+                    key={`${url}-${index}`}
+                    type="button"
+                    className={styles.refThumb}
+                    onClick={() => {
+                      if (onLightboxOpen) {
+                        onLightboxOpen(url);
+                        return;
+                      }
+                      setRefPopupUrl(url);
+                    }}
+                    title={onLightboxOpen ? `Open reference image ${index + 1}` : `View reference image ${index + 1}`}
+                  >
+                    <img src={url} alt={`Reference ${index + 1}`} className={styles.refThumbImg} />
+                  </button>
+                ))}
+              </div>
             </>
           )}
 
@@ -515,14 +559,14 @@ export function ForgeGenerationCard({
         )}
       </section>
 
-      {refPopupOpen && refImageUrl && (
-        <div className={styles.refPopupBackdrop} onClick={() => setRefPopupOpen(false)}>
+      {refPopupUrl && (
+        <div className={styles.refPopupBackdrop} onClick={() => setRefPopupUrl(null)}>
           <div className={styles.refPopup} onClick={(e) => e.stopPropagation()}>
-            <img src={refImageUrl} alt="Reference" className={styles.refPopupImg} />
+            <img src={refPopupUrl} alt="Reference" className={styles.refPopupImg} />
             <button
               type="button"
               className={styles.refPopupClose}
-              onClick={() => setRefPopupOpen(false)}
+              onClick={() => setRefPopupUrl(null)}
             >
               &times;
             </button>

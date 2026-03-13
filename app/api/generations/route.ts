@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getAuthedUser } from "@/lib/auth/server";
 import { withCacheHeaders } from "@/lib/api/cache-headers";
 import { projectAccessFilter } from "@/lib/auth/project-access";
+import { hydrateReferenceParameters } from "@/lib/reference-images";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 200;
@@ -33,6 +34,24 @@ const GENERATION_SELECT = {
     },
   },
 } as const;
+
+async function hydrateGenerationReferences<
+  T extends { parameters: unknown },
+>(generations: T[]): Promise<T[]> {
+  return Promise.all(
+    generations.map(async (generation) => {
+      const parameters = generation.parameters;
+      const hydratedParameters =
+        parameters && typeof parameters === "object" && !Array.isArray(parameters)
+          ? await hydrateReferenceParameters(parameters as Record<string, unknown>)
+          : parameters;
+      return {
+        ...generation,
+        parameters: hydratedParameters,
+      };
+    }),
+  );
+}
 
 export async function GET(request: Request) {
   const t0 = performance.now();
@@ -71,9 +90,10 @@ export async function GET(request: Request) {
         select: GENERATION_SELECT,
       });
       raw.reverse();
+      const generations = await hydrateGenerationReferences(raw);
       const queryMs = Math.round(performance.now() - tQuery);
       const totalMs = Math.round(performance.now() - t0);
-      const response = NextResponse.json({ generations: raw, nextCursor: null });
+      const response = NextResponse.json({ generations, nextCursor: null });
       response.headers.set("Server-Timing", `query;dur=${queryMs}, total;dur=${totalMs}`);
       return withCacheHeaders(response, "private-short");
     }
@@ -90,7 +110,7 @@ export async function GET(request: Request) {
       });
       const queryMs = Math.round(performance.now() - tQuery);
       const hasOlder = raw.length > limit;
-      const items = hasOlder ? raw.slice(1) : raw;
+      const items = await hydrateGenerationReferences(hasOlder ? raw.slice(1) : raw);
       const totalMs = Math.round(performance.now() - t0);
       const response = NextResponse.json({ generations: items, nextCursor: null, hasOlder });
       response.headers.set("Server-Timing", `query;dur=${queryMs}, total;dur=${totalMs}`);
@@ -108,7 +128,9 @@ export async function GET(request: Request) {
     const queryMs = Math.round(performance.now() - tQuery);
 
     const hasMore = generations.length > limit;
-    const items = hasMore ? generations.slice(0, limit) : generations;
+    const items = await hydrateGenerationReferences(
+      hasMore ? generations.slice(0, limit) : generations,
+    );
     const nextCursor = hasMore ? items[items.length - 1].id : null;
     const totalMs = Math.round(performance.now() - t0);
 
@@ -143,7 +165,7 @@ export async function GET(request: Request) {
   const queryMs = Math.round(performance.now() - tQuery);
 
   const hasMore = generations.length > limit;
-  const items = hasMore ? generations.slice(0, limit) : generations;
+  const items = await hydrateGenerationReferences(hasMore ? generations.slice(0, limit) : generations);
   const nextCursor = hasMore ? items[items.length - 1].id : null;
   const totalMs = Math.round(performance.now() - t0);
 

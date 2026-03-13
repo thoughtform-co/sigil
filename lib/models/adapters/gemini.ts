@@ -5,6 +5,8 @@ import {
   ModelConfig,
 } from "@/lib/models/base";
 import { getSafeFetchUrl } from "@/lib/security/url-safety";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { REFERENCES_BUCKET } from "@/lib/supabase/storage";
 
 export const NANO_BANANA_CONFIG: ModelConfig = {
   id: "gemini-nano-banana-pro",
@@ -88,8 +90,9 @@ const GEMINI_API_TIMEOUT_MS = 120_000;
 const REPLICATE_FETCH_TIMEOUT_MS = 15_000;
 const MAX_CONSECUTIVE_UNAVAILABLE = 2;
 const MAX_INLINE_REFERENCE_IMAGES = 6;
-const MAX_REFERENCE_DOWNLOAD_BYTES = 8 * 1024 * 1024;
-const MAX_REFERENCE_DATAURL_BYTES = 8 * 1024 * 1024;
+const MAX_REFERENCE_DOWNLOAD_BYTES = 25 * 1024 * 1024;
+const MAX_REFERENCE_DATAURL_BYTES = 25 * 1024 * 1024;
+const REFERENCE_SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 30;
 
 const GEMINI_MODEL_MAP: Record<string, string> = {
   "gemini-nano-banana-pro": "gemini-3-pro-image-preview",
@@ -153,6 +156,35 @@ function redactLargeStrings(value: unknown, maxLen = 256): unknown {
     out[k] = k === "data" && typeof val === "string" && val.length > maxLen ? `<redacted:${val.length}>` : redactLargeStrings(val, maxLen);
   }
   return out;
+}
+
+function getSupabaseSignedObjectPath(urlString: string, bucket: string): string | null {
+  try {
+    const url = new URL(urlString);
+    const marker = `/storage/v1/object/sign/${bucket}/`;
+    const idx = url.pathname.indexOf(marker);
+    if (idx === -1) return null;
+    const raw = url.pathname.slice(idx + marker.length);
+    if (!raw) return null;
+    return decodeURIComponent(raw);
+  } catch {
+    return null;
+  }
+}
+
+async function refreshReferenceSignedUrl(urlString: string): Promise<string | null> {
+  const objectPath = getSupabaseSignedObjectPath(urlString, REFERENCES_BUCKET);
+  if (!objectPath) return null;
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin.storage
+      .from(REFERENCES_BUCKET)
+      .createSignedUrl(objectPath, REFERENCE_SIGNED_URL_TTL_SECONDS);
+    if (error || !data?.signedUrl) return null;
+    return data.signedUrl;
+  } catch {
+    return null;
+  }
 }
 
 export class GeminiAdapter extends BaseModelAdapter {
@@ -299,7 +331,14 @@ export class GeminiAdapter extends BaseModelAdapter {
         parts.push({ inlineData: { mimeType: dataUrlMatch[1], data: dataUrlMatch[2] } });
       } else if (img.startsWith("http")) {
         try {
-          const imgRes = await fetch(img);
+          const refreshedImg = await refreshReferenceSignedUrl(img);
+          let imgRes = await fetch(refreshedImg ?? img);
+          if (!imgRes.ok && !refreshedImg) {
+            const retryUrl = await refreshReferenceSignedUrl(img);
+            if (retryUrl) {
+              imgRes = await fetch(retryUrl);
+            }
+          }
           if (imgRes.ok) {
             const contentLengthRaw = imgRes.headers.get("content-length");
             const contentLength = contentLengthRaw ? Number(contentLengthRaw) : Number.NaN;

@@ -540,17 +540,24 @@ export function ProjectWorkspace({
         sessionId = created.id;
       }
 
-      let resolvedReferenceUrls = referenceImages.map((item) => item.trim()).filter(Boolean);
-      if (resolvedReferenceUrls.length > 0) {
-        resolvedReferenceUrls = await Promise.all(
-          resolvedReferenceUrls.map(async (rawUrl) => {
-            if (!(rawUrl.startsWith("data:") || rawUrl.startsWith("blob:"))) return rawUrl;
+      let resolvedReferences = referenceImages
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .map((url) => ({ url, path: "", bucket: "", referenceImageId: "" }));
+      if (resolvedReferences.length > 0) {
+        resolvedReferences = await Promise.all(
+          resolvedReferences.map(async ({ url: rawUrl }) => {
+            if (!(rawUrl.startsWith("data:") || rawUrl.startsWith("blob:"))) {
+              return { url: rawUrl, path: "", bucket: "", referenceImageId: "" };
+            }
             const compressedDataUrl = await compressImage(rawUrl, {
               maxDim: 2048,
               maxSizeMB: 4,
               quality: 0.85,
             });
-            if (!compressedDataUrl) return rawUrl;
+            if (!compressedDataUrl) {
+              return { url: rawUrl, path: "", bucket: "", referenceImageId: "" };
+            }
             const uploadRes = await fetch("/api/upload/reference-image", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -564,13 +571,28 @@ export function ProjectWorkspace({
             const uploadData = (await uploadRes.json()) as {
               url?: string;
               referenceImageUrl?: string;
+              referenceImageId?: string;
+              bucket?: string;
+              path?: string;
               error?: string;
             };
             if (!uploadRes.ok) throw new Error(uploadData.error ?? "Reference image upload failed");
-            return uploadData.referenceImageUrl ?? uploadData.url ?? rawUrl;
+            return {
+              url: uploadData.referenceImageUrl ?? uploadData.url ?? rawUrl,
+              path: uploadData.path ?? "",
+              bucket: uploadData.bucket ?? "",
+              referenceImageId: uploadData.referenceImageId ?? "",
+            };
           }),
         );
       }
+
+      const resolvedReferenceUrls = resolvedReferences
+        .map((item) => item.url.trim())
+        .filter(Boolean);
+      const resolvedReferencePaths = resolvedReferences.map((item) =>
+        typeof item.path === "string" ? item.path.trim() : "",
+      );
 
       const parameters: Record<string, unknown> = {
         aspectRatio,
@@ -581,6 +603,10 @@ export function ProjectWorkspace({
       if (resolvedReferenceUrls.length > 0) {
         parameters.referenceImageUrl = resolvedReferenceUrls[0];
         parameters.referenceImages = resolvedReferenceUrls;
+        if (resolvedReferencePaths.some(Boolean)) {
+          if (resolvedReferencePaths[0]) parameters.referenceImagePath = resolvedReferencePaths[0];
+          parameters.referenceImagePaths = resolvedReferencePaths;
+        }
       }
 
       const response = await fetch("/api/generate", {
@@ -610,7 +636,7 @@ export function ProjectWorkspace({
           modelId,
           createdAt: new Date().toISOString(),
           outputs: [],
-          parameters: { aspectRatio, resolution: Number(resolution) },
+          parameters,
         };
         void mutateGenerations(
           (pages) => {
@@ -876,9 +902,13 @@ export function ProjectWorkspace({
         setReferenceImages(refs);
       } else if (typeof params.referenceImageUrl === "string") {
         setReferenceImages([params.referenceImageUrl]);
+      } else {
+        setReferenceImages([]);
       }
     } else if (typeof params.referenceImageUrl === "string") {
       setReferenceImages([params.referenceImageUrl]);
+    } else {
+      setReferenceImages([]);
     }
     setMessage("Parameters loaded from previous generation.");
   }

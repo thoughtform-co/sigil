@@ -5,6 +5,7 @@ import { getAuthedUser } from "@/lib/auth/server";
 import { projectAccessFilter } from "@/lib/auth/project-access";
 import { broadcastGenerationUpdate } from "@/lib/supabase/realtime";
 import { getProcessor } from "@/lib/models/processor";
+import { hydrateReferenceParameters } from "@/lib/reference-images";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -36,6 +37,10 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Generation not found or access denied" }, { status: 404 });
   }
 
+  const hydratedParameters = await hydrateReferenceParameters(
+    (source.parameters as Record<string, unknown>) ?? {},
+  );
+
   const generation = await prisma.generation.create({
     data: {
       sessionId: source.sessionId,
@@ -43,7 +48,7 @@ export async function POST(request: Request, context: RouteContext) {
       modelId: source.modelId,
       prompt: source.prompt,
       negativePrompt: source.negativePrompt,
-      parameters: source.parameters as Prisma.InputJsonValue,
+      parameters: hydratedParameters as Prisma.InputJsonValue,
       status: "processing",
       ...(source.source === "workflow" && {
         source: "workflow",

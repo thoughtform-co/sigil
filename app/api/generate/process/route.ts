@@ -16,6 +16,7 @@ import { observeGeneration } from "@/lib/observability/generation";
 import { classifyError, userFacingMessage } from "@/lib/errors/classification";
 import { unauthorized, notFound, badRequest } from "@/lib/api/errors";
 import { json } from "@/lib/api/responses";
+import { hydrateReferenceParameters } from "@/lib/reference-images";
 
 export const maxDuration = 300;
 
@@ -50,13 +51,16 @@ async function broadcastUpdatedGeneration(sessionId: string, generationId: strin
       },
     });
     if (!gen) return;
+    const hydratedParameters = await hydrateReferenceParameters(
+      (gen.parameters as Record<string, unknown>) ?? {},
+    );
     broadcastGenerationUpdate({
       sessionId,
       generation: {
         id: gen.id,
         prompt: gen.prompt,
         negativePrompt: gen.negativePrompt,
-        parameters: gen.parameters as Record<string, unknown>,
+        parameters: hydratedParameters,
         status: gen.status,
         modelId: gen.modelId,
         createdAt: gen.createdAt.toISOString(),
@@ -164,10 +168,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Unknown model: ${routed.modelId}` }, { status: 400 });
     }
 
+    const hydratedGenerationParameters = await hydrateReferenceParameters(
+      (generation.parameters as Record<string, unknown>) ?? {},
+    );
     const requestPayload = normalizeGenerationRequest(
       generation.prompt,
       generation.negativePrompt,
-      (generation.parameters as Record<string, unknown>) ?? {}
+      hydratedGenerationParameters,
     );
 
     observeGeneration({ type: "start", generationId: generation.id, modelId: routed.modelId });

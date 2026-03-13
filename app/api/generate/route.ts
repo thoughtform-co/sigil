@@ -10,6 +10,7 @@ import { json } from "@/lib/api/responses";
 import { checkRateLimit } from "@/lib/api/rate-limit";
 import { getProcessor } from "@/lib/models/processor";
 import { projectAccessFilter } from "@/lib/auth/project-access";
+import { hydrateReferenceParameters } from "@/lib/reference-images";
 
 export const maxDuration = 30;
 
@@ -29,6 +30,7 @@ export async function POST(request: Request) {
     }
 
     const { modelId, negativePrompt, parameters, prompt, sessionId, source, workflowExecutionId } = parsed.data;
+    const hydratedParameters = await hydrateReferenceParameters(parameters);
 
     const accessFilter = await projectAccessFilter(user.id);
     const session = await prisma.session.findFirst({
@@ -51,7 +53,7 @@ export async function POST(request: Request) {
         modelId,
         prompt,
         negativePrompt,
-        parameters: parameters as Prisma.InputJsonValue,
+        parameters: hydratedParameters as Prisma.InputJsonValue,
         status: "processing",
         ...(source === "workflow" && { source: "workflow", workflowExecutionId: workflowExecutionId ?? undefined }),
       },
@@ -69,7 +71,7 @@ export async function POST(request: Request) {
         id: generation.id,
         prompt,
         negativePrompt: negativePrompt ?? null,
-        parameters: parameters as Record<string, unknown>,
+        parameters: hydratedParameters,
         status: generation.status,
         modelId,
         createdAt: generation.createdAt.toISOString(),

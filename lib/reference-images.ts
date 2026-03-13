@@ -1,5 +1,8 @@
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createHash } from "crypto";
 import { REFERENCES_BUCKET, uploadBase64ToStorage } from "@/lib/supabase/storage";
+
+const REFERENCE_SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 30;
 
 export interface ReferenceImagePointer {
   referenceImageId: string;
@@ -58,4 +61,89 @@ export async function persistReferenceImage(
     referenceImageChecksum: checksum,
     referenceImageMimeType: mimeType,
   };
+}
+
+function getReferenceObjectPathFromUrl(value: string): string | null {
+  try {
+    const url = new URL(value);
+    const signMarker = `/storage/v1/object/sign/${REFERENCES_BUCKET}/`;
+    const publicMarker = `/storage/v1/object/public/${REFERENCES_BUCKET}/`;
+    const signIdx = url.pathname.indexOf(signMarker);
+    if (signIdx >= 0) {
+      return decodeURIComponent(url.pathname.slice(signIdx + signMarker.length));
+    }
+    const publicIdx = url.pathname.indexOf(publicMarker);
+    if (publicIdx >= 0) {
+      return decodeURIComponent(url.pathname.slice(publicIdx + publicMarker.length));
+    }
+  } catch {
+    // Ignore invalid URLs and fall back to original value.
+  }
+  return null;
+}
+
+export async function createReferenceSignedUrl(path: string): Promise<string> {
+  const admin = createAdminClient();
+  const { data, error } = await admin.storage
+    .from(REFERENCES_BUCKET)
+    .createSignedUrl(path, REFERENCE_SIGNED_URL_TTL_SECONDS);
+  if (error || !data?.signedUrl) {
+    throw new Error(`Failed to create signed reference URL: ${error?.message ?? "unknown error"}`);
+  }
+  return data.signedUrl;
+}
+
+export async function refreshReferenceImageUrl(
+  url: string,
+  pathHint?: string | null,
+): Promise<string> {
+  const objectPath = (typeof pathHint === "string" && pathHint.trim().length > 0)
+    ? pathHint.trim()
+    : getReferenceObjectPathFromUrl(url);
+  if (!objectPath) return url;
+  try {
+    return await createReferenceSignedUrl(objectPath);
+  } catch {
+    return url;
+  }
+}
+
+export async function hydrateReferenceParameters(
+  parameters: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const next = { ...parameters };
+  const singleUrl = typeof parameters.referenceImageUrl === "string"
+    ? parameters.referenceImageUrl
+    : null;
+  const singlePath = typeof parameters.referenceImagePath === "string" &&
+    parameters.referenceImagePath.trim().length > 0
+    ? parameters.referenceImagePath.trim()
+    : null;
+  const imageUrls = Array.isArray(parameters.referenceImages)
+    ? parameters.referenceImages.filter(
+        (item): item is string => typeof item === "string" && item.trim().length > 0,
+      )
+    : [];
+  const imagePaths = Array.isArray(parameters.referenceImagePaths)
+    ? parameters.referenceImagePaths.map((item) =>
+        typeof item === "string" && item.trim().length > 0 ? item.trim() : ""
+      )
+    : [];
+
+  if (imageUrls.length > 0) {
+    const refreshed = await Promise.all(
+      imageUrls.map((url, index) =>
+        refreshReferenceImageUrl(url, imagePaths[index] || (index === 0 ? singlePath : null)),
+      ),
+    );
+    next.referenceImages = refreshed;
+    next.referenceImageUrl = refreshed[0] ?? singleUrl;
+    return next;
+  }
+
+  if (singleUrl) {
+    next.referenceImageUrl = await refreshReferenceImageUrl(singleUrl, singlePath);
+  }
+
+  return next;
 }
