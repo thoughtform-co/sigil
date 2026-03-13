@@ -10,6 +10,33 @@ const MAX_DEPTH = 5;
 const INITIAL_STEMS = 6;
 const STEP_LENGTH = GRID * 3;
 
+const ACTIVE_FRAME_MS = 1000 / 24;
+const SETTLED_FRAME_MS = 1000 / 12;
+const SETTLED_GROWTH = 0.97;
+
+const ALPHA_STEPS = 20;
+function buildPalette(rgb: { r: number; g: number; b: number }): string[] {
+  return Array.from({ length: ALPHA_STEPS + 1 }, (_, i) =>
+    `rgba(${rgb.r},${rgb.g},${rgb.b},${(i / ALPHA_STEPS).toFixed(2)})`,
+  );
+}
+const GOLD_PALETTE = buildPalette(GOLD);
+const DAWN_PALETTE = buildPalette(DAWN);
+
+function paletteIdx(alpha: number): number {
+  return Math.round(Math.max(0, Math.min(1, alpha)) * ALPHA_STEPS);
+}
+
+function pushBatch(
+  batches: Map<string, number[]>,
+  color: string,
+  x: number, y: number, w: number, h: number,
+): void {
+  let arr = batches.get(color);
+  if (!arr) { arr = []; batches.set(color, arr); }
+  arr.push(x, y, w, h);
+}
+
 function estimateGenerationSeconds(modelId: string): number {
   if (!modelId) return 40;
   const id = modelId.toLowerCase();
@@ -212,11 +239,14 @@ type SigilLoadingFieldProps = {
 
 export function SigilLoadingField({ seed, createdAt, modelId }: SigilLoadingFieldProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const sceneRef = useRef<MycelialScene | null>(null);
   const animRef = useRef<number>(0);
   const visibleRef = useRef(true);
   const dimsRef = useRef({ w: 0, h: 0 });
   const startRef = useRef<number>(Date.now());
+  const lastFrameRef = useRef<number>(0);
+  const batchRef = useRef(new Map<string, number[]>());
 
   const seedNum = seed ? seed.split("").reduce((a, c) => a + c.charCodeAt(0), 0) : 42;
   const createdAtMs = createdAt ? new Date(createdAt).getTime() : startRef.current;
@@ -227,15 +257,14 @@ export function SigilLoadingField({ seed, createdAt, modelId }: SigilLoadingFiel
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    ctxRef.current = ctx;
 
-    const dpr = 1;
     const rect = canvas.getBoundingClientRect();
     const w = rect.width;
     const h = rect.height;
 
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    ctx.scale(dpr, dpr);
+    canvas.width = w;
+    canvas.height = h;
     dimsRef.current = { w, h };
     sceneRef.current = createMycelialScene(w, h, seedNum);
   }, [seedNum]);
@@ -246,38 +275,36 @@ export function SigilLoadingField({ seed, createdAt, modelId }: SigilLoadingFiel
       return;
     }
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
+    const ctx = ctxRef.current;
     const { w, h } = dimsRef.current;
-    if (w === 0 || h === 0) {
-      animRef.current = requestAnimationFrame(animate);
-      return;
-    }
-
     const scene = sceneRef.current;
-    if (!scene) {
+
+    if (!ctx || w === 0 || h === 0 || !scene) {
       animRef.current = requestAnimationFrame(animate);
       return;
     }
 
-    const now = Date.now();
-    const elapsed = Math.max(0, (now - createdAtMs) / 1000);
+    const elapsed = Math.max(0, (Date.now() - createdAtMs) / 1000);
     const raw = elapsed / expectedSeconds;
     const progress = 1 - 1 / (1 + raw * 1.8);
     const growth = 1 - Math.pow(1 - progress, 1.45);
-    const t = elapsed;
 
+    const frameMs = growth > SETTLED_GROWTH ? SETTLED_FRAME_MS : ACTIVE_FRAME_MS;
+    const now = performance.now();
+    if (now - lastFrameRef.current < frameMs) {
+      animRef.current = requestAnimationFrame(animate);
+      return;
+    }
+    lastFrameRef.current = now;
+
+    const t = elapsed;
     const cx = w / 2;
     const cy = h / 2;
 
     ctx.clearRect(0, 0, w, h);
 
     const crossSize = 14 + growth * 10;
-    const crossAlpha = 0.04 + growth * 0.05;
-    ctx.strokeStyle = `rgba(${GOLD.r}, ${GOLD.g}, ${GOLD.b}, ${crossAlpha})`;
+    ctx.strokeStyle = GOLD_PALETTE[paletteIdx(0.04 + growth * 0.05)];
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(cx - crossSize, cy);
@@ -287,13 +314,12 @@ export function SigilLoadingField({ seed, createdAt, modelId }: SigilLoadingFiel
     ctx.stroke();
 
     const arm = snap(10 + growth * 12);
-    const bracketAlpha = 0.08 + growth * 0.08;
     const left = snap(cx - scene.safeHalfX);
     const right = snap(cx + scene.safeHalfX);
     const top = snap(cy - scene.safeHalfY);
     const bottom = snap(cy + scene.safeHalfY);
 
-    ctx.strokeStyle = `rgba(${GOLD.r}, ${GOLD.g}, ${GOLD.b}, ${bracketAlpha})`;
+    ctx.strokeStyle = GOLD_PALETTE[paletteIdx(0.08 + growth * 0.08)];
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(left, top + arm); ctx.lineTo(left, top); ctx.lineTo(left + arm, top);
@@ -302,24 +328,26 @@ export function SigilLoadingField({ seed, createdAt, modelId }: SigilLoadingFiel
     ctx.moveTo(right - arm, bottom); ctx.lineTo(right, bottom); ctx.lineTo(right, bottom - arm);
     ctx.stroke();
 
+    const batches = batchRef.current;
+    for (const arr of batches.values()) arr.length = 0;
+
     for (const branch of scene.branches) {
       const branchGrowth = clamp((growth - branch.delay) / Math.max(0.01, 1 - branch.delay), 0, 1);
       if (branchGrowth <= 0) continue;
 
       const visibleCount = Math.ceil(branch.dots.length * branchGrowth);
       let lastVisible: Point | null = null;
+      const spacing = Math.max(1, Math.round(branch.dotSpacing / GRID));
 
       for (let i = 0; i < visibleCount; i++) {
+        if (i % spacing !== 0 && i !== visibleCount - 1) continue;
         const dot = branch.dots[i];
-
-        if (i % Math.max(1, Math.round(branch.dotSpacing / GRID)) !== 0 && i !== visibleCount - 1) continue;
 
         let safeZoneFade = 1;
         if (inSafeZone(dot.x, dot.y, cx, cy, scene.safeHalfX, scene.safeHalfY)) {
-          const vertDist = Math.abs(dot.y - cy);
           const horizDist = Math.abs(dot.x - cx);
           if (horizDist < scene.safeHalfX * 0.85) {
-            safeZoneFade = Math.max(0, vertDist / scene.safeHalfY);
+            safeZoneFade = Math.abs(dot.y - cy) / scene.safeHalfY;
             safeZoneFade *= safeZoneFade;
           }
         }
@@ -327,19 +355,17 @@ export function SigilLoadingField({ seed, createdAt, modelId }: SigilLoadingFiel
 
         const fadeIn = clamp((visibleCount - i) / Math.max(1, branch.dots.length * 0.1), 0, 1);
         const pulse = 0.7 + 0.3 * Math.sin(t * 1.4 + dot.pulsePhase);
-        const rgb = dot.tone === "gold" ? GOLD : DAWN;
+        const palette = dot.tone === "gold" ? GOLD_PALETTE : DAWN_PALETTE;
         const alpha = dot.alpha * pulse * safeZoneFade * fadeIn;
 
         if (alpha > 0.01) {
-          ctx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
-          ctx.fillRect(dot.x, dot.y, dot.size, dot.size);
+          pushBatch(batches, palette[paletteIdx(alpha)], dot.x, dot.y, dot.size, dot.size);
         }
 
         if (dot.driftAlpha > 0 && safeZoneFade > 0.1) {
           const dAlpha = dot.driftAlpha * pulse * safeZoneFade * fadeIn;
           if (dAlpha > 0.01) {
-            ctx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${dAlpha})`;
-            ctx.fillRect(dot.x + dot.driftX, dot.y + dot.driftY, GRID - 1, GRID - 1);
+            pushBatch(batches, palette[paletteIdx(dAlpha)], dot.x + dot.driftX, dot.y + dot.driftY, GRID - 1, GRID - 1);
           }
         }
 
@@ -348,17 +374,15 @@ export function SigilLoadingField({ seed, createdAt, modelId }: SigilLoadingFiel
 
       if (lastVisible && branchGrowth > 0.05 && branchGrowth < 0.98) {
         if (!inSafeZone(lastVisible.x, lastVisible.y, cx, cy, scene.safeHalfX, scene.safeHalfY)) {
-          const rgb = branch.depth <= 1 ? GOLD : DAWN;
+          const palette = branch.depth <= 1 ? GOLD_PALETTE : DAWN_PALETTE;
           const tipPulse = 0.7 + 0.3 * Math.sin(t * 4.5 + branch.delay * 10);
           const tipAlpha = 0.5 + 0.4 * tipPulse;
-          ctx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${tipAlpha})`;
-          ctx.fillRect(lastVisible.x - 1, lastVisible.y - 1, GRID + 1, GRID + 1);
-          const dimAlpha = tipAlpha * 0.5;
-          ctx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${dimAlpha})`;
-          ctx.fillRect(lastVisible.x - GRID, lastVisible.y, GRID - 1, GRID - 1);
-          ctx.fillRect(lastVisible.x + GRID - 1, lastVisible.y, GRID - 1, GRID - 1);
-          ctx.fillRect(lastVisible.x, lastVisible.y - GRID, GRID - 1, GRID - 1);
-          ctx.fillRect(lastVisible.x, lastVisible.y + GRID - 1, GRID - 1, GRID - 1);
+          pushBatch(batches, palette[paletteIdx(tipAlpha)], lastVisible.x - 1, lastVisible.y - 1, GRID + 1, GRID + 1);
+          const dimColor = palette[paletteIdx(tipAlpha * 0.5)];
+          pushBatch(batches, dimColor, lastVisible.x - GRID, lastVisible.y, GRID - 1, GRID - 1);
+          pushBatch(batches, dimColor, lastVisible.x + GRID - 1, lastVisible.y, GRID - 1, GRID - 1);
+          pushBatch(batches, dimColor, lastVisible.x, lastVisible.y - GRID, GRID - 1, GRID - 1);
+          pushBatch(batches, dimColor, lastVisible.x, lastVisible.y + GRID - 1, GRID - 1, GRID - 1);
         }
       }
     }
@@ -368,18 +392,26 @@ export function SigilLoadingField({ seed, createdAt, modelId }: SigilLoadingFiel
       if (nodeGrowth <= 0) continue;
       if (inSafeZone(node.x, node.y, cx, cy, scene.safeHalfX, scene.safeHalfY)) continue;
 
-      const rgb = node.tone === "gold" ? GOLD : DAWN;
+      const palette = node.tone === "gold" ? GOLD_PALETTE : DAWN_PALETTE;
       const pulse = 0.6 + 0.4 * Math.sin(t * 2.2 + node.pulsePhase);
       const alpha = (node.tone === "gold" ? 0.55 : 0.35) * pulse * nodeGrowth;
 
-      ctx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
-      ctx.fillRect(node.x, node.y, GRID, GRID);
-      const armAlpha = alpha * 0.55;
-      ctx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${armAlpha})`;
-      ctx.fillRect(node.x - GRID, node.y, GRID - 1, GRID - 1);
-      ctx.fillRect(node.x + GRID, node.y, GRID - 1, GRID - 1);
-      ctx.fillRect(node.x, node.y - GRID, GRID - 1, GRID - 1);
-      ctx.fillRect(node.x, node.y + GRID, GRID - 1, GRID - 1);
+      pushBatch(batches, palette[paletteIdx(alpha)], node.x, node.y, GRID, GRID);
+      const armColor = palette[paletteIdx(alpha * 0.55)];
+      pushBatch(batches, armColor, node.x - GRID, node.y, GRID - 1, GRID - 1);
+      pushBatch(batches, armColor, node.x + GRID, node.y, GRID - 1, GRID - 1);
+      pushBatch(batches, armColor, node.x, node.y - GRID, GRID - 1, GRID - 1);
+      pushBatch(batches, armColor, node.x, node.y + GRID, GRID - 1, GRID - 1);
+    }
+
+    for (const [color, rects] of batches) {
+      if (rects.length === 0) continue;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      for (let i = 0; i < rects.length; i += 4) {
+        ctx.rect(rects[i], rects[i + 1], rects[i + 2], rects[i + 3]);
+      }
+      ctx.fill();
     }
 
     animRef.current = requestAnimationFrame(animate);

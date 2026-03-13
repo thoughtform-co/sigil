@@ -17,15 +17,30 @@ function isFailed(status: string): boolean {
   return status === "failed";
 }
 
-function downloadFile(url: string, filename?: string) {
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename ?? "output";
-  a.target = "_blank";
-  a.rel = "noopener noreferrer";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+async function downloadFile(url: string, filename?: string) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`${res.status}`);
+
+    const blob = await res.blob();
+    const ext = url.includes(".mp4") ? ".mp4"
+      : url.includes(".webm") ? ".webm"
+      : url.includes(".webp") ? ".webp"
+      : url.includes(".jpg") || url.includes(".jpeg") ? ".jpg"
+      : ".png";
+    const name = (filename ?? "output") + ext;
+
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
+  } catch {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
 }
 
 type ForgeGenerationCardProps = {
