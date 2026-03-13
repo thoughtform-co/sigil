@@ -291,7 +291,7 @@ export class GeminiAdapter extends BaseModelAdapter {
     }
 
     const aspectRatio = request.aspectRatio || "1:1";
-    const resolution = typeof request.resolution === "number" ? request.resolution : 1024;
+    const resolution = Number(request.resolution) || 1024;
     const imageSize = resolution >= 4096 ? "4K" : resolution >= 2048 ? "2K" : "1K";
 
     const payload = {
@@ -401,7 +401,7 @@ export class GeminiAdapter extends BaseModelAdapter {
     const baseUrl = "https://api.replicate.com/v1";
     const modelPath = "google/nano-banana-pro";
     const aspectRatio = request.aspectRatio || "1:1";
-    const resolution = typeof request.resolution === "number" ? request.resolution : 1024;
+    const resolution = Number(request.resolution) || 1024;
 
     const modelController = new AbortController();
     const modelTimeout = setTimeout(() => modelController.abort(), REPLICATE_FETCH_TIMEOUT_MS);
