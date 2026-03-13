@@ -29,7 +29,14 @@ export async function POST(request: Request, context: RouteContext) {
     await tx.output.deleteMany({ where: { generationId: id } });
     await tx.generation.update({
       where: { id },
-      data: { status: "processing", cost: null },
+      data: {
+        status: "processing",
+        cost: null,
+        errorMessage: null,
+        errorCategory: null,
+        errorRetryable: null,
+        lastHeartbeatAt: new Date(),
+      },
     });
   });
 

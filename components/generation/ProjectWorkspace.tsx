@@ -749,6 +749,61 @@ export function ProjectWorkspace({
     }
   }
 
+  async function rerunGeneration(generationId: string) {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const response = await fetch(`/api/generations/${generationId}/rerun`, { method: "POST" });
+      const data = (await response.json().catch(() => ({}))) as {
+        generation?: { id: string };
+        error?: string;
+      };
+      if (!response.ok) throw new Error(data.error ?? "Failed to rerun generation");
+
+      if (data.generation) {
+        const source = generations.find((g) => g.id === generationId);
+        const tempGen: GenerationItem = {
+          id: data.generation.id,
+          sessionId: source?.sessionId ?? selectedSessionId ?? undefined,
+          prompt: source?.prompt ?? "",
+          negativePrompt: source?.negativePrompt ?? null,
+          status: "processing",
+          modelId: source?.modelId ?? modelId,
+          createdAt: new Date().toISOString(),
+          outputs: [],
+          parameters: source?.parameters ?? {},
+          source: source?.source,
+          workflowExecutionId: source?.workflowExecutionId ?? null,
+          errorMessage: null,
+          errorCategory: null,
+          errorRetryable: null,
+          lastHeartbeatAt: null,
+        };
+        void mutateGenerations(
+          (pages) => {
+            if (!pages || pages.length === 0) {
+              return [{ generations: [tempGen], nextCursor: null }];
+            }
+            const lastIdx = pages.length - 1;
+            return pages.map((page, i) =>
+              i === lastIdx
+                ? { ...page, generations: [...page.generations, tempGen] }
+                : page,
+            );
+          },
+          { revalidate: true },
+        );
+      } else {
+        void mutateGenerations();
+      }
+      setMessage(`Rerun queued: ${generationId}`);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Failed to rerun generation");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function toggleApproveOutput(outputId: string, isApproved: boolean) {
     try {
       const response = await fetch(`/api/outputs/${outputId}`, {
@@ -951,7 +1006,7 @@ export function ProjectWorkspace({
             generations={generationsVisible}
             onRetry={retryGeneration}
             onReuse={reuseGeneration}
-            onRerun={retryGeneration}
+            onRerun={rerunGeneration}
             onConvertToVideo={handleConvertToVideo}
             onUseAsReference={handleUseAsReference}
             onDismiss={handleDismissGeneration}

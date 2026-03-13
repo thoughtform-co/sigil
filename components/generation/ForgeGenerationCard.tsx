@@ -59,15 +59,24 @@ type ForgeGenerationCardProps = {
 const STUCK_THRESHOLD_MS = 10 * 60 * 1000;
 const VIDEO_STUCK_THRESHOLD_MS = 15 * 60 * 1000;
 
+function lastActivityAt(generation: GenerationItem): number {
+  const createdAt = new Date(generation.createdAt).getTime();
+  const heartbeatAt = generation.lastHeartbeatAt
+    ? new Date(generation.lastHeartbeatAt).getTime()
+    : Number.NaN;
+  if (Number.isNaN(heartbeatAt)) return createdAt;
+  return Math.max(createdAt, heartbeatAt);
+}
+
 function isLikelyStuck(generation: GenerationItem): boolean {
   if (!isProcessing(generation.status)) return false;
-  const age = Date.now() - new Date(generation.createdAt).getTime();
+  const age = Date.now() - lastActivityAt(generation);
   const isVideo = generation.modelId.includes("veo") || generation.modelId.includes("kling");
   return age > (isVideo ? VIDEO_STUCK_THRESHOLD_MS : STUCK_THRESHOLD_MS);
 }
 
 function stuckAgeMinutes(generation: GenerationItem): number {
-  return Math.round((Date.now() - new Date(generation.createdAt).getTime()) / 60_000);
+  return Math.round((Date.now() - lastActivityAt(generation)) / 60_000);
 }
 
 const PHASE_MESSAGES = [

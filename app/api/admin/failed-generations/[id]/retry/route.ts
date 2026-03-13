@@ -28,7 +28,7 @@ export async function POST(request: Request, context: RouteContext) {
         errorMessage: null,
         errorCategory: null,
         errorRetryable: null,
-        lastHeartbeatAt: null,
+        lastHeartbeatAt: new Date(),
       },
     }),
   ]);
