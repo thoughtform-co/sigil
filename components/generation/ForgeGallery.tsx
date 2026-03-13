@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { GenerationItem } from "@/components/generation/types";
 import { ForgeGenerationCard } from "@/components/generation/ForgeGenerationCard";
@@ -77,6 +77,11 @@ export function ForgeGallery({
   const initialAnchorLastMaxScrollRef = useRef(-1);
   const initialAnchorStableFramesRef = useRef(0);
   const hasSeenScrollableContentRef = useRef(false);
+  const prependAnchorRef = useRef<{
+    prevScrollTop: number;
+    prevScrollHeight: number;
+    expectedMinCount: number;
+  } | null>(null);
 
   const perfMarked = useRef(false);
   useEffect(() => {
@@ -192,22 +197,13 @@ export function ForgeGallery({
 
   useEffect(() => {
     if (!pathname?.startsWith("/routes/")) return;
-
-    const currentLast = generations[generations.length - 1];
-    if (!currentLast) {
-      lastSeenLastIdRef.current = null;
-      lastSeenStatusRef.current = null;
-      lastSeenOutputCountRef.current = 0;
-      initialScrollDoneRef.current = false;
-      return;
-    }
-
-    lastSeenLastIdRef.current = currentLast.id;
-    lastSeenStatusRef.current = currentLast.status;
-    lastSeenOutputCountRef.current = currentLast.outputs?.length ?? 0;
-    initialScrollDoneRef.current = true;
-    runInitialBottomLock();
-  }, [pathname, generations, runInitialBottomLock]);
+    stopInitialBottomLock();
+    lastSeenLastIdRef.current = null;
+    lastSeenStatusRef.current = null;
+    lastSeenOutputCountRef.current = 0;
+    initialScrollDoneRef.current = false;
+    prependAnchorRef.current = null;
+  }, [pathname, stopInitialBottomLock]);
 
   const animateScroll = useCallback(() => {
     const feed = feedRef.current;
@@ -353,21 +349,45 @@ export function ForgeGallery({
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) onLoadOlder();
+        if (!entry.isIntersecting) return;
+        const feed = feedRef.current;
+        if (feed && !isLoadingOlder) {
+          prependAnchorRef.current = {
+            prevScrollTop: feed.scrollTop,
+            prevScrollHeight: feed.scrollHeight,
+            expectedMinCount: generations.length + 1,
+          };
+        }
+        onLoadOlder();
       },
       { root: feedRef.current, rootMargin: "300px" },
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [onLoadOlder, hasOlder]);
+  }, [onLoadOlder, hasOlder, isLoadingOlder, generations.length]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const feed = feedRef.current;
-    if (!feed || generations.length === 0) return;
+    if (!feed) return;
+    const anchor = prependAnchorRef.current;
+    if (
+      anchor &&
+      generations.length >= anchor.expectedMinCount &&
+      feed.scrollHeight >= anchor.prevScrollHeight
+    ) {
+      const deltaHeight = feed.scrollHeight - anchor.prevScrollHeight;
+      feed.scrollTop = anchor.prevScrollTop + deltaHeight;
+      updateScrollBeam();
+      prependAnchorRef.current = null;
+    }
+    if (generations.length === 0) {
+      prevOlderCountRef.current = 0;
+      return;
+    }
     const olderCount = generations.length - (prevOlderCountRef.current || generations.length);
     prevOlderCountRef.current = generations.length;
     if (olderCount <= 0) return;
-  }, [generations.length]);
+  }, [generations.length, updateScrollBeam]);
 
   const useVirtual = generations.length >= VIRTUAL_THRESHOLD;
 

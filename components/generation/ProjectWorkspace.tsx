@@ -56,6 +56,7 @@ import type { Node, Edge, Viewport } from "@xyflow/react";
 import styles from "./ProjectWorkspace.module.css";
 
 const GENERATIONS_PAGE_SIZE = 20;
+const DEFAULT_IMAGE_MODEL_ID = "gemini-nano-banana-2";
 
 type GenerationsPage = {
   generations: GenerationItem[];
@@ -68,6 +69,15 @@ const jsonFetcher = <T,>(url: string): Promise<T> =>
     if (!r.ok) throw new Error(`Fetch failed: ${r.status}`);
     return r.json() as Promise<T>;
   });
+
+function pickDefaultModelId(items: ModelItem[], mode: GenerationType): string {
+  if (!items.length) return "";
+  if (mode === "image") {
+    const preferred = items.find((item) => item.id === DEFAULT_IMAGE_MODEL_ID);
+    if (preferred) return preferred.id;
+  }
+  return items[0]?.id ?? "";
+}
 
 export function ProjectWorkspace({
   projectId,
@@ -87,7 +97,7 @@ export function ProjectWorkspace({
   const searchParams = useSearchParams();
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [prompt, setPrompt] = useState("");
-  const [referenceImageUrl, setReferenceImageUrl] = useState("");
+  const [referenceImages, setReferenceImages] = useState<string[]>([]);
   const [aspectRatio, setAspectRatio] = useState("1:1");
   const [resolution, setResolution] = useState("4096");
   const [numOutputs, setNumOutputs] = useState("1");
@@ -256,9 +266,11 @@ export function ProjectWorkspace({
     const storageKey = `sigil:lastModel:${projectId}:${mode}`;
     const stored = typeof window !== "undefined" ? sessionStorage.getItem(storageKey) : null;
     const storedValid = stored && models.some((m) => m.id === stored);
+    const preferredDefault = pickDefaultModelId(models, mode);
     setModelId((prev) => {
       if (prev && models.some((m) => m.id === prev)) return prev;
-      return storedValid ? stored! : models[0]?.id ?? "";
+      if (mode === "image") return preferredDefault;
+      return storedValid ? stored! : preferredDefault;
     });
   }, [models, mode, projectId]);
 
@@ -433,7 +445,9 @@ export function ProjectWorkspace({
   useEffect(() => {
     if (mode !== "video") return;
     const ref = searchParams.get("ref");
-    if (ref != null && ref !== "") setReferenceImageUrl(ref);
+    if (ref != null && ref !== "") {
+      setReferenceImages((prev) => (prev.includes(ref) ? prev : [...prev, ref]));
+    }
   }, [mode, searchParams]);
 
   const compatibleModels = useMemo(
@@ -443,7 +457,7 @@ export function ProjectWorkspace({
 
   const handleUseAsReference = useCallback(
     (url: string) => {
-      setReferenceImageUrl(url);
+      setReferenceImages((prev) => (prev.includes(url) ? prev : [...prev, url]));
       if (!url) return;
       const selectedModel = compatibleModels.find((m) => m.id === modelId);
       const supported = selectedModel?.supportedAspectRatios?.length
@@ -462,7 +476,7 @@ export function ProjectWorkspace({
   useEffect(() => {
     if (!compatibleModels.length) return;
     if (compatibleModels.some((m) => m.id === modelId)) return;
-    setModelId(compatibleModels[0].id);
+    setModelId(pickDefaultModelId(compatibleModels, mode));
   }, [compatibleModels, modelId]);
 
   useEffect(() => {
@@ -526,24 +540,36 @@ export function ProjectWorkspace({
         sessionId = created.id;
       }
 
-      let resolvedReferenceUrl = referenceImageUrl.trim() || undefined;
-      if (resolvedReferenceUrl && (resolvedReferenceUrl.startsWith("data:") || resolvedReferenceUrl.startsWith("blob:"))) {
-        const compressedDataUrl = await compressImage(resolvedReferenceUrl, { maxDim: 2048, maxSizeMB: 4, quality: 0.85 });
-        if (compressedDataUrl) {
-          const uploadRes = await fetch("/api/upload/reference-image", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ dataUrl: compressedDataUrl, projectId: projectId || undefined }),
-          });
-          const ct = uploadRes.headers.get("content-type") ?? "";
-          if (!ct.includes("application/json")) {
-            const text = await uploadRes.text();
-            throw new Error(`Upload returned non-JSON (${uploadRes.status}): ${text.slice(0, 120)}`);
-          }
-          const uploadData = (await uploadRes.json()) as { url?: string; referenceImageUrl?: string; error?: string };
-          if (!uploadRes.ok) throw new Error(uploadData.error ?? "Reference image upload failed");
-          resolvedReferenceUrl = uploadData.referenceImageUrl ?? uploadData.url ?? resolvedReferenceUrl;
-        }
+      let resolvedReferenceUrls = referenceImages.map((item) => item.trim()).filter(Boolean);
+      if (resolvedReferenceUrls.length > 0) {
+        resolvedReferenceUrls = await Promise.all(
+          resolvedReferenceUrls.map(async (rawUrl) => {
+            if (!(rawUrl.startsWith("data:") || rawUrl.startsWith("blob:"))) return rawUrl;
+            const compressedDataUrl = await compressImage(rawUrl, {
+              maxDim: 2048,
+              maxSizeMB: 4,
+              quality: 0.85,
+            });
+            if (!compressedDataUrl) return rawUrl;
+            const uploadRes = await fetch("/api/upload/reference-image", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ dataUrl: compressedDataUrl, projectId: projectId || undefined }),
+            });
+            const ct = uploadRes.headers.get("content-type") ?? "";
+            if (!ct.includes("application/json")) {
+              const text = await uploadRes.text();
+              throw new Error(`Upload returned non-JSON (${uploadRes.status}): ${text.slice(0, 120)}`);
+            }
+            const uploadData = (await uploadRes.json()) as {
+              url?: string;
+              referenceImageUrl?: string;
+              error?: string;
+            };
+            if (!uploadRes.ok) throw new Error(uploadData.error ?? "Reference image upload failed");
+            return uploadData.referenceImageUrl ?? uploadData.url ?? rawUrl;
+          }),
+        );
       }
 
       const parameters: Record<string, unknown> = {
@@ -552,7 +578,10 @@ export function ProjectWorkspace({
         numOutputs: Number(numOutputs),
         duration: Number(duration),
       };
-      if (resolvedReferenceUrl) parameters.referenceImageUrl = resolvedReferenceUrl;
+      if (resolvedReferenceUrls.length > 0) {
+        parameters.referenceImageUrl = resolvedReferenceUrls[0];
+        parameters.referenceImages = resolvedReferenceUrls;
+      }
 
       const response = await fetch("/api/generate", {
         method: "POST",
@@ -670,8 +699,8 @@ export function ProjectWorkspace({
     setMessage(null);
     const originalPrompt = prompt;
     try {
-      const imageData = referenceImageUrl.trim()
-        ? await compressImage(referenceImageUrl.trim(), { maxDim: 1024, maxSizeMB: 2, quality: 0.8 })
+      const imageData = referenceImages[0]?.trim()
+        ? await compressImage(referenceImages[0].trim(), { maxDim: 1024, maxSizeMB: 2, quality: 0.8 })
         : undefined;
 
       const response = await fetch("/api/prompts/enhance", {
@@ -841,7 +870,16 @@ export function ProjectWorkspace({
       setNumOutputs(String(params.numOutputs));
     if (typeof params.duration === "number" || typeof params.duration === "string")
       setDuration(String(params.duration));
-    if (typeof params.referenceImageUrl === "string") setReferenceImageUrl(params.referenceImageUrl);
+    if (Array.isArray(params.referenceImages)) {
+      const refs = params.referenceImages.filter((item): item is string => typeof item === "string");
+      if (refs.length > 0) {
+        setReferenceImages(refs);
+      } else if (typeof params.referenceImageUrl === "string") {
+        setReferenceImages([params.referenceImageUrl]);
+      }
+    } else if (typeof params.referenceImageUrl === "string") {
+      setReferenceImages([params.referenceImageUrl]);
+    }
     setMessage("Parameters loaded from previous generation.");
   }
 
@@ -1027,8 +1065,8 @@ export function ProjectWorkspace({
         generationType={mode}
         prompt={prompt}
         onPromptChange={setPrompt}
-        referenceImageUrl={referenceImageUrl}
-        onReferenceImageUrlChange={setReferenceImageUrl}
+        referenceImages={referenceImages}
+        onReferenceImagesChange={setReferenceImages}
         modelId={modelId}
         onModelChange={setModelId}
         models={compatibleModels}

@@ -36,8 +36,8 @@ type ForgePromptBarProps = {
   minimal?: boolean;
   prompt?: string;
   onPromptChange?: (value: string) => void;
-  referenceImageUrl?: string;
-  onReferenceImageUrlChange?: (value: string) => void;
+  referenceImages?: string[];
+  onReferenceImagesChange?: (value: string[]) => void;
   modelId?: string;
   onModelChange?: (value: string) => void;
   models?: ModelItem[];
@@ -66,8 +66,8 @@ export function ForgePromptBar({
   minimal = false,
   prompt = "",
   onPromptChange = () => {},
-  referenceImageUrl = "",
-  onReferenceImageUrlChange = () => {},
+  referenceImages = [],
+  onReferenceImagesChange = () => {},
   modelId = "",
   onModelChange = () => {},
   models = [],
@@ -93,11 +93,9 @@ export function ForgePromptBar({
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [browseModalOpen, setBrowseModalOpen] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string | null>(
-    referenceImageUrl && (referenceImageUrl.startsWith("data:") || referenceImageUrl.startsWith("blob:"))
-      ? referenceImageUrl
-      : null,
-  );
+  const [referencePreviewOpen, setReferencePreviewOpen] = useState(false);
+  const [urlInputValue, setUrlInputValue] = useState("");
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const modelPickerRef = useRef<HTMLDivElement>(null);
@@ -207,58 +205,70 @@ export function ForgePromptBar({
     }
   }, [showAttachMenu]);
 
+  useEffect(() => {
+    if (!referencePreviewOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setReferencePreviewOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [referencePreviewOpen]);
+
+  const appendReferences = useCallback(
+    (items: string[]) => {
+      const cleaned = items.map((item) => item.trim()).filter(Boolean);
+      if (cleaned.length === 0) return;
+      const merged = [...referenceImages];
+      for (const item of cleaned) {
+        if (!merged.includes(item)) merged.push(item);
+      }
+      onReferenceImagesChange(merged);
+    },
+    [referenceImages, onReferenceImagesChange],
+  );
+
   const handleBrowseSelect = useCallback(
     (url: string) => {
-      setImagePreview(url);
-      onReferenceImageUrlChange(url);
+      appendReferences([url]);
     },
-    [onReferenceImageUrlChange],
+    [appendReferences],
   );
 
   const handleImageSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file || !file.type.startsWith("image/")) return;
-      const url = URL.createObjectURL(file);
-      setImagePreview(url);
+      const files = Array.from(e.target.files ?? []).filter((file) => file.type.startsWith("image/"));
+      if (files.length === 0) return;
+      const objectUrls = files.map((file) => URL.createObjectURL(file));
+      const firstObjectUrl = objectUrls[0];
       const img = new window.Image();
       img.onload = () => {
         const match = detectClosestAspectRatio(img.naturalWidth, img.naturalHeight, aspectRatios);
         if (match) onAspectRatioChange(match);
       };
-      img.src = url;
-      const reader = new FileReader();
-      reader.onload = () => {
-        const dataUrl = reader.result as string;
-        onReferenceImageUrlChange(dataUrl);
-      };
-      reader.readAsDataURL(file);
+      img.src = firstObjectUrl;
+      appendReferences(objectUrls);
       if (fileInputRef.current) fileInputRef.current.value = "";
     },
-    [onReferenceImageUrlChange, onAspectRatioChange, aspectRatios],
+    [appendReferences, onAspectRatioChange, aspectRatios],
   );
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      const file = e.dataTransfer.files?.[0];
-      if (!file || !file.type.startsWith("image/")) return;
-      const url = URL.createObjectURL(file);
-      setImagePreview(url);
+      const files = Array.from(e.dataTransfer.files ?? []).filter((file) => file.type.startsWith("image/"));
+      if (files.length === 0) return;
+      const objectUrls = files.map((file) => URL.createObjectURL(file));
+      const url = objectUrls[0];
       const img = new window.Image();
       img.onload = () => {
         const match = detectClosestAspectRatio(img.naturalWidth, img.naturalHeight, aspectRatios);
         if (match) onAspectRatioChange(match);
       };
       img.src = url;
-      const reader = new FileReader();
-      reader.onload = () => {
-        onReferenceImageUrlChange(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      appendReferences(objectUrls);
     },
-    [onReferenceImageUrlChange, onAspectRatioChange, aspectRatios],
+    [appendReferences, onAspectRatioChange, aspectRatios],
   );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -266,11 +276,20 @@ export function ForgePromptBar({
     e.stopPropagation();
   }, []);
 
-  const clearImage = useCallback(() => {
-    setImagePreview(null);
-    onReferenceImageUrlChange("");
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  }, [onReferenceImageUrlChange]);
+  const removeReferenceAt = useCallback(
+    (index: number) => {
+      onReferenceImagesChange(referenceImages.filter((_, idx) => idx !== index));
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    },
+    [onReferenceImagesChange, referenceImages],
+  );
+
+  const addReferenceFromUrl = useCallback(() => {
+    const url = urlInputValue.trim();
+    if (!url) return;
+    appendReferences([url]);
+    setUrlInputValue("");
+  }, [appendReferences, urlInputValue]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -365,6 +384,7 @@ export function ForgePromptBar({
           <input
             ref={fileInputRef}
             type="file"
+            multiple
             accept="image/*"
             onChange={handleImageSelect}
             className={styles.fileInput}
@@ -420,33 +440,56 @@ export function ForgePromptBar({
                   </div>
                 )}
               </div>
-              {(imagePreview || referenceImageUrl) && (
-                <div className={styles.attachThumb}>
+              {referenceImages.map((ref, index) => (
+                <div key={`${ref}-${index}`} className={styles.attachThumb}>
                   <img
-                    src={imagePreview || referenceImageUrl}
+                    src={ref}
                     alt="Reference"
-                    onError={() => setImagePreview(null)}
+                    role="button"
+                    tabIndex={0}
+                    title="Open full preview"
+                    onClick={() => {
+                      setPreviewImageUrl(ref);
+                      setReferencePreviewOpen(true);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setPreviewImageUrl(ref);
+                        setReferencePreviewOpen(true);
+                      }
+                    }}
                   />
                   <button
                     type="button"
                     className={styles.attachRemove}
-                    onClick={clearImage}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeReferenceAt(index);
+                    }}
                   >
                     ×
                   </button>
                 </div>
-              )}
+              ))}
               {showUrlInput && (
                 <input
                   type="url"
-                  value={referenceImageUrl}
-                  onChange={(e) => onReferenceImageUrlChange(e.target.value)}
+                  value={urlInputValue}
+                  onChange={(e) => setUrlInputValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addReferenceFromUrl();
+                    }
+                  }}
+                  onBlur={addReferenceFromUrl}
                   className={styles.refInput}
                   placeholder="Paste image URL"
                   aria-label="Reference image URL"
                 />
               )}
-              {!showUrlInput && !imagePreview && !referenceImageUrl && (
+              {!showUrlInput && referenceImages.length === 0 && (
                 <button
                   type="button"
                   className={styles.urlToggle}
@@ -650,6 +693,29 @@ export function ForgePromptBar({
         onSelectImage={handleBrowseSelect}
         projectId={projectId}
       />
+      {referencePreviewOpen && previewImageUrl && (
+        <div
+          className={styles.refPreviewBackdrop}
+          onClick={() => setReferencePreviewOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Reference image preview"
+        >
+          <button
+            type="button"
+            className={styles.refPreviewClose}
+            onClick={() => setReferencePreviewOpen(false)}
+          >
+            Close (Esc)
+          </button>
+          <img
+            src={previewImageUrl}
+            alt="Reference full preview"
+            className={styles.refPreviewImage}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }

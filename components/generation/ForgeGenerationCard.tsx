@@ -328,8 +328,14 @@ export function ForgeGenerationCard({
               <button
                 type="button"
                 className={styles.refThumb}
-                onClick={() => setRefPopupOpen(true)}
-                title="View reference image"
+                onClick={() => {
+                  if (onLightboxOpen) {
+                    onLightboxOpen(refImageUrl);
+                    return;
+                  }
+                  setRefPopupOpen(true);
+                }}
+                title={onLightboxOpen ? "Open reference image" : "View reference image"}
               >
                 <img src={refImageUrl} alt="Reference" className={styles.refThumbImg} />
               </button>

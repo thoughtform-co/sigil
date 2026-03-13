@@ -10,8 +10,12 @@ export function normalizeGenerationRequest(
   parameters: Record<string, unknown>
 ): GenerationRequest {
   const params = parameters ?? {};
-  const referenceImageUrl =
-    typeof params.referenceImageUrl === "string" ? params.referenceImageUrl : undefined;
+  const referenceImages = Array.isArray(params.referenceImages)
+    ? params.referenceImages.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    : [];
+  const referenceImageUrl = typeof params.referenceImageUrl === "string"
+    ? params.referenceImageUrl
+    : referenceImages[0];
 
   return {
     prompt,
@@ -20,6 +24,11 @@ export function normalizeGenerationRequest(
     parameters: params,
     referenceImage: referenceImageUrl,
     referenceImageUrl: referenceImageUrl,
-    referenceImages: referenceImageUrl ? [referenceImageUrl] : undefined,
+    referenceImages:
+      referenceImages.length > 0
+        ? referenceImages
+        : referenceImageUrl
+          ? [referenceImageUrl]
+          : undefined,
   };
 }
