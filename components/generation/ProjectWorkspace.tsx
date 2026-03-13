@@ -1132,9 +1132,6 @@ export function ProjectWorkspace({
           imageUrl={convertImageUrl}
           open={convertModalOpen}
           onClose={closeConvertModal}
-          onSuccess={() => {
-            closeConvertModal();
-          }}
           sourceGenerationId={convertGenMeta?.generationId}
           sourceModelId={convertGenMeta?.modelId}
           sourceCreatedAt={convertGenMeta?.createdAt}

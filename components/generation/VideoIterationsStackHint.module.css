@@ -14,7 +14,7 @@
   position: absolute;
   pointer-events: none;
   border-left: 0;
-  backdrop-filter: blur(1px);
+  transition: opacity 120ms ease;
 }
 
 .iconButton {

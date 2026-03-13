@@ -28,25 +28,25 @@ export function VideoIterationsStackGlow({ count, hasProcessing }: IterationStat
       {Array.from({ length: STACK_LAYERS }).map((_, index) => {
         const layerIndex = STACK_LAYERS - index - 1;
         const offset = (layerIndex + 1) * 8;
-        const vInset = (layerIndex + 1) * 3;
-        const baseOpacity = hasProcessing ? 0.2 : 0.15;
+        const verticalOffset = offset * 0.3;
+        const scale = 1 - layerIndex * 0.02;
+        const baseOpacity = hasProcessing ? 0.22 : 0.16;
         const opacity = baseOpacity - layerIndex * 0.03;
         return (
           <div
             key={`stack-${layerIndex}`}
             className={styles.stackLayer}
             style={{
-              top: `${vInset}px`,
-              left: 0,
+              top: `${verticalOffset}px`,
+              left: `${offset}px`,
               right: `${-offset}px`,
-              bottom: `${vInset}px`,
+              bottom: `${-verticalOffset}px`,
               zIndex: -10 - layerIndex,
-              background: `linear-gradient(to left, rgba(${GLOW_COLOR}, ${opacity * 0.35}) 0%, rgba(${GLOW_COLOR}, ${opacity * 0.18}) 45%, transparent 85%)`,
-              border: `1.5px solid rgba(${GLOW_COLOR}, ${opacity * 0.8})`,
-              borderTopLeftRadius: 0,
-              borderBottomLeftRadius: 0,
+              transform: `scale(${scale})`,
+              background: `linear-gradient(to left, rgba(${GLOW_COLOR}, ${opacity * 0.4}) 0%, rgba(${GLOW_COLOR}, ${opacity * 0.2}) 45%, transparent 85%)`,
+              border: `1px solid rgba(${GLOW_COLOR}, ${opacity * 0.9})`,
               borderLeft: 0,
-              boxShadow: `${offset}px 0 ${offset * 2}px -${offset * 0.65}px rgba(${GLOW_COLOR}, ${opacity * 0.55}), inset 10px 0 ${12 + layerIndex * 2}px rgba(${GLOW_COLOR}, ${opacity * 0.25})`,
+              boxShadow: `${offset}px 0 ${offset * 1.5}px -${offset * 0.7}px rgba(${GLOW_COLOR}, ${opacity * 0.45}), inset 8px 0 ${10 + layerIndex * 2}px rgba(${GLOW_COLOR}, ${opacity * 0.2})`,
             }}
           />
         );

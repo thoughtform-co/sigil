@@ -68,7 +68,6 @@ type ConvertToVideoModalProps = {
   imageUrl: string;
   open: boolean;
   onClose: () => void;
-  onSuccess?: () => void;
   sourceGenerationId?: string;
   sourceModelId?: string;
   sourceCreatedAt?: string;
@@ -316,7 +315,6 @@ export function ConvertToVideoModal({
       const data = (await res.json()) as { generation?: { id: string }; error?: string };
       if (!res.ok) throw new Error(data.error ?? "Failed to submit generation");
       setMessage("Generation queued.");
-      setPrompt("");
       await refetch();
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "Failed to submit");
@@ -699,8 +697,31 @@ export function ConvertToVideoModal({
                         className={styles.iterationMedia}
                       />
                     ) : (
-                      <div className={styles.iterationPlaceholder}>Processing…</div>
+                      <div className={styles.iterationPlaceholder}>
+                        <span className={styles.iterationPlaceholderLabel}>
+                          <span className={styles.iterationPlaceholderDot} />
+                          Generating
+                        </span>
+                      </div>
                     )}
+                    {it.prompt && (
+                      <p className={styles.iterationPrompt}>{it.prompt}</p>
+                    )}
+                    <div className={styles.iterationReadouts}>
+                      {it.modelId && (
+                        <span className={styles.iterationReadout}>{it.modelId}</span>
+                      )}
+                      {typeof (it.parameters as Record<string, unknown>)?.duration === "number" && (
+                        <span className={styles.iterationReadout}>
+                          {String((it.parameters as Record<string, unknown>).duration)}s
+                        </span>
+                      )}
+                      {typeof (it.parameters as Record<string, unknown>)?.aspectRatio === "string" && (
+                        <span className={styles.iterationReadout}>
+                          {String((it.parameters as Record<string, unknown>).aspectRatio)}
+                        </span>
+                      )}
+                    </div>
                   </li>
                 ))}
               </ul>

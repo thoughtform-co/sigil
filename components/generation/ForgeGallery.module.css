@@ -27,11 +27,10 @@
 .feedInner {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 0;
   width: 100%;
   max-width: var(--layout-content-md, 1200px);
-  margin: 0 auto;
   padding: calc(var(--hud-padding, 40px) + 16px) 16px calc(var(--prompt-bar-height, 200px) + clamp(24px, 4vw, 48px) + 24px);
 }
 
@@ -44,6 +43,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  align-self: center;
   padding: 48px 24px;
   gap: 16px;
   text-align: center;
@@ -121,7 +121,7 @@
   left: 0;
   width: 100%;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 .sentinel {
@@ -146,7 +146,7 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
 }
 
 .feedSeparator {

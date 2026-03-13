@@ -214,7 +214,7 @@ export function ForgeGallery({
 
     const diff = scrollTargetRef.current - feed.scrollTop;
 
-    if (Math.abs(diff) < 0.5) {
+    if (Math.abs(diff) < 1) {
       feed.scrollTop = scrollTargetRef.current;
       scrollTargetRef.current = null;
       scrollAnimRef.current = 0;
@@ -222,7 +222,7 @@ export function ForgeGallery({
       return;
     }
 
-    feed.scrollTop += diff * 0.12;
+    feed.scrollTop += diff * 0.22;
     updateScrollBeam();
     scrollAnimRef.current = requestAnimationFrame(animateScroll);
   }, [updateScrollBeam]);
@@ -306,27 +306,25 @@ export function ForgeGallery({
         return;
       }
 
-      const feed = feedRef.current;
-      if (feed) {
-        const distFromBottom = feed.scrollHeight - feed.scrollTop - feed.clientHeight;
-        if (distFromBottom < 400) {
-          scrollTargetRef.current = null;
-          if (scrollAnimRef.current) {
-            cancelAnimationFrame(scrollAnimRef.current);
-            scrollAnimRef.current = 0;
-          }
-          requestAnimationFrame(() => {
+      if (isNewGen) {
+        const feed = feedRef.current;
+        if (feed) {
+          const distFromBottom = feed.scrollHeight - feed.scrollTop - feed.clientHeight;
+          if (distFromBottom < 400) {
             requestAnimationFrame(() => {
-              feedRef.current?.scrollTo({
-                top: feedRef.current?.scrollHeight ?? 0,
-                behavior: "smooth",
-              });
+              const f = feedRef.current;
+              if (!f) return;
+              const maxScroll = Math.max(f.scrollHeight - f.clientHeight, 0);
+              scrollTargetRef.current = maxScroll;
+              if (!scrollAnimRef.current) {
+                scrollAnimRef.current = requestAnimationFrame(animateScroll);
+              }
             });
-          });
+          }
         }
       }
     }
-  }, [generations]);
+  }, [generations, animateScroll]);
 
   useEffect(() => {
     if (!onLoadMore || !hasMore) return;
