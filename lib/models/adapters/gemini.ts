@@ -87,6 +87,9 @@ const IMAGE_DELAY_MS = 2000;
 const GEMINI_API_TIMEOUT_MS = 120_000;
 const REPLICATE_FETCH_TIMEOUT_MS = 15_000;
 const MAX_CONSECUTIVE_UNAVAILABLE = 2;
+const MAX_INLINE_REFERENCE_IMAGES = 6;
+const MAX_REFERENCE_DOWNLOAD_BYTES = 8 * 1024 * 1024;
+const MAX_REFERENCE_DATAURL_BYTES = 8 * 1024 * 1024;
 
 const GEMINI_MODEL_MAP: Record<string, string> = {
   "gemini-nano-banana-pro": "gemini-3-pro-image-preview",
@@ -280,17 +283,39 @@ export class GeminiAdapter extends BaseModelAdapter {
     const endpoint = `${GEMINI_BASE_URL}/models/${geminiModel}:generateContent`;
     const parts: Array<Record<string, unknown>> = [{ text: request.prompt }];
 
-    const refImages =
+    const refImagesRaw =
       request.referenceImages ?? (request.referenceImage ? [request.referenceImage] : []);
+    const refImages = refImagesRaw.slice(0, MAX_INLINE_REFERENCE_IMAGES);
     for (const img of refImages) {
       const dataUrlMatch = img.match(/^data:([^;]+);base64,(.+)$/);
       if (dataUrlMatch) {
+        const estimatedBytes = Math.floor((dataUrlMatch[2].length * 3) / 4);
+        if (estimatedBytes > MAX_REFERENCE_DATAURL_BYTES) {
+          console.warn(
+            `[Gemini] Skipping oversized data URL reference (~${estimatedBytes} bytes > ${MAX_REFERENCE_DATAURL_BYTES})`,
+          );
+          continue;
+        }
         parts.push({ inlineData: { mimeType: dataUrlMatch[1], data: dataUrlMatch[2] } });
       } else if (img.startsWith("http")) {
         try {
           const imgRes = await fetch(img);
           if (imgRes.ok) {
+            const contentLengthRaw = imgRes.headers.get("content-length");
+            const contentLength = contentLengthRaw ? Number(contentLengthRaw) : Number.NaN;
+            if (Number.isFinite(contentLength) && contentLength > MAX_REFERENCE_DOWNLOAD_BYTES) {
+              console.warn(
+                `[Gemini] Skipping oversized URL reference (${contentLength} bytes > ${MAX_REFERENCE_DOWNLOAD_BYTES})`,
+              );
+              continue;
+            }
             const buf = Buffer.from(await imgRes.arrayBuffer());
+            if (buf.byteLength > MAX_REFERENCE_DOWNLOAD_BYTES) {
+              console.warn(
+                `[Gemini] Skipping oversized downloaded reference (${buf.byteLength} bytes > ${MAX_REFERENCE_DOWNLOAD_BYTES})`,
+              );
+              continue;
+            }
             const ct = imgRes.headers.get("content-type") || "image/jpeg";
             parts.push({ inlineData: { mimeType: ct, data: buf.toString("base64") } });
           }
