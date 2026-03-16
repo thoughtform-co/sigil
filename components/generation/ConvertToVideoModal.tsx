@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef, type MouseEvent as ReactMouseEvent } from "react";
 import { createPortal } from "react-dom";
 import type { SessionItem } from "@/components/generation/types";
 import type { ModelItem } from "@/components/generation/types";
+import { pickPreferredModelId } from "@/lib/models/preferences";
 import { useVideoIterations } from "@/hooks/useVideoIterations";
 import { ImageBrowseModal } from "@/components/generation/ImageBrowseModal";
 import styles from "./ConvertToVideoModal.module.css";
@@ -74,18 +75,68 @@ type ConvertToVideoModalProps = {
   sourceStatus?: string;
 };
 
+const ITERATION_STUCK_THRESHOLD_MS = 15 * 60 * 1000;
+
 function iterationStatusLabel(status: string): string {
   switch (status) {
     case "processing":
     case "processing_locked":
-      return "Processing…";
+      return "PROCESSING…";
     case "completed":
-      return "Complete";
+      return "COMPLETE";
     case "failed":
-      return "Failed";
+      return "FAILED";
     default:
       return status;
   }
+}
+
+function isIterationProcessing(status: string): boolean {
+  return status === "processing" || status === "processing_locked";
+}
+
+function isIterationStuck(it: { status: string; createdAt: string }): boolean {
+  if (!isIterationProcessing(it.status)) return false;
+  return Date.now() - new Date(it.createdAt).getTime() > ITERATION_STUCK_THRESHOLD_MS;
+}
+
+function stuckMinutes(it: { createdAt: string }): number {
+  return Math.round((Date.now() - new Date(it.createdAt).getTime()) / 60_000);
+}
+
+function ExpandablePrompt({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const [isTruncated, setIsTruncated] = useState(false);
+  const ref = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    setIsTruncated(el.scrollHeight > el.clientHeight + 1);
+  }, [text]);
+
+  return (
+    <p
+      ref={ref}
+      className={`${styles.iterationPrompt} ${expanded ? styles.iterationPromptExpanded : ""} ${isTruncated && !expanded ? styles.iterationPromptTruncated : ""}`}
+      onClick={(e: ReactMouseEvent) => {
+        if (isTruncated || expanded) {
+          e.stopPropagation();
+          setExpanded((v) => !v);
+        }
+      }}
+      role={isTruncated || expanded ? "button" : undefined}
+      tabIndex={isTruncated || expanded ? 0 : undefined}
+      onKeyDown={(e) => {
+        if ((isTruncated || expanded) && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          setExpanded((v) => !v);
+        }
+      }}
+    >
+      {text}
+    </p>
+  );
 }
 
 export function ConvertToVideoModal({
@@ -165,9 +216,10 @@ export function ConvertToVideoModal({
       .then((data: { models?: ModelItem[] }) => {
         const list = data.models ?? [];
         setModels(list);
+        const preferredModelId = pickPreferredModelId(list, "video");
         setModelId((prev) => {
-          if (!prev) return list[0]?.id ?? "";
-          return list.some((m) => m.id === prev) ? prev : list[0]?.id ?? "";
+          if (!prev) return preferredModelId;
+          return list.some((m) => m.id === prev) ? prev : preferredModelId;
         });
       })
       .catch(() => setModels([]))
@@ -257,6 +309,34 @@ export function ConvertToVideoModal({
     setEndFrameUrl(url);
     setEndFrameFile(null);
   }, []);
+
+  const handleRetryIteration = useCallback(async (generationId: string) => {
+    try {
+      const res = await fetch(`/api/generations/${generationId}/retry`, { method: "POST" });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(data.error ?? "Failed to retry");
+      }
+      setMessage("Retry queued.");
+      await refetch();
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "Failed to retry");
+    }
+  }, [refetch]);
+
+  const handleDismissIteration = useCallback(async (generationId: string) => {
+    try {
+      const res = await fetch(`/api/generations/${generationId}`, { method: "DELETE" });
+      if (!res.ok && res.status !== 204) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(data.error ?? "Failed to dismiss");
+      }
+      setMessage("Generation dismissed.");
+      await refetch();
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "Failed to dismiss");
+    }
+  }, [refetch]);
 
   const handleSubmit = useCallback(async () => {
     if (!prompt.trim() || !modelId) {
@@ -523,7 +603,7 @@ export function ConvertToVideoModal({
             <div className={styles.sessionRow}>
               {sessionMode === "existing" ? (
                 <select
-                  className="sigil-select"
+                  className={`sigil-select ${styles.sessionSelect}`}
                   value={sessionId}
                   onChange={(e) => setSessionId(e.target.value)}
                   disabled={busy || sessionsLoading || sessions.length === 0}
@@ -696,6 +776,53 @@ export function ConvertToVideoModal({
                         alt=""
                         className={styles.iterationMedia}
                       />
+                    ) : it.status === "failed" ? (
+                      <div className={`${styles.iterationPlaceholder} ${styles.iterationPlaceholderFailed}`}>
+                        <div className={styles.iterationStuckContent}>
+                          <span className={styles.iterationStuckTitle}>Generation failed</span>
+                          <div className={styles.iterationStuckActions}>
+                            <button
+                              type="button"
+                              className={styles.iterationStuckBtn}
+                              onClick={() => void handleRetryIteration(it.id)}
+                            >
+                              Retry
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.iterationStuckBtn}
+                              onClick={() => void handleDismissIteration(it.id)}
+                            >
+                              Dismiss
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : isIterationStuck(it) ? (
+                      <div className={`${styles.iterationPlaceholder} ${styles.iterationPlaceholderStuck}`}>
+                        <div className={styles.iterationStuckContent}>
+                          <span className={styles.iterationStuckTitle}>Taking unusually long</span>
+                          <span className={styles.iterationStuckMessage}>
+                            Processing for {stuckMinutes(it)} min — this generation may have stalled.
+                          </span>
+                          <div className={styles.iterationStuckActions}>
+                            <button
+                              type="button"
+                              className={styles.iterationStuckBtn}
+                              onClick={() => void handleRetryIteration(it.id)}
+                            >
+                              Retry
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.iterationStuckBtn}
+                              onClick={() => void handleDismissIteration(it.id)}
+                            >
+                              Dismiss
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     ) : (
                       <div className={styles.iterationPlaceholder}>
                         <span className={styles.iterationPlaceholderLabel}>
@@ -705,7 +832,7 @@ export function ConvertToVideoModal({
                       </div>
                     )}
                     {it.prompt && (
-                      <p className={styles.iterationPrompt}>{it.prompt}</p>
+                      <ExpandablePrompt text={it.prompt} />
                     )}
                     <div className={styles.iterationReadouts}>
                       {it.modelId && (

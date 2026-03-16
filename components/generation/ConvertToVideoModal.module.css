@@ -25,6 +25,7 @@
   flex-direction: column;
   animation: fadeInUp 0.3s var(--ease-out) both;
   overflow: hidden;
+  text-transform: uppercase;
 }
 
 .panel[data-source-orientation="portrait"] {
@@ -388,6 +389,7 @@
 .promptRow textarea {
   flex: 1;
   min-width: 0;
+  text-transform: none;
 }
 
 .generateBtn {
@@ -396,6 +398,7 @@
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--gold-contrast);
   background: var(--gold);
   border: 1px solid var(--gold);
@@ -434,6 +437,15 @@
   min-width: 140px;
 }
 
+.sessionSelect {
+  text-transform: uppercase;
+}
+
+.sessionSelect option,
+.paramSelect option {
+  text-transform: uppercase;
+}
+
 .paramsRow {
   display: flex;
   flex-wrap: wrap;
@@ -445,6 +457,7 @@
   padding: 6px 10px;
   font-family: var(--font-mono);
   font-size: 11px;
+  text-transform: uppercase;
   color: var(--dawn-70);
   background: var(--dawn-04);
   border: 1px solid var(--dawn-08);
@@ -456,6 +469,7 @@
   padding: 6px 10px;
   font-family: var(--font-mono);
   font-size: 11px;
+  text-transform: uppercase;
   color: var(--dawn-50);
   background: var(--dawn-04);
   border: 1px solid var(--dawn-08);
@@ -508,7 +522,10 @@
 }
 
 .message {
+  font-family: var(--font-mono);
   font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--dawn-50);
   margin-top: var(--space-xs);
 }
@@ -561,6 +578,7 @@
 
 .iterationsEmpty {
   font-size: 12px;
+  text-transform: uppercase;
   color: var(--dawn-40);
   text-align: center;
   max-width: 220px;
@@ -593,6 +611,7 @@
   font-family: var(--font-body);
   font-size: 14px;
   font-weight: 500;
+  text-transform: uppercase;
   color: var(--dawn-70);
   text-align: center;
 }
@@ -623,11 +642,39 @@
   font-size: 11px;
   line-height: 1.45;
   color: var(--dawn-50);
+  text-transform: none;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   word-break: break-word;
+  transition: max-height 0.25s var(--ease-out, ease-out);
+}
+
+.iterationPromptTruncated {
+  cursor: pointer;
+  position: relative;
+}
+
+.iterationPromptTruncated::after {
+  content: '…MORE';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  padding-left: 16px;
+  background: linear-gradient(90deg, transparent, var(--surface-0) 40%);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.iterationPromptExpanded {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+  cursor: pointer;
 }
 
 .iterationReadouts {
@@ -646,7 +693,7 @@
 }
 
 .iterationStatus {
-  text-transform: lowercase;
+  text-transform: uppercase;
 }
 
 .iterationStatus[data-status="processing"],
@@ -664,6 +711,7 @@
 
 .iterationTime {
   font-family: var(--font-mono);
+  text-transform: uppercase;
   color: var(--dawn-40);
 }
 
@@ -745,6 +793,86 @@
 @keyframes iterDotPulse {
   0%, 100% { opacity: 0.5; }
   50%      { opacity: 1; }
+}
+
+/* Failed iteration state */
+.iterationPlaceholderFailed {
+  border-color: var(--status-error, #c45);
+  color: var(--dawn-50);
+}
+
+.iterationPlaceholderFailed::before,
+.iterationPlaceholderFailed::after {
+  animation: none;
+}
+
+/* Stuck iteration state */
+.iterationPlaceholderStuck {
+  border-color: var(--status-error, #c45);
+  color: var(--dawn-50);
+}
+
+.iterationPlaceholderStuck::before {
+  animation: none;
+  background: none;
+}
+
+.iterationPlaceholderStuck::after {
+  border-color: rgba(204, 68, 85, 0.2);
+  animation: none;
+  opacity: 0.6;
+}
+
+.iterationStuckContent {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  padding: 0 12px;
+}
+
+.iterationStuckTitle {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--status-error, #c45);
+}
+
+.iterationStuckMessage {
+  font-family: var(--font-body);
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--dawn-40);
+  line-height: 1.4;
+}
+
+.iterationStuckActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.iterationStuckBtn {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dawn-50);
+  background: var(--dawn-04);
+  border: 1px solid var(--dawn-15);
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all var(--duration-fast);
+}
+
+.iterationStuckBtn:hover {
+  color: var(--dawn);
+  border-color: var(--dawn-30);
+  background: var(--dawn-08);
 }
 
 @media (prefers-reduced-motion: reduce) {

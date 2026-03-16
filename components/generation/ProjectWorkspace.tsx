@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import useSWRInfinite from "swr/infinite";
 import type { GenerationItem, GenerationType, ModelItem, SessionItem } from "@/components/generation/types";
+import { pickPreferredModelId } from "@/lib/models/preferences";
 import { useGenerationsRealtime } from "@/hooks/useGenerationsRealtime";
 import { ForgeGallery } from "@/components/generation/ForgeGallery";
 import { ForgePromptBar } from "@/components/generation/ForgePromptBar";
@@ -56,7 +57,6 @@ import type { Node, Edge, Viewport } from "@xyflow/react";
 import styles from "./ProjectWorkspace.module.css";
 
 const GENERATIONS_PAGE_SIZE = 20;
-const DEFAULT_IMAGE_MODEL_ID = "gemini-nano-banana-2";
 
 type GenerationsPage = {
   generations: GenerationItem[];
@@ -69,15 +69,6 @@ const jsonFetcher = <T,>(url: string): Promise<T> =>
     if (!r.ok) throw new Error(`Fetch failed: ${r.status}`);
     return r.json() as Promise<T>;
   });
-
-function pickDefaultModelId(items: ModelItem[], mode: GenerationType): string {
-  if (!items.length) return "";
-  if (mode === "image") {
-    const preferred = items.find((item) => item.id === DEFAULT_IMAGE_MODEL_ID);
-    if (preferred) return preferred.id;
-  }
-  return items[0]?.id ?? "";
-}
 
 export function ProjectWorkspace({
   projectId,
@@ -263,13 +254,13 @@ export function ProjectWorkspace({
 
   useEffect(() => {
     if (!models.length) return;
-    const storageKey = `sigil:lastModel:${projectId}:${mode}`;
-    const stored = typeof window !== "undefined" ? sessionStorage.getItem(storageKey) : null;
-    const storedValid = stored && models.some((m) => m.id === stored);
-    const preferredDefault = pickDefaultModelId(models, mode);
+    const preferredDefault = pickPreferredModelId(models, mode);
     setModelId((prev) => {
       if (prev && models.some((m) => m.id === prev)) return prev;
-      if (mode === "image") return preferredDefault;
+      if (mode === "image" || mode === "video") return preferredDefault;
+      const storageKey = `sigil:lastModel:${projectId}:${mode}`;
+      const stored = typeof window !== "undefined" ? sessionStorage.getItem(storageKey) : null;
+      const storedValid = stored && models.some((m) => m.id === stored);
       return storedValid ? stored! : preferredDefault;
     });
   }, [models, mode, projectId]);
@@ -476,7 +467,7 @@ export function ProjectWorkspace({
   useEffect(() => {
     if (!compatibleModels.length) return;
     if (compatibleModels.some((m) => m.id === modelId)) return;
-    setModelId(pickDefaultModelId(compatibleModels, mode));
+    setModelId(pickPreferredModelId(compatibleModels, mode));
   }, [compatibleModels, modelId]);
 
   useEffect(() => {
