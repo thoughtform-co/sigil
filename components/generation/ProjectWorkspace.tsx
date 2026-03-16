@@ -373,6 +373,8 @@ export function ProjectWorkspace({
 
   const sessionThumbnails = useMemo(() => {
     const thumbnails: Record<string, string> = {};
+    const modeSessionIds = new Set(sessionsFiltered.map((session) => session.id));
+    const latestBySession = new Map<string, { createdAtMs: number; fileUrl: string }>();
 
     for (const session of sessionsFiltered) {
       if (session.thumbnailUrl) {
@@ -380,18 +382,24 @@ export function ProjectWorkspace({
       }
     }
 
-    if (selectedSessionId) {
-      const latestWithOutput = generations
-        .filter((g) => g.outputs.length > 0)
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-      const latestOutputUrl = latestWithOutput?.outputs[0]?.fileUrl;
-      if (latestOutputUrl) {
-        thumbnails[selectedSessionId] = latestOutputUrl;
+    for (const generation of generations) {
+      if (!generation.sessionId || !modeSessionIds.has(generation.sessionId)) continue;
+      const latestOutputUrl = generation.outputs[0]?.fileUrl;
+      if (!latestOutputUrl) continue;
+
+      const createdAtMs = new Date(generation.createdAt).getTime();
+      const current = latestBySession.get(generation.sessionId);
+      if (!current || createdAtMs >= current.createdAtMs) {
+        latestBySession.set(generation.sessionId, { createdAtMs, fileUrl: latestOutputUrl });
       }
     }
 
+    for (const [sessionId, latest] of latestBySession.entries()) {
+      thumbnails[sessionId] = latest.fileUrl;
+    }
+
     return thumbnails;
-  }, [sessionsFiltered, selectedSessionId, generations]);
+  }, [sessionsFiltered, generations]);
 
   async function handleDismissGeneration(generationId: string) {
     try {
