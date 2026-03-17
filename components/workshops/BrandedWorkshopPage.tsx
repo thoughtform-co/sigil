@@ -136,7 +136,7 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
         <div style={{ textAlign: "center" }}>
           <Tag>The framework</Tag>
           <h2 style={h2Style}>A map, <span style={{ fontFamily: "'Caveat', cursive", fontWeight: 500, fontSize: "1.1em" }}>not a path.</span></h2>
-          <Lead>Three ways of working with AI that feed each other. You never stop navigating — you just cover more territory.</Lead>
+          <Lead style={{ textAlign: "center", margin: "8px auto 0" }}>Three ways of working with AI that feed each other. You never stop navigating — you just cover more territory.</Lead>
           <LoopTerrainMap accentColor={branding.accentColor} darkColor={branding.darkColor} />
         </div>
       </Slide>
