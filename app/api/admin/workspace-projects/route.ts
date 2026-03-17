@@ -8,7 +8,7 @@ const createSchema = z.object({
   name: z.string().min(1).max(256),
   description: z.string().max(2000).optional(),
   type: z.enum(["learn", "create", "branded"]).default("create"),
-  settings: z.record(z.unknown()).optional(),
+  settings: z.record(z.string(), z.unknown()).optional(),
 });
 
 export async function GET() {
