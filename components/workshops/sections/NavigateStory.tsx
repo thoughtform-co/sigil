@@ -23,6 +23,11 @@ const BRIDGE_OPTIONS = [
   "a marine biologist studying coral reefs",
 ];
 
+function formatBridgeLabel(perspective: string) {
+  const lastWord = perspective.trim().split(" ").filter(Boolean).at(-1) ?? perspective;
+  return lastWord.charAt(0).toUpperCase() + lastWord.slice(1);
+}
+
 type PromptMode = "basic" | "dimensional" | "semantic";
 
 const TOTAL_STAGES = 11;
@@ -127,8 +132,16 @@ export function NavigateStory({ clientName, accentColor = POPPINS_ACCENT, darkCo
   };
 
   const promptCardVisible = stage >= 6;
-  const cardBg = promptMode === "semantic" ? POPPINS_PINK : promptMode === "dimensional" ? POPPINS_LIME : "rgba(255,255,255,0.85)";
+  const cardBg = promptMode === "semantic"
+    ? "radial-gradient(circle at 14% 16%, rgba(255,255,255,0.2), transparent 24%), radial-gradient(circle at 84% 84%, rgba(255,255,255,0.14), transparent 28%), linear-gradient(180deg, rgba(254,179,210,0.97) 0%, rgba(254,179,210,0.94) 70%, rgba(254,179,210,0.82) 100%)"
+    : promptMode === "dimensional"
+      ? POPPINS_LIME
+      : "rgba(255,255,255,0.85)";
   const cardBorder = promptMode === "basic" ? `1px solid color-mix(in srgb, ${darkColor} 8%, transparent)` : "none";
+  const cardPadding = promptMode === "semantic" ? "36px 36px 24px" : "32px";
+  const cardShadow = promptMode === "semantic"
+    ? "0 24px 48px rgba(254,179,210,0.05), inset 0 -24px 36px rgba(255,255,255,0.05)"
+    : "none";
 
   const promptText = promptMode === "semantic"
     ? `\u201CAnalyze ${clientName}\u2019s brand strategy from the perspective of ${bridgePerspective}.\u201D`
@@ -216,8 +229,9 @@ export function NavigateStory({ clientName, accentColor = POPPINS_ACCENT, darkCo
                 background: cardBg,
                 border: cardBorder,
                 color: darkColor,
-                padding: 32,
-                transition: "background 400ms ease, border 400ms ease",
+                padding: cardPadding,
+                boxShadow: cardShadow,
+                transition: "background 400ms ease, border 400ms ease, box-shadow 400ms ease, padding 400ms ease",
               }}
             >
               <div style={{ ...mono, color: `color-mix(in srgb, ${darkColor} 45%, transparent)`, marginBottom: 16 }}>
@@ -291,10 +305,10 @@ export function NavigateStory({ clientName, accentColor = POPPINS_ACCENT, darkCo
                   </div>
 
                   {/* Isometric semantic bridge map */}
-                  <div style={{ marginTop: 24 }}>
+                  <div style={{ marginTop: 14, marginBottom: 10 }}>
                     <SemanticBridgeMap
-                      leftLabel={`${clientName} brand strategy`}
-                      rightLabel={bridgePerspective.split(" ").slice(-1)[0]}
+                      leftLabel={`${clientName} Brand Strategy`}
+                      rightLabel={formatBridgeLabel(bridgePerspective)}
                       accentColor={accentColor}
                       darkColor={darkColor}
                       connected={bridgeConnected}
