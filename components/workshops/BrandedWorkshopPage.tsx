@@ -132,7 +132,7 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
       </Slide>
 
       {/* Loop */}
-      <Slide id="loop" reg={reg}>
+      <Slide id="loop" reg={reg} tint="var(--ws-bg,#FCF3EC)" tintTo="#f7f9e6">
         <div style={{ textAlign: "center" }}>
           <Tag>The framework</Tag>
           <h2 style={h2Style}>A map, <span style={{ fontFamily: "'Caveat', cursive", fontWeight: 500, fontSize: "1.1em" }}>not a path.</span></h2>
@@ -142,7 +142,7 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
       </Slide>
 
       {/* Navigate chapter */}
-      <ChapterSlide id="nav-chapter" reg={reg} title="Navigate" subtitle="How to steer a possibility space" tint="#f7f9e6" accentColor={branding.accentColor} darkColor={branding.darkColor} mapAnchorX={52} />
+      <ChapterSlide id="nav-chapter" reg={reg} title="Navigate" subtitle="How to steer a possibility space" tint="#f7f9e6" tintFrom="var(--ws-bg,#FCF3EC)" accentColor={branding.accentColor} darkColor={branding.darkColor} mapAnchorX={52} />
 
       <Slide id="nav-principles" reg={reg} tint="#f7f9e6" overlay={<SectionMapBackdrop accentColor={branding.accentColor} darkColor={branding.darkColor} anchorX={52} />}>
         <Tag bg="rgba(196,221,5,0.1)">Foundation</Tag>
@@ -176,7 +176,7 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
         </Exercise>
       </Slide>
 
-      <Slide id="nav-semantic" reg={reg} tint="#f7f9e6">
+      <Slide id="nav-semantic" reg={reg} tint="#f7f9e6" tintTo="#fcf0f5">
         <Tag bg="rgba(196,221,5,0.1)">Advanced technique</Tag>
         <h2 style={h2Style}>Semantic Navigation</h2>
         <SemanticReveal />
@@ -187,7 +187,7 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
       </Slide>
 
       {/* Encode chapter */}
-      <ChapterSlide id="enc-chapter" reg={reg} title="Encode" subtitle="How to scaffold knowledge" tint="#fcf0f5" accentColor={branding.accentColor} darkColor={branding.darkColor} mapAnchorX={46} />
+      <ChapterSlide id="enc-chapter" reg={reg} title="Encode" subtitle="How to scaffold knowledge" tint="#fcf0f5" tintFrom="#f7f9e6" accentColor={branding.accentColor} darkColor={branding.darkColor} mapAnchorX={46} />
 
       <Slide id="enc-context" reg={reg} tint="#fcf0f5" overlay={<SectionMapBackdrop accentColor={branding.accentColor} darkColor={branding.darkColor} anchorX={46} />}>
         <Tag bg="rgba(254,179,210,0.2)">The foundation</Tag>
@@ -258,7 +258,7 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
         </Exercise>
       </Slide>
 
-      <Slide id="enc-memory" reg={reg} tint="#fcf0f5">
+      <Slide id="enc-memory" reg={reg} tint="#fcf0f5" tintTo="#fef0eb">
         <Tag bg="rgba(254,179,210,0.2)">Over time</Tag>
         <h2 style={h2Style}>Memory</h2>
         <Lead style={{ textAlign: "center", marginBottom: 40 }}>Less effort than Projects or Skills. It just happens. And it compounds.</Lead>
@@ -273,7 +273,7 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
       </Slide>
 
       {/* Accelerate chapter */}
-      <ChapterSlide id="acc-chapter" reg={reg} title="Accelerate" subtitle="How to force-multiply your team" tint="#fef0eb" accentColor={branding.accentColor} darkColor={branding.darkColor} mapAnchorX={56} />
+      <ChapterSlide id="acc-chapter" reg={reg} title="Accelerate" subtitle="How to force-multiply your team" tint="#fef0eb" tintFrom="#fcf0f5" accentColor={branding.accentColor} darkColor={branding.darkColor} mapAnchorX={56} />
 
       <Slide id="acc-cowork" reg={reg} tint="#fef0eb" overlay={<SectionMapBackdrop accentColor={branding.accentColor} darkColor={branding.darkColor} anchorX={56} />}>
         <Tag bg="rgba(254,103,68,0.1)">Still chat, more autonomous</Tag>
@@ -315,7 +315,7 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
         </Exercise>
       </Slide>
 
-      <Slide id="acc-team" reg={reg} tint="#fef0eb">
+      <Slide id="acc-team" reg={reg} tint="#fef0eb" tintTo="var(--ws-bg,#FCF3EC)">
         <Tag bg="rgba(254,103,68,0.1)">Mapped to capabilities</Tag>
         <h2 style={h2Style}>Your Team&apos;s Profiles</h2>
         <Lead>We mapped your team&apos;s roles to Claude capabilities. Here&apos;s what&apos;s possible for each of you.</Lead>
@@ -326,7 +326,7 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
       </Slide>
 
       {/* Synthesis */}
-      <Slide id="synthesis" reg={reg}>
+      <Slide id="synthesis" reg={reg} tint="var(--ws-bg,#FCF3EC)" tintFrom="#fef0eb">
         <Tag>How it works together</Tag>
         <h2 style={h2Style}>The Flow</h2>
         <FlowRow />
@@ -372,18 +372,26 @@ const cardBase: React.CSSProperties = { background: "rgba(255,255,255,0.7)", bor
 
 const MAP_FADE_MASK = "linear-gradient(to bottom, transparent 0%, black 14%, black 82%, transparent 100%)";
 
-function Slide({ id, reg, children, style, tint, overlay }: { id: string; reg: (id: string, el: HTMLElement | null) => void; children: React.ReactNode; style?: React.CSSProperties; tint?: string; overlay?: React.ReactNode }) {
+function buildTintBackground(tint?: string, tintFrom?: string, tintTo?: string): string | undefined {
+  if (!tint) return undefined;
+  if (tintFrom && tintTo) return `linear-gradient(to bottom, ${tintFrom} 0%, ${tint} 22%, ${tint} 78%, ${tintTo} 100%)`;
+  if (tintFrom) return `linear-gradient(to bottom, ${tintFrom} 0%, ${tint} 28%)`;
+  if (tintTo) return `linear-gradient(to bottom, ${tint} 72%, ${tintTo} 100%)`;
+  return tint;
+}
+
+function Slide({ id, reg, children, style, tint, tintFrom, tintTo, overlay }: { id: string; reg: (id: string, el: HTMLElement | null) => void; children: React.ReactNode; style?: React.CSSProperties; tint?: string; tintFrom?: string; tintTo?: string; overlay?: React.ReactNode }) {
   return (
-    <div id={id} ref={(el) => reg(id, el)} style={{ width: "100%", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: "80px 48px", position: "relative", scrollSnapAlign: "start", overflow: "hidden", background: tint ?? undefined, ...style }}>
+    <div id={id} ref={(el) => reg(id, el)} style={{ width: "100%", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: "80px 48px", position: "relative", scrollSnapAlign: "start", overflow: "hidden", background: buildTintBackground(tint, tintFrom, tintTo), ...style }}>
       {overlay && <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>{overlay}</div>}
       <div style={{ maxWidth: 900, width: "100%", marginLeft: CONTENT_LEFT - 48, marginRight: CONTENT_RIGHT - 48, position: "relative", zIndex: 1 }}>{children}</div>
     </div>
   );
 }
 
-function ChapterSlide({ id, reg, title, subtitle, tint, accentColor, darkColor, mapAnchorX = 50 }: { id: string; reg: (id: string, el: HTMLElement | null) => void; title: string; subtitle: string; tint?: string; accentColor?: string; darkColor?: string; mapAnchorX?: number }) {
+function ChapterSlide({ id, reg, title, subtitle, tint, tintFrom, accentColor, darkColor, mapAnchorX = 50 }: { id: string; reg: (id: string, el: HTMLElement | null) => void; title: string; subtitle: string; tint?: string; tintFrom?: string; accentColor?: string; darkColor?: string; mapAnchorX?: number }) {
   return (
-    <Slide id={id} reg={reg} tint={tint} overlay={<ChapterMapBackdrop accentColor={accentColor} darkColor={darkColor} anchorX={mapAnchorX} />}>
+    <Slide id={id} reg={reg} tint={tint} tintFrom={tintFrom} overlay={<ChapterMapBackdrop accentColor={accentColor} darkColor={darkColor} anchorX={mapAnchorX} />}>
       <div style={{ textAlign: "center", position: "relative", zIndex: 1 }}>
         <ChapterMapBadge accentColor={accentColor} darkColor={darkColor} />
         <h1 style={{ fontFamily: "var(--ws-font,var(--font-sans))", fontSize: 84, fontWeight: 700, lineHeight: 1, letterSpacing: "-0.02em" }}>{title}</h1>
