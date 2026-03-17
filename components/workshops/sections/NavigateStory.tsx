@@ -25,7 +25,7 @@ const BRIDGE_OPTIONS = [
 
 type PromptMode = "basic" | "dimensional" | "semantic";
 
-const TOTAL_STAGES = 9;
+const TOTAL_STAGES = 11;
 
 type Props = { clientName: string; accentColor?: string; darkColor?: string };
 
@@ -67,7 +67,8 @@ export function NavigateStory({ clientName, accentColor = POPPINS_ACCENT, darkCo
 
   const stage = Math.min(TOTAL_STAGES - 1, Math.floor(progress * TOTAL_STAGES));
 
-  const promptMode: PromptMode = stage >= 7 ? "semantic" : stage >= 6 ? "dimensional" : "basic";
+  const principlesPhase = stage <= 5;
+  const promptMode: PromptMode = stage >= 9 ? "semantic" : stage >= 7 ? "dimensional" : "basic";
 
   const callClaude = useCallback(
     async (mode: PromptMode, extraParams?: Record<string, unknown>) => {
@@ -125,7 +126,7 @@ export function NavigateStory({ clientName, accentColor = POPPINS_ACCENT, darkCo
     transition: "opacity 150ms",
   };
 
-  const promptCardVisible = stage >= 5;
+  const promptCardVisible = stage >= 6;
   const cardBg = promptMode === "semantic" ? POPPINS_PINK : promptMode === "dimensional" ? POPPINS_LIME : "rgba(255,255,255,0.85)";
   const cardBorder = promptMode === "basic" ? `1px solid color-mix(in srgb, ${darkColor} 8%, transparent)` : "none";
 
@@ -155,42 +156,54 @@ export function NavigateStory({ clientName, accentColor = POPPINS_ACCENT, darkCo
         }}
       >
         <div style={{ maxWidth: 900, width: "100%" }}>
-          {/* Section header */}
-          <div style={{ ...mono, marginBottom: 14, color: accentColor, background: "rgba(196,221,5,0.1)", display: "inline-block", padding: "4px 12px" }}>
-            Foundation
-          </div>
-          <h2 style={{ fontFamily: "var(--ws-font, var(--font-sans))", fontSize: "clamp(30px, 3.5vw, 46px)", fontWeight: 700, lineHeight: 1.1, letterSpacing: "-0.02em", marginBottom: 0 }}>
-            The Four <span style={caveat}>Principles</span>
-          </h2>
-          <p style={{ fontFamily: "var(--ws-font, var(--font-sans))", fontSize: 17, fontWeight: 400, color: `color-mix(in srgb, ${darkColor} 55%, transparent)`, lineHeight: 1.7, maxWidth: 540, margin: "8px 0 0" }}>
-            How we work with AI in practice.
-          </p>
+          {/* Phase 1: Principles -- fades out before prompt card enters */}
+          <div
+            style={{
+              opacity: principlesPhase ? 1 : 0,
+              transform: principlesPhase ? "translateY(0)" : "translateY(-32px)",
+              transition: "opacity 500ms ease, transform 500ms ease",
+              pointerEvents: principlesPhase ? "auto" : "none",
+              position: principlesPhase ? "relative" : "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+            }}
+          >
+            <div style={{ ...mono, marginBottom: 14, color: accentColor, background: "rgba(196,221,5,0.1)", display: "inline-block", padding: "4px 12px" }}>
+              Foundation
+            </div>
+            <h2 style={{ fontFamily: "var(--ws-font, var(--font-sans))", fontSize: "clamp(30px, 3.5vw, 46px)", fontWeight: 700, lineHeight: 1.1, letterSpacing: "-0.02em", marginBottom: 0 }}>
+              The Four <span style={caveat}>Principles</span>
+            </h2>
+            <p style={{ fontFamily: "var(--ws-font, var(--font-sans))", fontSize: 17, fontWeight: 400, color: `color-mix(in srgb, ${darkColor} 55%, transparent)`, lineHeight: 1.7, maxWidth: 540, margin: "8px 0 0" }}>
+              How we work with AI in practice.
+            </p>
 
-          {/* Principle cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginTop: 40 }}>
-            {PRINCIPLE_CARDS.map((card, i) => {
-              const visible = stage >= i;
-              return (
-                <div
-                  key={card.title}
-                  style={{
-                    background: card.bg,
-                    color: card.dark ? "#fff" : darkColor,
-                    padding: 24,
-                    opacity: visible ? 1 : 0,
-                    transform: visible ? "translateY(0)" : "translateY(24px)",
-                    transition: "opacity 500ms cubic-bezier(0.16,1,0.3,1), transform 500ms cubic-bezier(0.16,1,0.3,1)",
-                    transitionDelay: `${i * 80}ms`,
-                  }}
-                >
-                  <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{card.title}</h3>
-                  <p style={{ fontSize: 13, lineHeight: 1.7, opacity: 0.75 }}>{card.body}</p>
-                </div>
-              );
-            })}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginTop: 40 }}>
+              {PRINCIPLE_CARDS.map((card, i) => {
+                const visible = stage >= i;
+                return (
+                  <div
+                    key={card.title}
+                    style={{
+                      background: card.bg,
+                      color: card.dark ? "#fff" : darkColor,
+                      padding: 24,
+                      opacity: visible ? 1 : 0,
+                      transform: visible ? "translateY(0)" : "translateY(24px)",
+                      transition: "opacity 500ms cubic-bezier(0.16,1,0.3,1), transform 500ms cubic-bezier(0.16,1,0.3,1)",
+                      transitionDelay: `${i * 80}ms`,
+                    }}
+                  >
+                    <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{card.title}</h3>
+                    <p style={{ fontSize: 13, lineHeight: 1.7, opacity: 0.75 }}>{card.body}</p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Evolving prompt card -- enters at stage 5 */}
+          {/* Phase 2: Evolving prompt card -- enters after principles exit */}
           {promptCardVisible && (
             <div
               style={{
