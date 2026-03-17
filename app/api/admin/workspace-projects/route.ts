@@ -44,7 +44,7 @@ export async function POST(request: Request) {
       name: parsed.data.name,
       description: parsed.data.description,
       type: parsed.data.type,
-      settings: parsed.data.settings ?? undefined,
+      ...(parsed.data.settings ? { settings: parsed.data.settings as Record<string, unknown> as import("@prisma/client").Prisma.InputJsonValue } : {}),
     },
     include: { members: true, _count: { select: { briefings: true } } },
   });

@@ -54,9 +54,13 @@ export async function PATCH(_req: Request, { params }: { params: Promise<{ id: s
   const existing = await prisma.workspaceProject.findUnique({ where: { id } });
   if (!existing) return notFound("Workspace project not found");
 
+  const { settings, ...rest } = parsed.data;
   const wp = await prisma.workspaceProject.update({
     where: { id },
-    data: parsed.data,
+    data: {
+      ...rest,
+      ...(settings !== undefined ? { settings: settings as Record<string, unknown> as import("@prisma/client").Prisma.InputJsonValue } : {}),
+    },
   });
 
   return json({ workspaceProject: wp });
