@@ -349,15 +349,40 @@ export function ProjectWorkspace({
 
   useGenerationsRealtime(selectedSessionId, handleRealtimeGeneration);
 
+  const autoRetriedRef = useRef(new Set<string>());
+
   useEffect(() => {
     if (mode === "canvas" || !projectId) return;
-    const hasProcessing = generations.some(
+    const processingGens = generations.filter(
       (g) => g.status === "processing" || g.status === "processing_locked",
     );
-    if (!hasProcessing) return;
+    if (processingGens.length === 0) return;
+
+    const ORPHAN_THRESHOLD_MS = 2 * 60 * 1000;
+
+    const checkAndRetryOrphans = () => {
+      for (const gen of processingGens) {
+        if (autoRetriedRef.current.has(gen.id)) continue;
+        const latestSignal = gen.lastHeartbeatAt
+          ? new Date(gen.lastHeartbeatAt).getTime()
+          : new Date(gen.createdAt).getTime();
+        if (Date.now() - latestSignal > ORPHAN_THRESHOLD_MS) {
+          autoRetriedRef.current.add(gen.id);
+          console.warn(`[Sigil] Auto-retrying orphaned generation ${gen.id}`);
+          void fetch(`/api/generations/${gen.id}/retry`, { method: "POST" }).then(() =>
+            mutateGenerations(),
+          );
+        }
+      }
+    };
+
     const interval = setInterval(() => {
+      checkAndRetryOrphans();
       void mutateGenerations();
     }, 10000);
+
+    checkAndRetryOrphans();
+
     return () => clearInterval(interval);
   }, [generations, projectId, mode, mutateGenerations]);
 

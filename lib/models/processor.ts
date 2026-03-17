@@ -1,10 +1,14 @@
 /**
  * Generation processing dispatch with bounded retry.
  * Default: HTTP POST to /api/generate/process with retry on transient failures.
+ * If all retries fail, the generation is marked as failed in the DB so it never
+ * silently hangs in "processing" forever.
  */
 
-const MAX_ENQUEUE_RETRIES = 2;
-const RETRY_DELAY_MS = 1000;
+import { prisma } from "@/lib/prisma";
+
+const MAX_ENQUEUE_RETRIES = 3;
+const RETRY_DELAY_MS = 1500;
 
 export interface GenerationProcessor {
   enqueue(
@@ -12,6 +16,22 @@ export interface GenerationProcessor {
     baseUrl: string,
     options?: { cookie?: string | null }
   ): Promise<void>;
+}
+
+async function markEnqueueFailed(generationId: string, reason: string): Promise<void> {
+  try {
+    await prisma.generation.updateMany({
+      where: { id: generationId, status: { in: ["processing", "processing_locked"] } },
+      data: {
+        status: "failed",
+        errorMessage: reason,
+        errorCategory: "worker_dispatch",
+        errorRetryable: true,
+      },
+    });
+  } catch (dbErr) {
+    console.error(`[processor] Failed to mark ${generationId} as failed:`, dbErr);
+  }
 }
 
 function createHttpProcessor(): GenerationProcessor {
@@ -54,9 +74,13 @@ function createHttpProcessor(): GenerationProcessor {
         }
       }
 
+      const errorMsg = lastError instanceof Error ? lastError.message : String(lastError ?? "unknown");
       console.error(
-        `[processor] Enqueue failed after ${MAX_ENQUEUE_RETRIES + 1} attempts for ${generationId}:`,
-        lastError instanceof Error ? lastError.message : lastError,
+        `[processor] Enqueue failed after ${MAX_ENQUEUE_RETRIES + 1} attempts for ${generationId}: ${errorMsg}`,
+      );
+      await markEnqueueFailed(
+        generationId,
+        "Failed to start generation worker after multiple attempts. Please retry.",
       );
     },
   };

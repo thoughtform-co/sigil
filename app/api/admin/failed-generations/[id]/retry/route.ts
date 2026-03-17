@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { notFound } from "@/lib/api/errors";
 import { json } from "@/lib/api/responses";
+import { getProcessor } from "@/lib/models/processor";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -33,17 +33,9 @@ export async function POST(request: Request, context: RouteContext) {
     }),
   ]);
 
-  const processUrl = new URL("/api/generate/process", request.url);
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  const cookie = request.headers.get("cookie");
-  if (cookie) headers.Cookie = cookie;
-  void fetch(processUrl, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ generationId: id }),
-    cache: "no-store",
-  }).catch(() => {
-    // Retry dispatch failures are reflected by stale processing status.
+  const baseUrl = new URL(request.url).origin;
+  void getProcessor().enqueue(id, baseUrl, {
+    cookie: request.headers.get("cookie"),
   });
 
   return json({ retried: true, id }, 202);
