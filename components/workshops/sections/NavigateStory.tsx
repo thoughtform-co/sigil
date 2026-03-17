@@ -155,18 +155,15 @@ export function NavigateStory({ clientName, accentColor = POPPINS_ACCENT, darkCo
           overflow: "hidden",
         }}
       >
-        <div style={{ maxWidth: 900, width: "100%" }}>
+        <div style={{ maxWidth: 900, width: "100%", display: "grid" }}>
           {/* Phase 1: Principles -- fades out before prompt card enters */}
           <div
             style={{
+              gridArea: "1 / 1",
               opacity: principlesPhase ? 1 : 0,
-              transform: principlesPhase ? "translateY(0)" : "translateY(-32px)",
+              transform: principlesPhase ? "translateY(0)" : "translateY(-24px)",
               transition: "opacity 500ms ease, transform 500ms ease",
               pointerEvents: principlesPhase ? "auto" : "none",
-              position: principlesPhase ? "relative" : "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
             }}
           >
             <div style={{ ...mono, marginBottom: 14, color: accentColor, background: "rgba(196,221,5,0.1)", display: "inline-block", padding: "4px 12px" }}>
@@ -204,17 +201,23 @@ export function NavigateStory({ clientName, accentColor = POPPINS_ACCENT, darkCo
           </div>
 
           {/* Phase 2: Evolving prompt card -- enters after principles exit */}
+          <div
+            style={{
+              gridArea: "1 / 1",
+              opacity: promptCardVisible ? 1 : 0,
+              transform: promptCardVisible ? "translateY(0)" : "translateY(24px)",
+              transition: "opacity 500ms ease, transform 500ms ease",
+              pointerEvents: promptCardVisible ? "auto" : "none",
+            }}
+          >
           {promptCardVisible && (
             <div
               style={{
-                marginTop: 48,
                 background: cardBg,
                 border: cardBorder,
                 color: darkColor,
                 padding: 32,
-                transition: "background 400ms ease, border 400ms ease, opacity 500ms ease, transform 500ms ease",
-                opacity: promptCardVisible ? 1 : 0,
-                transform: promptCardVisible ? "translateY(0)" : "translateY(20px)",
+                transition: "background 400ms ease, border 400ms ease",
               }}
             >
               <div style={{ ...mono, color: `color-mix(in srgb, ${darkColor} 45%, transparent)`, marginBottom: 16 }}>
@@ -334,6 +337,8 @@ export function NavigateStory({ clientName, accentColor = POPPINS_ACCENT, darkCo
               </div>
             </div>
           )}
+
+          </div>
 
           {/* Scroll hint */}
           {progress < 0.92 && (
