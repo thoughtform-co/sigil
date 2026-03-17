@@ -13,6 +13,11 @@ const JourneyShell = dynamic(
   { ssr: false },
 );
 
+const BrandedJourneyHub = dynamic(
+  () => import("@/components/workshops/BrandedJourneyHub").then((m) => m.BrandedJourneyHub),
+  { ssr: false },
+);
+
 export function JourneyDetailContent({
   id,
   initialData,
@@ -130,7 +135,19 @@ export function JourneyDetailContent({
   }
 
   const journeyType = localType;
+  const isBranded = journeyType === "branded";
   const learningContent = journeyType === "learn" ? getJourneyContentByWorkspaceId(id) : null;
+
+  if (isBranded && data) {
+    return (
+      <BrandedJourneyHub
+        journeyId={id}
+        journeyName={data.journey.name}
+        journeyDescription={data.journey.description}
+        rawSettings={data.journey.settings}
+      />
+    );
+  }
 
   return (
     <section

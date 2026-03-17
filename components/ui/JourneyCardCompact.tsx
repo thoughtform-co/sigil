@@ -125,7 +125,7 @@ export function JourneyCardCompact({
             color: "var(--dawn-40)",
           }}
         >
-          {type === "learn" ? "learn" : "create"}
+          {type === "learn" ? "learn" : type === "branded" ? "branded" : "create"}
         </div>
       )}
 

@@ -9,4 +9,4 @@ export const TERMS = {
   creationSuite: { singular: "creation suite", plural: "creation suites" },
 } as const;
 
-export type JourneyMode = "learn" | "create";
+export type JourneyMode = "learn" | "create" | "branded";

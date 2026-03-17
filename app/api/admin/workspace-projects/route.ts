@@ -7,7 +7,8 @@ import { badRequest } from "@/lib/api/errors";
 const createSchema = z.object({
   name: z.string().min(1).max(256),
   description: z.string().max(2000).optional(),
-  type: z.enum(["learn", "create"]).default("create"),
+  type: z.enum(["learn", "create", "branded"]).default("create"),
+  settings: z.record(z.unknown()).optional(),
 });
 
 export async function GET() {
@@ -39,7 +40,12 @@ export async function POST(request: Request) {
   if (!parsed.success) return badRequest("Validation failed", parsed.error.flatten());
 
   const wp = await prisma.workspaceProject.create({
-    data: { name: parsed.data.name, description: parsed.data.description, type: parsed.data.type },
+    data: {
+      name: parsed.data.name,
+      description: parsed.data.description,
+      type: parsed.data.type,
+      settings: parsed.data.settings ?? undefined,
+    },
     include: { members: true, _count: { select: { briefings: true } } },
   });
 

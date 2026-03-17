@@ -326,7 +326,7 @@ export function DashboardView({
                 <div key={j.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 0.04}s` }}>
                   <JourneyCardCompact
                     name={j.name}
-                    type={j.type === "learn" ? "learn" : "create"}
+                    type={j.type === "learn" ? "learn" : j.type === "branded" ? "branded" : "create"}
                     routeCount={j.routeCount}
                     href={`/journeys/${j.id}`}
                     routeTree={

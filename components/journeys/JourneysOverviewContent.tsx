@@ -171,7 +171,7 @@ export function JourneysOverviewContent({
   const [createOpen, setCreateOpen] = useState(false);
   const [newJourneyName, setNewJourneyName] = useState("");
   const [newJourneyDescription, setNewJourneyDescription] = useState("");
-  const [newJourneyType, setNewJourneyType] = useState<"learn" | "create">("create");
+  const [newJourneyType, setNewJourneyType] = useState<"learn" | "create" | "branded">("create");
   const [creating, setCreating] = useState(false);
 
   const error = actionError ?? (fetchError ? fetchError.message : null);
@@ -493,33 +493,42 @@ export function JourneysOverviewContent({
                 Type
               </label>
               <div style={{ display: "flex", gap: 8 }}>
-                {(["create", "learn"] as const).map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setNewJourneyType(t)}
-                    style={{
-                      flex: 1,
-                      padding: "8px 12px",
-                      background: newJourneyType === t ? (t === "learn" ? "var(--gold-10)" : "var(--dawn-04)") : "transparent",
-                      border: `1px solid ${newJourneyType === t ? (t === "learn" ? "var(--gold)" : "var(--dawn-15)") : "var(--dawn-08)"}`,
-                      borderLeft: `2px solid ${newJourneyType === t ? (t === "learn" ? "var(--gold)" : "var(--dawn-30)") : "var(--dawn-08)"}`,
-                      color: newJourneyType === t ? (t === "learn" ? "var(--gold)" : "var(--dawn)") : "var(--dawn-40)",
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "10px",
-                      letterSpacing: "0.08em",
-                      textTransform: "uppercase",
-                      cursor: "pointer",
-                      transition: "all 120ms",
-                      textAlign: "left",
-                    }}
-                  >
-                    <div>{t === "create" ? "Create" : "Learn"}</div>
-                    <div style={{ fontSize: "9px", color: "var(--dawn-40)", marginTop: 2 }}>
-                      {t === "create" ? "Direct image/video generation" : "Workshop with lessons"}
-                    </div>
-                  </button>
-                ))}
+                {(["create", "learn", "branded"] as const).map((t) => {
+                  const labels: Record<typeof t, { title: string; desc: string }> = {
+                    create: { title: "Create", desc: "Direct image/video generation" },
+                    learn: { title: "Learn", desc: "Workshop with lessons" },
+                    branded: { title: "Branded", desc: "Client-branded workshop" },
+                  };
+                  const isActive = newJourneyType === t;
+                  const accentStyle = t === "learn" || t === "branded";
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setNewJourneyType(t)}
+                      style={{
+                        flex: 1,
+                        padding: "8px 12px",
+                        background: isActive ? (accentStyle ? "var(--gold-10)" : "var(--dawn-04)") : "transparent",
+                        border: `1px solid ${isActive ? (accentStyle ? "var(--gold)" : "var(--dawn-15)") : "var(--dawn-08)"}`,
+                        borderLeft: `2px solid ${isActive ? (accentStyle ? "var(--gold)" : "var(--dawn-30)") : "var(--dawn-08)"}`,
+                        color: isActive ? (accentStyle ? "var(--gold)" : "var(--dawn)") : "var(--dawn-40)",
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "10px",
+                        letterSpacing: "0.08em",
+                        textTransform: "uppercase",
+                        cursor: "pointer",
+                        transition: "all 120ms",
+                        textAlign: "left",
+                      }}
+                    >
+                      <div>{labels[t].title}</div>
+                      <div style={{ fontSize: "9px", color: "var(--dawn-40)", marginTop: 2 }}>
+                        {labels[t].desc}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>

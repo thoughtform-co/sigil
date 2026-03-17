@@ -13,7 +13,7 @@ type JourneyOverviewCardProps = {
 };
 
 export function JourneyOverviewCard({ journey, featured = false }: JourneyOverviewCardProps) {
-  const category = journey.type === "learn" ? "learn" : "create";
+  const category = journey.type === "learn" ? "learn" : journey.type === "branded" ? "branded" : "create";
   const hasMedia = journey.thumbnails.length > 0;
   const routeNames = journey.routes.slice(0, 3).map((r) => r.name);
 
@@ -36,7 +36,7 @@ export function JourneyOverviewCard({ journey, featured = false }: JourneyOvervi
         <div style={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
           <CardCategory
             category={category}
-            active={category === "learn"}
+            active={category === "learn" || category === "branded"}
             gap={8}
           />
 
@@ -144,7 +144,7 @@ export function JourneyOverviewCard({ journey, featured = false }: JourneyOvervi
     >
       <CardCategory
         category={category}
-        active={category === "learn"}
+        active={category === "learn" || category === "branded"}
         gap={6}
       />
 

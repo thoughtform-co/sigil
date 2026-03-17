@@ -15,7 +15,7 @@ type JourneyCardProps = {
 };
 
 export function JourneyCard({ journey }: JourneyCardProps) {
-  const category = journey.type === "learn" ? "learn" : "create";
+  const category = journey.type === "learn" ? "learn" : journey.type === "branded" ? "branded" : "create";
 
   return (
     <CardFrame
@@ -35,7 +35,7 @@ export function JourneyCard({ journey }: JourneyCardProps) {
       <div style={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
         <CardCategory
           category={category}
-          active={category === "learn"}
+          active={category === "learn" || category === "branded"}
           gap={8}
           style={{ paddingRight: 24 }}
         />
