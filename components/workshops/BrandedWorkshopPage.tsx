@@ -146,7 +146,7 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
 
       <Slide id="nav-principles" reg={reg} tint="#f7f9e6" overlay={<SectionMapBackdrop accentColor={branding.accentColor} darkColor={branding.darkColor} anchorX={52} />}>
         <Tag bg="rgba(196,221,5,0.1)">Foundation</Tag>
-        <h2 style={h2Style}>The Four Principles</h2>
+        <h2 style={h2Style}>The Four <span style={caveatSpan}>Principles</span></h2>
         <Lead>How we work with AI in practice.</Lead>
         <CardGrid cols={4} style={{ marginTop: 40 }}>
           <PCard title="Context > templates" body="Don't start with a form. Dump everything relevant. AI finds what it needs." />
@@ -162,7 +162,7 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
 
       <Slide id="nav-dimensional" reg={reg} tint="#f7f9e6">
         <Tag bg="rgba(196,221,5,0.1)">Core insight</Tag>
-        <h2 style={h2Style}>Dimensional Navigation</h2>
+        <h2 style={h2Style}>Dimensional <span style={caveatSpan}>Navigation</span></h2>
         <Lead>You&apos;re not writing prompts. You&apos;re creating levers to steer dimensions.</Lead>
         <DimensionalSlider clientName={branding.clientName} />
         <div style={{ background: "rgba(255,255,255,0.7)", border: "1px solid color-mix(in srgb, var(--ws-dark,#241D1B) 8%, transparent)", padding: 24, marginTop: 24 }}>
@@ -178,7 +178,7 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
 
       <Slide id="nav-semantic" reg={reg} tint="#f7f9e6" tintTo="#fcf0f5">
         <Tag bg="rgba(196,221,5,0.1)">Advanced technique</Tag>
-        <h2 style={h2Style}>Semantic Navigation</h2>
+        <h2 style={h2Style}>Semantic <span style={caveatSpan}>Navigation</span></h2>
         <SemanticReveal />
         <Exercise title="The Incompatible Bridge" tag="Pair exercise" tagBg="rgba(196,221,5,0.15)">
           Pick a {branding.clientName} prompt. Reframe it using a completely unrelated point of view (athlete, archaeologist, musician, gardener). What does it force you to see?
@@ -191,7 +191,7 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
 
       <Slide id="enc-context" reg={reg} tint="#fcf0f5" overlay={<SectionMapBackdrop accentColor={branding.accentColor} darkColor={branding.darkColor} anchorX={46} />}>
         <Tag bg="rgba(254,179,210,0.2)">The foundation</Tag>
-        <h2 style={h2Style}>Context is Everything</h2>
+        <h2 style={h2Style}>Context is <span style={caveatSpan}>Everything</span></h2>
         <Lead>For AI, these aren&apos;t different mediums — they&apos;re all coordinates it can navigate.</Lead>
         <ContextIcons />
         <p style={{ fontFamily: "var(--ws-font,var(--font-sans))", fontSize: 17, textAlign: "center", marginTop: 40, color: "color-mix(in srgb, var(--ws-dark,#241D1B) 55%, transparent)", lineHeight: 1.7 }}>
@@ -204,7 +204,7 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
 
       <Slide id="enc-system" reg={reg} tint="#fcf0f5">
         <Tag bg="rgba(254,179,210,0.2)">First layer</Tag>
-        <h2 style={h2Style}>System Prompts</h2>
+        <h2 style={h2Style}>System <span style={caveatSpan}>Prompts</span></h2>
         <Lead style={{ textAlign: "center", marginBottom: 32 }}>The simplest form of encoding. Your baseline. The instruction set that travels with every conversation.</Lead>
         <ConceptStack items={[
           { title: "What is it?", body: "A persistent instruction that defines how AI should behave in conversations with you. It's the foundation for everything that follows." },
@@ -218,7 +218,7 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
 
       <Slide id="enc-projects" reg={reg} tint="#fcf0f5">
         <Tag bg="rgba(254,179,210,0.2)">Context container</Tag>
-        <h2 style={h2Style}>Projects</h2>
+        <h2 style={h2Style}><span style={caveatSpan}>Projects</span></h2>
         <Lead style={{ textAlign: "center", marginBottom: 32 }}>Persistent instructions + uploaded knowledge. One project = one topic. Every conversation starts informed.</Lead>
         <CardGrid cols={2}>
           <PCard title="What it is" body="A container for context that stays active. Upload docs, paste your brand guide, include competitor research. AI starts every conversation in the right context." />
@@ -234,7 +234,7 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
 
       <Slide id="enc-skills" reg={reg} tint="#fcf0f5">
         <Tag bg="rgba(254,179,210,0.2)">Reusable patterns</Tag>
-        <h2 style={h2Style}>Skills</h2>
+        <h2 style={h2Style}><span style={caveatSpan}>Skills</span></h2>
         <Lead>Different from Projects. Projects = context. Skills = process.</Lead>
         <CardGrid cols={3} style={{ marginTop: 32 }}>
           <PCard title="What it is" body="A reusable workflow. Format: SKILL.md. Think of it as a template for a repeated task. Build once, use everywhere." />
@@ -260,7 +260,7 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
 
       <Slide id="enc-memory" reg={reg} tint="#fcf0f5" tintTo="#fef0eb">
         <Tag bg="rgba(254,179,210,0.2)">Over time</Tag>
-        <h2 style={h2Style}>Memory</h2>
+        <h2 style={h2Style}><span style={caveatSpan}>Memory</span></h2>
         <Lead style={{ textAlign: "center", marginBottom: 40 }}>Less effort than Projects or Skills. It just happens. And it compounds.</Lead>
         <CardGrid cols={3}>
           <PCard title="Conversations build context" body="Claude picks up details from what you've shared. Your constraints. Your taste. The jargon you use. It remembers." />
@@ -277,7 +277,7 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
 
       <Slide id="acc-cowork" reg={reg} tint="#fef0eb" overlay={<SectionMapBackdrop accentColor={branding.accentColor} darkColor={branding.darkColor} anchorX={56} />}>
         <Tag bg="rgba(254,103,68,0.1)">Still chat, more autonomous</Tag>
-        <h2 style={h2Style}>Cowork</h2>
+        <h2 style={h2Style}><span style={caveatSpan}>Cowork</span></h2>
         <Lead style={{ textAlign: "center", marginBottom: 32 }}>Files in. Work out. Scheduled tasks. Connectors that travel.</Lead>
         <CardGrid cols={3}>
           {[{ icon: "\uD83D\uDCC1", title: "Files In / Work Out", body: "Upload a spreadsheet. Get a report. Upload a sketch. Get a design system. Files move. Work gets done. No copy-paste." },
@@ -298,7 +298,7 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
 
       <Slide id="acc-build" reg={reg} tint="#fef0eb">
         <Tag bg="rgba(254,103,68,0.1)">The flywheel</Tag>
-        <h2 style={h2Style}>Software for Few</h2>
+        <h2 style={h2Style}>Software for <span style={caveatSpan}>Few</span></h2>
         <Lead style={{ textAlign: "center", marginBottom: 40 }}>Build tools that only you need. The ones that don&apos;t exist yet.</Lead>
         <CardGrid cols={2}>
           <PCard title="Claude Code" body="Give Claude files. Describe what you want. It builds. You navigate the solution space. For one-off tools that solve your specific problem." />
@@ -317,7 +317,7 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
 
       <Slide id="acc-team" reg={reg} tint="#fef0eb" tintTo="var(--ws-bg,#FCF3EC)">
         <Tag bg="rgba(254,103,68,0.1)">Mapped to capabilities</Tag>
-        <h2 style={h2Style}>Your Team&apos;s Profiles</h2>
+        <h2 style={h2Style}>Your Team&apos;s <span style={caveatSpan}>Profiles</span></h2>
         <Lead>We mapped your team&apos;s roles to Claude capabilities. Here&apos;s what&apos;s possible for each of you.</Lead>
         {team.length > 0 && <TeamGrid members={team} branding={branding} cols={2} style={{ marginTop: 32 }} />}
         <Exercise title="Capability Matching" tag="Reflection + pair share" tagBg="rgba(254,103,68,0.1)">
@@ -328,7 +328,7 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
       {/* Synthesis */}
       <Slide id="synthesis" reg={reg} tint="var(--ws-bg,#FCF3EC)" tintFrom="#fef0eb">
         <Tag>How it works together</Tag>
-        <h2 style={h2Style}>The Flow</h2>
+        <h2 style={h2Style}>The <span style={caveatSpan}>Flow</span></h2>
         <FlowRow />
         <div style={{ ...cardBase, marginTop: 48, background: "color-mix(in srgb, var(--ws-dark,#241D1B) 2%, transparent)", borderColor: "color-mix(in srgb, var(--ws-dark,#241D1B) 8%, transparent)" }}>
           <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>Meta-Example: This Page</h3>
@@ -343,7 +343,7 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
 
       {/* Closing */}
       <Slide id="closing" reg={reg} style={{ background: "var(--ws-dark,#241D1B)", color: "var(--ws-bg,#FCF3EC)" }}>
-        <h2 style={{ ...h2Style, marginBottom: 40 }}>Three Questions</h2>
+        <h2 style={{ ...h2Style, marginBottom: 40 }}>Three <span style={caveatSpan}>Questions</span></h2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
           {[
             { n: "1", q: <>What were you <em style={{ fontWeight: 300, fontStyle: "italic", color: "var(--ws-accent,#FE6744)" }}>not</em> pursuing because you thought you couldn&apos;t?</> },
@@ -512,8 +512,10 @@ function Tag({ children, bg }: { children: React.ReactNode; bg?: string }) {
   return <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "var(--ws-mono,var(--font-mono))", fontSize: 10, fontWeight: 500, letterSpacing: "0.08em", padding: "4px 12px", marginBottom: 14, background: bg ?? "color-mix(in srgb, var(--ws-dark,#241D1B) 5%, transparent)", textTransform: "uppercase" }}>{children}</div>;
 }
 
+const caveatSpan: React.CSSProperties = { fontFamily: "'Caveat', cursive", fontWeight: 500, fontSize: "1.1em", fontStyle: "normal" };
+
 function Lead({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
-  return <p style={{ fontFamily: "var(--ws-font,var(--font-sans))", fontSize: 17, fontWeight: 400, color: "color-mix(in srgb, var(--ws-dark,#241D1B) 55%, transparent)", lineHeight: 1.7, maxWidth: 540, margin: "8px auto 0", ...style }}>{children}</p>;
+  return <p style={{ fontFamily: "var(--ws-font,var(--font-sans))", fontSize: 17, fontWeight: 400, color: "color-mix(in srgb, var(--ws-dark,#241D1B) 55%, transparent)", lineHeight: 1.7, maxWidth: 540, margin: "8px 0 0", ...style }}>{children}</p>;
 }
 
 function CardGrid({ children, cols, style }: { children: React.ReactNode; cols: number; style?: React.CSSProperties }) {
