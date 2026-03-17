@@ -77,6 +77,7 @@ export function ForgeGallery({
   const initialAnchorLastMaxScrollRef = useRef(-1);
   const initialAnchorStableFramesRef = useRef(0);
   const hasSeenScrollableContentRef = useRef(false);
+  const resolvedEmptyStateRef = useRef(false);
   const prependAnchorRef = useRef<{
     prevScrollTop: number;
     prevScrollHeight: number;
@@ -202,6 +203,7 @@ export function ForgeGallery({
     lastSeenStatusRef.current = null;
     lastSeenOutputCountRef.current = 0;
     initialScrollDoneRef.current = false;
+    resolvedEmptyStateRef.current = false;
     prependAnchorRef.current = null;
   }, [pathname, stopInitialBottomLock]);
 
@@ -276,6 +278,9 @@ export function ForgeGallery({
 
   useEffect(() => {
     if (generations.length === 0) {
+      if (!isLoading) {
+        resolvedEmptyStateRef.current = true;
+      }
       lastSeenLastIdRef.current = null;
       lastSeenStatusRef.current = null;
       lastSeenOutputCountRef.current = 0;
@@ -299,32 +304,13 @@ export function ForgeGallery({
 
       if (!initialScrollDoneRef.current) {
         initialScrollDoneRef.current = true;
-        const feed = feedRef.current;
-        if (feed) {
+        if (!resolvedEmptyStateRef.current && feedRef.current) {
           runInitialBottomLock();
         }
         return;
       }
-
-      if (isNewGen) {
-        const feed = feedRef.current;
-        if (feed) {
-          const distFromBottom = feed.scrollHeight - feed.scrollTop - feed.clientHeight;
-          if (distFromBottom < 400) {
-            requestAnimationFrame(() => {
-              const f = feedRef.current;
-              if (!f) return;
-              const maxScroll = Math.max(f.scrollHeight - f.clientHeight, 0);
-              scrollTargetRef.current = maxScroll;
-              if (!scrollAnimRef.current) {
-                scrollAnimRef.current = requestAnimationFrame(animateScroll);
-              }
-            });
-          }
-        }
-      }
     }
-  }, [generations, animateScroll]);
+  }, [generations, isLoading, runInitialBottomLock]);
 
   useEffect(() => {
     if (!onLoadMore || !hasMore) return;

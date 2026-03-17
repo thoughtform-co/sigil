@@ -17,6 +17,11 @@ function isFailed(status: string): boolean {
   return status === "failed";
 }
 
+function usesParticleLoadingField(modelId: string): boolean {
+  const id = modelId.toLowerCase();
+  return id.includes("kling") || id.includes("veo");
+}
+
 async function downloadFile(url: string, filename?: string) {
   try {
     const res = await fetch(url);
@@ -246,9 +251,9 @@ function OutputCard({
         <div className={styles.actionBarSpacer} />
         {output.fileType !== "video" && onUseAsReference && (
           <button type="button" className={styles.actionButton} onClick={() => onUseAsReference(output.fileUrl)} disabled={busy} title="Use as reference">
-            <svg className={styles.actionIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: "rotate(-45deg)" }}>
-              <path d="M17 7H7v10" />
-              <path d="M17 7L7 17" />
+            <svg className={styles.actionIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 5v11" />
+              <path d="M7 12l5 5 5-5" />
             </svg>
           </button>
         )}
@@ -286,6 +291,7 @@ export function ForgeGenerationCard({
   const hasBookmarked = generation.outputs.some((o) => o.isApproved);
   const phaseMessage = PHASE_MESSAGES[generation.id.length % PHASE_MESSAGES.length];
   const createdAt = formatCreatedAt(generation.createdAt);
+  const showParticleLoadingField = usesParticleLoadingField(generation.modelId);
   const referenceImageUrls = (() => {
     const refs: string[] = [];
     const multi = generation.parameters?.referenceImages;
@@ -471,11 +477,13 @@ export function ForgeGenerationCard({
           >
             <div className={styles.mediaStateCornerMarks} aria-hidden />
             <div className={styles.mediaStateCornerMarksSecondary} aria-hidden />
-            <SigilLoadingField
-              seed={generation.id}
-              createdAt={generation.createdAt}
-              modelId={generation.modelId}
-            />
+            {showParticleLoadingField && (
+              <SigilLoadingField
+                seed={generation.id}
+                createdAt={generation.createdAt}
+                modelId={generation.modelId}
+              />
+            )}
             <div className={styles.mediaStateContent}>
               {stuck ? (
                 <>
@@ -505,7 +513,11 @@ export function ForgeGenerationCard({
                   </div>
                 </>
               ) : (
-                <span className={styles.phaseMessage}>{phaseMessage}</span>
+                <span
+                  className={`${styles.phaseMessage} ${!showParticleLoadingField ? styles.phaseMessagePulse : ""}`}
+                >
+                  {phaseMessage}
+                </span>
               )}
             </div>
           </div>

@@ -546,7 +546,11 @@ export function ProjectWorkspace({
       if (resolvedReferences.length > 0) {
         resolvedReferences = await Promise.all(
           resolvedReferences.map(async ({ url: rawUrl }) => {
-            if (!(rawUrl.startsWith("data:") || rawUrl.startsWith("blob:"))) {
+            const shouldCompressAndUpload =
+              rawUrl.startsWith("data:") ||
+              rawUrl.startsWith("blob:") ||
+              (mode === "image" && rawUrl.startsWith("http"));
+            if (!shouldCompressAndUpload) {
               return { url: rawUrl, path: "", bucket: "", referenceImageId: "" };
             }
             const compressedDataUrl = await compressImage(rawUrl, {
