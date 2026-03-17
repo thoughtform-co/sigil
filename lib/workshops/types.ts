@@ -59,7 +59,7 @@ export const brandedJourneySettingsSchema = z.object({
   }).default({}),
   agenda: z.object({
     chapters: z.array(brandedChapterSchema).default([]),
-  }).default({}),
+  }).default({ chapters: [] }),
   team: z.array(brandedTeamMemberSchema).default([]),
   resources: z.array(brandedResourceSchema).default([]),
 });
