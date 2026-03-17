@@ -42,9 +42,7 @@ export const POPPINS_DEFAULTS: BrandedJourneySettings = {
         tint: "#f7f9e6",
         sections: [
           { id: "nav-chapter", title: "Navigate", type: "chapter-title" },
-          { id: "nav-principles", title: "The Four Principles", type: "content" },
-          { id: "nav-dimensional", title: "Dimensional Navigation", type: "interactive" },
-          { id: "nav-semantic", title: "Semantic Navigation", type: "interactive" },
+          { id: "nav-story", title: "Navigate Story", type: "interactive" },
         ],
       },
       {

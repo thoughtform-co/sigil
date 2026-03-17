@@ -3,8 +3,8 @@
 import { useRef, useEffect, useCallback, useState } from "react";
 import * as THREE from "three";
 
-const MAX_W = 660;
-const MAX_H = 420;
+const MAX_W = 900;
+const MAX_H = 520;
 const ROTATION_SPEED = 0.02;
 
 type Mound = {

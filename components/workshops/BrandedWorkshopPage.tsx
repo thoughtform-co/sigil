@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { RAIL_WIDTH } from "./BrandedWorkshopFrame";
 import { LoopTerrainMap } from "./sections/LoopTerrainMap";
 import { WaypointTopography } from "./sections/WaypointTopography";
+import { NavigateStory } from "./sections/NavigateStory";
 import { PoppinsLogo } from "./PoppinsLogo";
 import type { BrandedJourneySettings } from "@/lib/workshops/types";
 
@@ -97,7 +98,7 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
   }, [tocItems, activeSection]);
 
   return (
-    <div style={{ ...(vars as React.CSSProperties), background: "var(--ws-bg,#FCF3EC)", color: "var(--ws-dark,#241D1B)", minHeight: "100vh", overflowX: "hidden" }}>
+    <div style={{ ...(vars as React.CSSProperties), background: "var(--ws-bg,#FCF3EC)", color: "var(--ws-dark,#241D1B)", minHeight: "100vh", overflowX: "clip" }}>
       {/* Accent handwritten font (Caveat -- closest to Verveine used on wearepoppins.com) */}
       {/* eslint-disable-next-line @next/next/no-page-custom-font */}
       <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -144,50 +145,13 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
       {/* Navigate chapter */}
       <ChapterSlide id="nav-chapter" reg={reg} title="Navigate" subtitle="How to steer a possibility space" tint="#f7f9e6" tintFrom="var(--ws-bg,#FCF3EC)" accentColor={branding.accentColor} darkColor={branding.darkColor} mapAnchorX={52} />
 
-      <Slide id="nav-principles" reg={reg} tint="#f7f9e6" overlay={<SectionMapBackdrop accentColor={branding.accentColor} darkColor={branding.darkColor} anchorX={52} />}>
-        <Tag bg="rgba(196,221,5,0.1)">Foundation</Tag>
-        <h2 style={h2Style}>The Four <span style={caveatSpan}>Principles</span></h2>
-        <Lead>How we work with AI in practice.</Lead>
-        <CardGrid cols={4} style={{ marginTop: 40 }}>
-          <PCard title="Context > templates" body="Don't start with a form. Dump everything relevant. AI finds what it needs." />
-          <PCard title="Clear > vague" body='Be specific about what you want. "Analyze for CTR" beats "improve this."' />
-          <PCard title="Iterate > perfect" body="First answer is a draft. Nudge it. Refine it. You're the navigator." />
-          <PCard title="Partner > tool" body="Ask it to think out loud. Disagree with it. You're both responsible for the output." />
-        </CardGrid>
-        <Exercise title="The Rewrite Challenge" tag="Pair exercise" tagBg="rgba(196,221,5,0.15)">
-          Pick one {branding.clientName} social post. Rewrite it twice: once focusing on <strong>clarity</strong>, once on <strong>brevity</strong>.
-          <br /><span style={{ fontSize: 12, opacity: 0.6, marginTop: 12, display: "inline-block" }}>Pair up. 8 minutes.</span>
-        </Exercise>
-      </Slide>
-
-      <Slide id="nav-dimensional" reg={reg} tint="#f7f9e6">
-        <Tag bg="rgba(196,221,5,0.1)">Core insight</Tag>
-        <h2 style={h2Style}>Dimensional <span style={caveatSpan}>Navigation</span></h2>
-        <Lead>You&apos;re not writing prompts. You&apos;re creating levers to steer dimensions.</Lead>
-        <DimensionalSlider clientName={branding.clientName} />
-        <div style={{ background: "rgba(255,255,255,0.7)", border: "1px solid color-mix(in srgb, var(--ws-dark,#241D1B) 8%, transparent)", padding: 24, marginTop: 24 }}>
-          <p style={{ fontSize: 13, lineHeight: 1.7, color: "color-mix(in srgb, var(--ws-dark,#241D1B) 55%, transparent)" }}>
-            <strong>System prompts: the first low-hanging fruit.</strong> Rather than rebuilding a prompt every conversation, encode one baseline that travels with you. Tilt dimensions in the background. Watch output shift.
-          </p>
-        </div>
-        <Exercise title="Dimension Creation" tag="Individual + group" tagBg="rgba(196,221,5,0.15)">
-          What&apos;s one axis you&apos;d like to control in {branding.clientName} writing? Create two sliders for it. What values would &quot;0&quot; and &quot;10&quot; mean?
-          <br /><span style={{ fontSize: 12, opacity: 0.6, marginTop: 12, display: "inline-block" }}>5 minutes individual, then share one example with the group.</span>
-        </Exercise>
-      </Slide>
-
-      <Slide id="nav-semantic" reg={reg} tint="#f7f9e6" tintTo="#fcf0f5">
-        <Tag bg="rgba(196,221,5,0.1)">Advanced technique</Tag>
-        <h2 style={h2Style}>Semantic <span style={caveatSpan}>Navigation</span></h2>
-        <SemanticReveal />
-        <Exercise title="The Incompatible Bridge" tag="Pair exercise" tagBg="rgba(196,221,5,0.15)">
-          Pick a {branding.clientName} prompt. Reframe it using a completely unrelated point of view (athlete, archaeologist, musician, gardener). What does it force you to see?
-          <br /><span style={{ fontSize: 12, opacity: 0.6, marginTop: 12, display: "inline-block" }}>Pair exercise. 10 minutes.</span>
-        </Exercise>
-      </Slide>
+      <div id="nav-story" ref={(el) => reg("nav-story", el)} style={{ background: "#f7f9e6", position: "relative", overflow: "visible" }}>
+        <NavigateStory clientName={branding.clientName} accentColor={branding.accentColor} darkColor={branding.darkColor} />
+      </div>
 
       {/* Encode chapter */}
       <ChapterSlide id="enc-chapter" reg={reg} title="Encode" subtitle="How to scaffold knowledge" tint="#fcf0f5" tintFrom="#f7f9e6" accentColor={branding.accentColor} darkColor={branding.darkColor} mapAnchorX={46} />
+
 
       <Slide id="enc-context" reg={reg} tint="#fcf0f5" overlay={<SectionMapBackdrop accentColor={branding.accentColor} darkColor={branding.darkColor} anchorX={46} />}>
         <Tag bg="rgba(254,179,210,0.2)">The foundation</Tag>
@@ -581,98 +545,6 @@ function TeamGrid({ members, branding, cols, style }: { members: BrandedJourneyS
         </div>
       ))}
     </div>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════════
-   INTERACTIVE SECTIONS
-   ══════════════════════════════════════════════════════════════ */
-
-const CRINGE_TEXTS = [
-  "Most drills are used 13 minutes in their lifetime. Poppins lets you borrow one in your building instead of buying one.",
-  "Tools sit in garages. Poppins connects them to neighbors who need them right now.",
-  "You have tools gathering dust. Your neighbor has the one you need. Poppins makes that connection simple.",
-  "Why buy when borrowing works? We connect neighbors with the tools and things they need.",
-  "Your neighbor has the drill you need. And you have the fondue set they're eyeing. Poppins makes sharing the obvious choice.",
-  "Tools are meant to be used. Poppins finds the neighbor who needs yours, and the neighbor who has what you need.",
-  "OMG sharing is caring! \uD83D\uDC9A We make it EASY to lend your stuff to neighbors. Your drill \u2192 their project \u2192 everyone wins!",
-  "You guys!! \uD83C\uDF1F Poppins connects neighbors through stuff. Borrow. Lend. Build community. It's literally so simple.",
-  "OMG you guys!! \uD83C\uDF0D\u2728 We're SOOO excited to announce that sharing is caring and you can literally save the planet by lending your drill!!",
-  "YAAAAS sharing culture!! \uD83C\uDF89 Poppins makes it sooooo easy to connect with neighbors and lend all the things!!",
-  "Like omg bestie the vibe is literally IMMACULATE when you share your power drill with your neighbor!! It's giving community!! \uD83C\uDF08\u2728\uD83D\uDCAB",
-];
-
-const FORMAL_TEXTS = [
-  "Most drills are used 13 minutes in their lifetime. Poppins lets you borrow one in your building instead of buying one.",
-  "Tools sit in garages. Poppins connects them to neighbors who need them right now.",
-  "You've got tools. Your neighbor needs them. Poppins connects you both. No friction.",
-  "Most resources are underutilized. Poppins creates a direct path between supply and demand.",
-  "Poppins enables efficient resource sharing within neighborhoods through direct peer-to-peer connections.",
-  "By connecting community members with shared assets, Poppins reduces individual consumption and strengthens local networks.",
-  "Poppins facilitates the optimization of community resource allocation through transparent peer-to-peer lending mechanisms.",
-  "Our platform systematically reduces capital inefficiency by enabling equitable distribution of underutilized household assets.",
-  "Poppins implements a comprehensive framework for the strategic orchestration of community-centric resource optimization.",
-  "Our institutional approach to decentralized asset management leverages behavioral economics and network effects.",
-  "Through sophisticated algorithmic mediation of peer-to-peer asset exchange mechanisms, Poppins maximizes utility-weighted resource allocation.",
-];
-
-function DimensionalSlider({ clientName }: { clientName: string }) {
-  const [cringe, setCringe] = useState(6);
-  const [formality, setFormality] = useState(5);
-
-  const text = useMemo(() => {
-    if (formality >= 7) return FORMAL_TEXTS[Math.min(Math.floor(formality * 1.1), 10)];
-    if (formality <= 3) return CRINGE_TEXTS[Math.min(cringe, 10)];
-    const w = (formality - 3) / 4;
-    return w < 0.5 ? CRINGE_TEXTS[Math.min(cringe, 10)] : FORMAL_TEXTS[Math.min(Math.floor(formality * 1.5), 10)];
-  }, [cringe, formality]);
-
-  const sliderStyle: React.CSSProperties = { flex: 1, height: 3, appearance: "none", WebkitAppearance: "none", background: `linear-gradient(to right, var(--ws-dark,#241D1B), var(--ws-accent,#FE6744))`, outline: "none", cursor: "pointer" };
-
-  return (
-    <div style={{ position: "relative", marginTop: 32, background: "rgba(255,255,255,0.4)", border: "1px solid color-mix(in srgb, var(--ws-dark,#241D1B) 8%, transparent)", padding: 32 }}>
-      {[{ label: "Cringe", value: cringe, set: setCringe }, { label: "Formality", value: formality, set: setFormality }].map((s) => (
-        <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-          <label style={{ fontFamily: "var(--ws-mono,var(--font-mono))", fontSize: 11, letterSpacing: "0.1em", opacity: 0.4, textTransform: "uppercase", flexShrink: 0, width: 110 }}>{s.label}</label>
-          <input type="range" min={0} max={10} value={s.value} onChange={(e) => s.set(Number(e.target.value))} style={sliderStyle} />
-          <span style={{ fontFamily: "var(--ws-mono,var(--font-mono))", fontSize: 12, fontWeight: 600, width: 24, textAlign: "center", opacity: 0.6 }}>{s.value}</span>
-        </div>
-      ))}
-      <div style={{ background: "var(--ws-dark,#241D1B)", color: "var(--ws-bg,#FCF3EC)", padding: 32, minHeight: 180, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-        <div style={{ fontFamily: "var(--ws-mono,var(--font-mono))", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", opacity: 0.4, marginBottom: 12 }}>Output</div>
-        <div style={{ fontFamily: "var(--ws-font,var(--font-sans))", fontSize: 15, lineHeight: 1.7 }}>{text}</div>
-      </div>
-    </div>
-  );
-}
-
-function SemanticReveal() {
-  const [revealed, setRevealed] = useState(false);
-  return (
-    <>
-      <div style={{ textAlign: "center", marginBottom: 24, padding: 20, background: "rgba(254,103,68,0.05)", border: "1px dashed rgba(254,103,68,0.15)" }}>
-        <div style={{ fontFamily: "var(--ws-mono,var(--font-mono))", fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--ws-accent,#FE6744)", marginBottom: 6 }}>Click to see both</div>
-        <h4 style={{ fontSize: 16, fontWeight: 600 }}>Normal vs. semantic framing</h4>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: revealed ? "1fr 1fr" : "1fr auto", gap: 24, marginTop: 24, alignItems: "center" }}>
-        <div style={{ background: "rgba(255,255,255,0.7)", border: "1px solid color-mix(in srgb, var(--ws-dark,#241D1B) 8%, transparent)", padding: 28 }}>
-          <h5 style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", opacity: 0.4, marginBottom: 12 }}>Normal Prompt</h5>
-          <p style={{ fontFamily: "var(--ws-mono,var(--font-mono))", fontSize: 13, lineHeight: 1.8 }}>Analyze brand saturation in the neighborhood app space from the POV of a brand strategist.</p>
-        </div>
-        {revealed ? (
-          <div style={{ background: "rgba(255,255,255,0.7)", border: "2px solid var(--ws-accent,#FE6744)", padding: 28 }}>
-            <h5 style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", opacity: 0.4, marginBottom: 12 }}>Semantic Navigation</h5>
-            <p style={{ fontFamily: "var(--ws-mono,var(--font-mono))", fontSize: 13, lineHeight: 1.8 }}>Analyze brand saturation in the neighborhood app space from the POV of a pack of wolves protecting territory.</p>
-          </div>
-        ) : (
-          <div style={{ textAlign: "center" }}>
-            <button type="button" onClick={() => setRevealed(true)} style={{ background: "var(--ws-dark,#241D1B)", color: "var(--ws-bg,#FCF3EC)", border: "none", padding: "12px 28px", borderRadius: 40, fontSize: 14, fontWeight: 600, fontFamily: "var(--ws-font,var(--font-sans))", cursor: "pointer" }}>
-              Reveal
-            </button>
-          </div>
-        )}
-      </div>
-    </>
   );
 }
 
