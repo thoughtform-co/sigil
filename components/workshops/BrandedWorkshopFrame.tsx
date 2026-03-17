@@ -36,6 +36,12 @@ export function BrandedWorkshopFrame({ children }: BrandedWorkshopFrameProps) {
 
   return (
     <div className="relative min-h-screen">
+      {/* Corner brackets */}
+      <div className="hud-corner hud-corner-tl" />
+      <div className="hud-corner hud-corner-tr" />
+      <div className="hud-corner hud-corner-bl" />
+      <div className="hud-corner hud-corner-br" />
+
       {/* Left rail */}
       <aside
         className="hud-rail-tick fixed z-30 pointer-events-none"

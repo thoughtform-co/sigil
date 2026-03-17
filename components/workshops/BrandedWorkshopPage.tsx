@@ -2,6 +2,8 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RAIL_WIDTH } from "./BrandedWorkshopFrame";
+import { LoopTerrainMap } from "./sections/LoopTerrainMap";
+import { PoppinsLogo } from "./PoppinsLogo";
 import type { BrandedJourneySettings } from "@/lib/workshops/types";
 
 const SIDEBAR_WIDTH = 200;
@@ -21,12 +23,21 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
   const [activeSection, setActiveSection] = useState(allSections[0]?.id ?? "");
   const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
   const [progress, setProgress] = useState(0);
+  const [logoT, setLogoT] = useState(0);
 
   useEffect(() => {
     function onScroll() {
       const st = document.documentElement.scrollTop || document.body.scrollTop;
       const h = document.documentElement.scrollHeight - document.documentElement.clientHeight;
       setProgress(h > 0 ? (st / h) * 100 : 0);
+
+      const heroEl = sectionRefs.current.get("hero");
+      if (heroEl) {
+        const heroH = heroEl.offsetHeight;
+        const t = Math.min(1, Math.max(0, st / (heroH * 0.75)));
+        setLogoT(t);
+      }
+
       let cur = allSections[0]?.id ?? "";
       for (const s of allSections) {
         const el = sectionRefs.current.get(s.id);
@@ -58,8 +69,6 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
     return v;
   }, [branding]);
 
-  const activeCh = chapters.find((ch) => ch.sections.some((s) => s.id === activeSection));
-
   let bearing = 0;
 
   return (
@@ -67,30 +76,11 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
       {/* Progress bar */}
       <div style={{ position: "fixed", top: 0, left: 0, height: 3, background: "var(--ws-accent,var(--gold))", zIndex: 200, transition: "width .15s ease", width: `${progress}%` }} />
 
-      {/* Left readout -- current chapter indicator only */}
-      <div style={{ position: "fixed", top: HUD_PAD + 24, left: HUD_PAD + RAIL_WIDTH + 8, width: SPINE_WIDTH, zIndex: 40, pointerEvents: "none" }}>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: "9px", letterSpacing: "0.1em", textTransform: "uppercase", color: "color-mix(in srgb, var(--ws-dark,#241D1B) 30%, transparent)", marginBottom: 8 }}>
-          CURRENT
-        </div>
-        {activeCh && (
-          <>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-              {activeCh.tint && <div style={{ width: 8, height: 8, background: activeCh.tint, flexShrink: 0 }} />}
-              <span style={{ fontFamily: "var(--ws-font,var(--font-sans))", fontSize: "13px", fontWeight: 600, color: "var(--ws-dark,#241D1B)" }}>
-                {activeCh.title}
-              </span>
-            </div>
-            {activeCh.subtitle && (
-              <div style={{ fontFamily: "var(--ws-font,var(--font-sans))", fontSize: "10px", color: "color-mix(in srgb, var(--ws-dark,#241D1B) 45%, transparent)" }}>
-                {activeCh.subtitle}
-              </div>
-            )}
-          </>
-        )}
-      </div>
+      {/* Logo -- centered in hero, docks to left rail on scroll */}
+      <WorkshopLogoMotion t={logoT} />
 
       {/* Right sidebar -- full TOC with bearing numbers */}
-      <nav style={{ position: "fixed", top: 0, right: HUD_PAD + RAIL_WIDTH, width: SIDEBAR_WIDTH, height: "100vh", overflowY: "auto", background: "color-mix(in srgb, var(--ws-bg,#FCF3EC) 92%, transparent)", backdropFilter: "blur(12px)", borderLeft: "1px solid color-mix(in srgb, var(--ws-dark,#241D1B) 8%, transparent)", padding: "28px 0", display: "flex", flexDirection: "column", zIndex: 40 }}>
+      <nav style={{ position: "fixed", top: HUD_PAD + 24, right: HUD_PAD + RAIL_WIDTH, width: SIDEBAR_WIDTH, bottom: HUD_PAD + 24, overflowY: "auto", background: "transparent", padding: "0", display: "flex", flexDirection: "column", zIndex: 40 }}>
         {chapters.map((ch) => {
           return (
             <div key={ch.id}>
@@ -116,7 +106,7 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
             </div>
           );
         })}
-        <div style={{ marginTop: "auto", padding: 16, fontSize: "9px", color: "color-mix(in srgb, var(--ws-dark,#241D1B) 30%, transparent)", lineHeight: 1.5, borderTop: "1px solid color-mix(in srgb, var(--ws-dark,#241D1B) 8%, transparent)", fontFamily: "var(--ws-mono,var(--font-mono))" }}>
+        <div style={{ marginTop: "auto", padding: "16px 16px 0", fontSize: "9px", color: "color-mix(in srgb, var(--ws-dark,#241D1B) 30%, transparent)", lineHeight: 1.5, fontFamily: "var(--ws-mono,var(--font-mono))" }}>
           Built with Thoughtform
         </div>
       </nav>
@@ -142,7 +132,7 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
           <Tag>The framework</Tag>
           <h2 style={h2Style}>A loop, not a ladder.</h2>
           <Lead>Three ways of working with AI that feed each other. You never stop navigating — you just navigate more territory.</Lead>
-          <LoopMap />
+          <LoopTerrainMap accentColor={branding.accentColor} darkColor={branding.darkColor} />
         </div>
       </Slide>
 
@@ -399,7 +389,7 @@ function Tag({ children, bg }: { children: React.ReactNode; bg?: string }) {
 }
 
 function Lead({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
-  return <p style={{ fontFamily: "var(--ws-font,var(--font-sans))", fontSize: 17, fontWeight: 400, color: "color-mix(in srgb, var(--ws-dark,#241D1B) 55%, transparent)", lineHeight: 1.7, maxWidth: 540, marginTop: 8, ...style }}>{children}</p>;
+  return <p style={{ fontFamily: "var(--ws-font,var(--font-sans))", fontSize: 17, fontWeight: 400, color: "color-mix(in srgb, var(--ws-dark,#241D1B) 55%, transparent)", lineHeight: 1.7, maxWidth: 540, margin: "8px auto 0", ...style }}>{children}</p>;
 }
 
 function CardGrid({ children, cols, style }: { children: React.ReactNode; cols: number; style?: React.CSSProperties }) {
@@ -560,6 +550,43 @@ function SemanticReveal() {
   );
 }
 
+function WorkshopLogoMotion({ t }: { t: number }) {
+  const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+  const heroTop = HUD_PAD + 24;
+  const dockedTop = HUD_PAD + 4;
+  const dockedLeft = HUD_PAD + RAIL_WIDTH + 12;
+
+  const top = heroTop + (dockedTop - heroTop) * ease;
+  const height = 36 + (20 - 36) * ease;
+  const opacity = 0.85 + (0.6 - 0.85) * ease;
+
+  const viewportCenter = typeof window !== "undefined" ? window.innerWidth / 2 : 500;
+  const logoWidthEstimate = height * (499 / 128);
+  const centeredLeft = viewportCenter - logoWidthEstimate / 2;
+  const left = centeredLeft + (dockedLeft - centeredLeft) * ease;
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        zIndex: 50,
+        pointerEvents: "none",
+        top,
+        left,
+        height,
+        opacity,
+        willChange: "top, left, height, opacity",
+      }}
+    >
+      <PoppinsLogo
+        color="var(--ws-dark, #241D1B)"
+        style={{ height: "100%", width: "auto" }}
+      />
+    </div>
+  );
+}
+
 function FlowRow() {
   const steps = [
     { icon: "\uD83D\uDCAD", title: "Brainstorm", body: "Explore idea space with AI." },
@@ -603,25 +630,3 @@ function ContextIcons() {
   );
 }
 
-function LoopMap() {
-  return (
-    <div style={{ width: "100%", maxWidth: 660, margin: "40px auto 0" }}>
-      <svg viewBox="0 0 700 420" fill="none">
-        <g opacity="0.05" stroke="currentColor" strokeWidth="0.5">
-          <line x1="50" y1="350" x2="350" y2="170" /><line x1="150" y1="350" x2="450" y2="170" />
-          <line x1="250" y1="350" x2="550" y2="170" /><line x1="350" y1="350" x2="650" y2="170" />
-          <line x1="50" y1="250" x2="650" y2="250" /><line x1="50" y1="300" x2="650" y2="300" />
-          <line x1="350" y1="350" x2="50" y2="170" /><line x1="450" y1="350" x2="150" y2="170" />
-          <line x1="550" y1="350" x2="250" y2="170" />
-        </g>
-        <path d="M 200 265 C 280 230, 320 230, 370 255" stroke="currentColor" strokeWidth="1.5" opacity="0.1" strokeDasharray="4 4" fill="none" />
-        <path d="M 430 240 C 480 210, 520 220, 540 245" stroke="currentColor" strokeWidth="1.5" opacity="0.1" strokeDasharray="4 4" fill="none" />
-        <path d="M 540 290 C 580 340, 500 390, 350 390 C 200 390, 100 350, 130 300" stroke="var(--ws-accent,#FE6744)" strokeWidth="1" opacity="0.18" strokeDasharray="6 4" fill="none" />
-        <text x="280" y="245" fontFamily="var(--ws-font,Poppins)" fontSize="16" fontWeight="600" textAnchor="middle" opacity="0.6" fill="currentColor">Navigate</text>
-        <text x="460" y="235" fontFamily="var(--ws-font,Poppins)" fontSize="16" fontWeight="600" textAnchor="middle" opacity="0.6" fill="currentColor">Encode</text>
-        <text x="570" y="345" fontFamily="var(--ws-font,Poppins)" fontSize="16" fontWeight="600" textAnchor="middle" opacity="0.6" fill="currentColor">Accelerate</text>
-        <text x="350" y="410" fontFamily="var(--ws-mono,monospace)" fontSize="9" textAnchor="middle" opacity="0.15" fill="currentColor">...and back to navigate more</text>
-      </svg>
-    </div>
-  );
-}
