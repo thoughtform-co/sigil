@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode, useEffect, useRef } from "react";
+import { ThoughtformBrandmark } from "./ThoughtformBrandmark";
 
 const RAIL_WIDTH = 48;
 const TICK_COUNT = 24;
@@ -128,6 +129,20 @@ export function BrandedWorkshopFrame({ children }: BrandedWorkshopFrameProps) {
           })}
         </div>
       </aside>
+
+      {/* Bottom-left: Thoughtform brandmark */}
+      <div
+        style={{
+          position: "fixed",
+          bottom: `calc(var(--hud-padding) + 6px)`,
+          left: `calc(var(--hud-padding) + ${RAIL_WIDTH + 12}px)`,
+          zIndex: 50,
+          pointerEvents: "none",
+          opacity: 0.35,
+        }}
+      >
+        <ThoughtformBrandmark style={{ width: 20, height: 20 }} />
+      </div>
 
       {children}
     </div>

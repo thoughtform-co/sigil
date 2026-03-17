@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RAIL_WIDTH } from "./BrandedWorkshopFrame";
 import { LoopTerrainMap } from "./sections/LoopTerrainMap";
+import { WaypointTopography } from "./sections/WaypointTopography";
 import { PoppinsLogo } from "./PoppinsLogo";
 import type { BrandedJourneySettings } from "@/lib/workshops/types";
 
@@ -69,77 +70,81 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
     return v;
   }, [branding]);
 
-  let bearing = 0;
+  const tocItems = useMemo(() => {
+    const items: { key: string; type: "chapter" | "section"; label: string; sectionId?: string; bearing?: string; chapterTitle?: string }[] = [];
+    let b = 0;
+    for (const ch of chapters) {
+      items.push({ key: `ch-${ch.id}`, type: "chapter", label: ch.title });
+      for (const s of ch.sections) {
+        const isChTitle = s.type === "chapter-title";
+        if (!isChTitle) b++;
+        items.push({
+          key: s.id,
+          type: "section",
+          label: s.title,
+          sectionId: s.id,
+          bearing: isChTitle ? undefined : String(b).padStart(2, "0"),
+          chapterTitle: ch.title,
+        });
+      }
+    }
+    return items;
+  }, [chapters]);
+
+  const activeIdx = useMemo(() => {
+    const idx = tocItems.findIndex((t) => t.type === "section" && t.sectionId === activeSection);
+    return idx >= 0 ? idx : 0;
+  }, [tocItems, activeSection]);
 
   return (
     <div style={{ ...(vars as React.CSSProperties), background: "var(--ws-bg,#FCF3EC)", color: "var(--ws-dark,#241D1B)", minHeight: "100vh", overflowX: "hidden" }}>
+      {/* Accent handwritten font (Caveat -- closest to Verveine used on wearepoppins.com) */}
+      {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+      <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
       {/* Progress bar */}
       <div style={{ position: "fixed", top: 0, left: 0, height: 3, background: "var(--ws-accent,var(--gold))", zIndex: 200, transition: "width .15s ease", width: `${progress}%` }} />
 
       {/* Logo -- centered in hero, docks to left rail on scroll */}
       <WorkshopLogoMotion t={logoT} />
 
-      {/* Right sidebar -- full TOC with bearing numbers */}
-      <nav style={{ position: "fixed", top: HUD_PAD + 24, right: HUD_PAD + RAIL_WIDTH, width: SIDEBAR_WIDTH, bottom: HUD_PAD + 24, overflowY: "auto", background: "transparent", padding: "0", display: "flex", flexDirection: "column", zIndex: 40 }}>
-        {chapters.map((ch) => {
-          return (
-            <div key={ch.id}>
-              <div style={{ fontSize: "9px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "color-mix(in srgb, var(--ws-dark,#241D1B) 55%, transparent)", padding: "18px 16px 4px", fontFamily: "var(--ws-mono,var(--font-mono))" }}>
-                {ch.title}
-              </div>
-              {ch.sections.map((section) => {
-                const isActive = activeSection === section.id;
-                const isChapterTitle = section.type === "chapter-title";
-                const num = isChapterTitle ? null : (bearing++, String(bearing).padStart(2, "0"));
-                return (
-                  <a key={section.id} href={`#${section.id}`} onClick={(e) => { e.preventDefault(); scrollTo(section.id); }}
-                    style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 16px", textDecoration: "none", color: "var(--ws-dark,#241D1B)", fontSize: "12px", fontWeight: isActive ? 600 : 400, fontFamily: "var(--ws-font,var(--font-sans))", transition: "all .2s ease", borderRight: `2px solid ${isActive ? "var(--ws-accent,var(--gold))" : "transparent"}`, background: isActive ? "color-mix(in srgb, var(--ws-dark,#241D1B) 4%, transparent)" : "transparent" }}>
-                    {num ? (
-                      <span style={{ fontFamily: "var(--ws-mono,var(--font-mono))", fontSize: "9px", opacity: 0.3, width: 16, flexShrink: 0 }}>{num}</span>
-                    ) : (
-                      <span style={{ width: 5, height: 5, background: isActive ? "var(--ws-accent,var(--gold))" : "color-mix(in srgb, var(--ws-dark,#241D1B) 30%, transparent)", flexShrink: 0 }} />
-                    )}
-                    {section.title}
-                  </a>
-                );
-              })}
-            </div>
-          );
-        })}
-        <div style={{ marginTop: "auto", padding: "16px 16px 0", fontSize: "9px", color: "color-mix(in srgb, var(--ws-dark,#241D1B) 30%, transparent)", lineHeight: 1.5, fontFamily: "var(--ws-mono,var(--font-mono))" }}>
-          Built with Thoughtform
-        </div>
-      </nav>
+      {/* Right sidebar -- rolodex TOC */}
+      <RolodexTOC
+        items={tocItems}
+        activeIdx={activeIdx}
+        onScrollTo={scrollTo}
+        branding={branding}
+      />
 
       {/* Slides */}
       <Slide id="hero" reg={reg} style={{ textAlign: "center" }}>
         <h1 style={{ fontFamily: "var(--ws-font,var(--font-sans))", fontSize: "clamp(36px,4.5vw,58px)", fontWeight: 700, lineHeight: 1.08, letterSpacing: "-0.03em" }}>
-          AI is not a tool<br />to command. It&apos;s an<br /><em style={{ fontStyle: "italic", fontWeight: 300, color: "var(--ws-accent,#FE6744)" }}>intelligence to navigate.</em>
+          AI is not a tool<br />to command. It&apos;s an<br /><em style={{ fontFamily: "'Caveat', cursive", fontStyle: "normal", fontWeight: 500, color: "var(--ws-accent,#FE6744)", fontSize: "1.15em" }}>intelligence to navigate.</em>
         </h1>
         <p style={{ fontFamily: "var(--ws-font,var(--font-sans))", fontSize: "17px", color: "color-mix(in srgb, var(--ws-dark,#241D1B) 55%, transparent)", lineHeight: 1.7, maxWidth: 540, margin: "20px auto 40px" }}>
           A hands-on workshop for the {branding.clientName} team. From first conversation to building tools that don&apos;t exist yet.
         </p>
         <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
           {[{ label: "Navigate", bg: "var(--ws-secondary,#C4DD05)" }, { label: "Encode", bg: "#FEB3D2" }, { label: "Accelerate", bg: "var(--ws-accent,#FE6744)", color: "white" }].map((c) => (
-            <span key={c.label} style={{ padding: "8px 20px", fontSize: "13px", fontWeight: 500, fontFamily: "var(--ws-font,var(--font-sans))", background: c.bg, color: c.color ?? "var(--ws-dark,#241D1B)" }}>{c.label}</span>
+            <span key={c.label} style={{ padding: "10px 24px", borderRadius: 40, fontSize: "14px", fontWeight: 600, fontFamily: "var(--ws-font,var(--font-sans))", background: c.bg, color: c.color ?? "var(--ws-dark,#241D1B)" }}>{c.label}</span>
           ))}
         </div>
       </Slide>
 
       {/* Loop */}
-      <Slide id="loop" reg={reg} tint="#F5EAE1">
+      <Slide id="loop" reg={reg}>
         <div style={{ textAlign: "center" }}>
           <Tag>The framework</Tag>
-          <h2 style={h2Style}>A loop, not a ladder.</h2>
-          <Lead>Three ways of working with AI that feed each other. You never stop navigating — you just navigate more territory.</Lead>
+          <h2 style={h2Style}>A map, <span style={{ fontFamily: "'Caveat', cursive", fontWeight: 500, fontSize: "1.1em" }}>not a path.</span></h2>
+          <Lead>Three ways of working with AI that feed each other. You never stop navigating — you just cover more territory.</Lead>
           <LoopTerrainMap accentColor={branding.accentColor} darkColor={branding.darkColor} />
         </div>
       </Slide>
 
       {/* Navigate chapter */}
-      <ChapterSlide id="nav-chapter" reg={reg} title="Navigate" subtitle="how to steer a possibility space" tint="#f7f9e6" />
+      <ChapterSlide id="nav-chapter" reg={reg} title="Navigate" subtitle="How to steer a possibility space" tint="#f7f9e6" accentColor={branding.accentColor} darkColor={branding.darkColor} mapAnchorX={52} />
 
-      <Slide id="nav-principles" reg={reg} tint="#f7f9e6">
+      <Slide id="nav-principles" reg={reg} tint="#f7f9e6" overlay={<SectionMapBackdrop accentColor={branding.accentColor} darkColor={branding.darkColor} anchorX={52} />}>
         <Tag bg="rgba(196,221,5,0.1)">Foundation</Tag>
         <h2 style={h2Style}>The Four Principles</h2>
         <Lead>How we work with AI in practice.</Lead>
@@ -182,9 +187,9 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
       </Slide>
 
       {/* Encode chapter */}
-      <ChapterSlide id="enc-chapter" reg={reg} title="Encode" subtitle="how to scaffold knowledge" tint="#fcf0f5" />
+      <ChapterSlide id="enc-chapter" reg={reg} title="Encode" subtitle="How to scaffold knowledge" tint="#fcf0f5" accentColor={branding.accentColor} darkColor={branding.darkColor} mapAnchorX={46} />
 
-      <Slide id="enc-context" reg={reg} tint="#fcf0f5">
+      <Slide id="enc-context" reg={reg} tint="#fcf0f5" overlay={<SectionMapBackdrop accentColor={branding.accentColor} darkColor={branding.darkColor} anchorX={46} />}>
         <Tag bg="rgba(254,179,210,0.2)">The foundation</Tag>
         <h2 style={h2Style}>Context is Everything</h2>
         <Lead>For AI, these aren&apos;t different mediums — they&apos;re all coordinates it can navigate.</Lead>
@@ -268,9 +273,9 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
       </Slide>
 
       {/* Accelerate chapter */}
-      <ChapterSlide id="acc-chapter" reg={reg} title="Accelerate" subtitle="how to force-multiply your team" tint="#fef0eb" />
+      <ChapterSlide id="acc-chapter" reg={reg} title="Accelerate" subtitle="How to force-multiply your team" tint="#fef0eb" accentColor={branding.accentColor} darkColor={branding.darkColor} mapAnchorX={56} />
 
-      <Slide id="acc-cowork" reg={reg} tint="#fef0eb">
+      <Slide id="acc-cowork" reg={reg} tint="#fef0eb" overlay={<SectionMapBackdrop accentColor={branding.accentColor} darkColor={branding.darkColor} anchorX={56} />}>
         <Tag bg="rgba(254,103,68,0.1)">Still chat, more autonomous</Tag>
         <h2 style={h2Style}>Cowork</h2>
         <Lead style={{ textAlign: "center", marginBottom: 32 }}>Files in. Work out. Scheduled tasks. Connectors that travel.</Lead>
@@ -365,22 +370,133 @@ const h2Style: React.CSSProperties = { fontFamily: "var(--ws-font,var(--font-san
 
 const cardBase: React.CSSProperties = { background: "rgba(255,255,255,0.7)", border: "1px solid color-mix(in srgb, var(--ws-dark,#241D1B) 8%, transparent)", padding: 24, transition: "transform .3s cubic-bezier(.16,1,.3,1), box-shadow .3s ease" };
 
-function Slide({ id, reg, children, style, tint }: { id: string; reg: (id: string, el: HTMLElement | null) => void; children: React.ReactNode; style?: React.CSSProperties; tint?: string }) {
+const MAP_FADE_MASK = "linear-gradient(to bottom, transparent 0%, black 14%, black 82%, transparent 100%)";
+
+function Slide({ id, reg, children, style, tint, overlay }: { id: string; reg: (id: string, el: HTMLElement | null) => void; children: React.ReactNode; style?: React.CSSProperties; tint?: string; overlay?: React.ReactNode }) {
   return (
     <div id={id} ref={(el) => reg(id, el)} style={{ width: "100%", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: "80px 48px", position: "relative", scrollSnapAlign: "start", overflow: "hidden", background: tint ?? undefined, ...style }}>
-      <div style={{ maxWidth: 900, width: "100%", marginLeft: CONTENT_LEFT - 48, marginRight: CONTENT_RIGHT - 48 }}>{children}</div>
+      {overlay && <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>{overlay}</div>}
+      <div style={{ maxWidth: 900, width: "100%", marginLeft: CONTENT_LEFT - 48, marginRight: CONTENT_RIGHT - 48, position: "relative", zIndex: 1 }}>{children}</div>
     </div>
   );
 }
 
-function ChapterSlide({ id, reg, title, subtitle, tint }: { id: string; reg: (id: string, el: HTMLElement | null) => void; title: string; subtitle: string; tint?: string }) {
+function ChapterSlide({ id, reg, title, subtitle, tint, accentColor, darkColor, mapAnchorX = 50 }: { id: string; reg: (id: string, el: HTMLElement | null) => void; title: string; subtitle: string; tint?: string; accentColor?: string; darkColor?: string; mapAnchorX?: number }) {
   return (
-    <Slide id={id} reg={reg} tint={tint}>
-      <div style={{ textAlign: "center" }}>
+    <Slide id={id} reg={reg} tint={tint} overlay={<ChapterMapBackdrop accentColor={accentColor} darkColor={darkColor} anchorX={mapAnchorX} />}>
+      <div style={{ textAlign: "center", position: "relative", zIndex: 1 }}>
+        <ChapterMapBadge accentColor={accentColor} darkColor={darkColor} />
         <h1 style={{ fontFamily: "var(--ws-font,var(--font-sans))", fontSize: 84, fontWeight: 700, lineHeight: 1, letterSpacing: "-0.02em" }}>{title}</h1>
-        <p style={{ fontFamily: "var(--ws-font,var(--font-sans))", fontSize: 18, fontWeight: 400, opacity: 0.7, marginTop: 16 }}>{subtitle}</p>
+        <p style={{ fontFamily: "var(--ws-font,var(--font-sans))", fontSize: 22, fontWeight: 500, opacity: 0.55, marginTop: 20, letterSpacing: "0.01em" }}>{subtitle}</p>
       </div>
     </Slide>
+  );
+}
+
+function ChapterMapBackdrop({ accentColor, darkColor, anchorX = 50 }: { accentColor?: string; darkColor?: string; anchorX?: number }) {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        inset: "6% 10% 0",
+        opacity: 0.82,
+        maskImage: MAP_FADE_MASK,
+        WebkitMaskImage: MAP_FADE_MASK,
+      }}
+    >
+      <WaypointTopography
+        accentColor={accentColor}
+        darkColor={darkColor}
+        nodes={[
+          { x: anchorX, y: 28, scale: 1.3 },
+          { x: anchorX + 8, y: 68, scale: 0.62 },
+        ]}
+        routes={[
+          {
+            points: [
+              [anchorX, 18],
+              [anchorX + 2, 34],
+              [anchorX - 2, 52],
+              [anchorX + 8, 68],
+              [anchorX + 3, 100],
+            ],
+            dashed: true,
+            opacity: 0.52,
+            width: 0.74,
+          },
+        ]}
+      />
+    </div>
+  );
+}
+
+function ChapterMapBadge({ accentColor, darkColor }: { accentColor?: string; darkColor?: string }) {
+  return (
+    <div
+      style={{
+        width: 96,
+        height: 96,
+        margin: "0 auto 22px",
+        opacity: 0.86,
+      }}
+    >
+      <WaypointTopography
+        accentColor={accentColor}
+        darkColor={darkColor}
+        nodes={[{ x: 50, y: 54, scale: 0.9 }]}
+        routes={[
+          {
+            points: [
+              [26, 72],
+              [39, 63],
+              [50, 54],
+              [63, 45],
+              [76, 34],
+            ],
+            dashed: true,
+            opacity: 0.46,
+            width: 0.72,
+          },
+        ]}
+      />
+    </div>
+  );
+}
+
+function SectionMapBackdrop({ accentColor, darkColor, anchorX = 50 }: { accentColor?: string; darkColor?: string; anchorX?: number }) {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        inset: "0 10%",
+        opacity: 0.54,
+        maskImage: MAP_FADE_MASK,
+        WebkitMaskImage: MAP_FADE_MASK,
+      }}
+    >
+      <WaypointTopography
+        accentColor={accentColor}
+        darkColor={darkColor}
+        nodes={[
+          { x: anchorX, y: 6, scale: 0.88 },
+          { x: anchorX + 9, y: 72, scale: 0.54 },
+        ]}
+        routes={[
+          {
+            points: [
+              [anchorX, 0],
+              [anchorX + 1, 18],
+              [anchorX - 4, 44],
+              [anchorX + 9, 72],
+              [anchorX + 3, 100],
+            ],
+            dashed: true,
+            opacity: 0.44,
+            width: 0.66,
+          },
+        ]}
+      />
+    </div>
   );
 }
 
@@ -413,7 +529,7 @@ function Exercise({ title, children, tag, tagBg }: { title: string; children: Re
       </div>
       <h4 style={{ fontSize: 18, fontWeight: 600, marginBottom: 10 }}>{title}</h4>
       <p style={{ fontSize: 14, lineHeight: 1.7, color: "color-mix(in srgb, var(--ws-dark,#241D1B) 55%, transparent)" }}>{children}</p>
-      <span style={{ display: "inline-block", fontSize: 11, fontWeight: 500, padding: "3px 10px", marginTop: 14, background: tagBg, color: "var(--ws-dark,#241D1B)" }}>{tag}</span>
+      <span style={{ display: "inline-block", fontSize: 11, fontWeight: 600, padding: "5px 14px", borderRadius: 40, marginTop: 14, background: tagBg, color: "var(--ws-dark,#241D1B)", fontFamily: "var(--ws-font,var(--font-sans))" }}>{tag}</span>
     </div>
   );
 }
@@ -540,13 +656,121 @@ function SemanticReveal() {
           </div>
         ) : (
           <div style={{ textAlign: "center" }}>
-            <button type="button" onClick={() => setRevealed(true)} style={{ background: "var(--ws-dark,#241D1B)", color: "var(--ws-bg,#FCF3EC)", border: "none", padding: "10px 20px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+            <button type="button" onClick={() => setRevealed(true)} style={{ background: "var(--ws-dark,#241D1B)", color: "var(--ws-bg,#FCF3EC)", border: "none", padding: "12px 28px", borderRadius: 40, fontSize: 14, fontWeight: 600, fontFamily: "var(--ws-font,var(--font-sans))", cursor: "pointer" }}>
               Reveal
             </button>
           </div>
         )}
       </div>
     </>
+  );
+}
+
+type TocItem = { key: string; type: "chapter" | "section"; label: string; sectionId?: string; bearing?: string; chapterTitle?: string };
+
+function RolodexTOC({ items, activeIdx, onScrollTo, branding }: { items: TocItem[]; activeIdx: number; onScrollTo: (id: string) => void; branding: BrandedJourneySettings["branding"] }) {
+  const ITEM_H = 26;
+  const VISIBLE_RADIUS = 7;
+
+  return (
+    <nav
+      style={{
+        position: "fixed",
+        top: HUD_PAD + 8,
+        right: HUD_PAD + RAIL_WIDTH + 4,
+        width: SIDEBAR_WIDTH,
+        bottom: HUD_PAD + 24,
+        zIndex: 40,
+        perspective: 800,
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          position: "relative",
+          transformStyle: "preserve-3d",
+          paddingTop: 8,
+        }}
+      >
+        {items.map((item, i) => {
+          const dist = i - activeIdx;
+          const absDist = Math.abs(dist);
+
+          if (absDist > VISIBLE_RADIUS) return null;
+
+          const isActive = dist === 0 && item.type === "section";
+          const isChapter = item.type === "chapter";
+
+          const translateZ = -absDist * 24;
+          const opacity = isChapter
+            ? Math.max(0.1, 0.35 - absDist * 0.08)
+            : Math.max(0.08, 1 - absDist * 0.25);
+          const blur = Math.min(absDist * 0.6, 3);
+
+          const sharedStyle: React.CSSProperties = {
+            height: ITEM_H,
+            display: "flex",
+            alignItems: "center",
+            padding: "0 8px",
+            opacity,
+            filter: blur > 0 ? `blur(${blur}px)` : undefined,
+            transform: `translateZ(${translateZ}px)`,
+            transformOrigin: "center center",
+            transition: "transform 300ms cubic-bezier(0.4,0,0.2,1), opacity 220ms ease, filter 220ms ease",
+          };
+
+          if (isChapter) {
+            return (
+              <div
+                key={item.key}
+                style={{
+                  ...sharedStyle,
+                  fontSize: "8px",
+                  fontWeight: 700,
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                  fontFamily: "var(--ws-mono,var(--font-mono))",
+                  color: "var(--ws-dark,#241D1B)",
+                  pointerEvents: "none",
+                  marginTop: i > 0 ? 6 : 0,
+                }}
+              >
+                {item.label}
+              </div>
+            );
+          }
+
+          return (
+            <a
+              key={item.key}
+              href={item.sectionId ? `#${item.sectionId}` : undefined}
+              onClick={(e) => {
+                e.preventDefault();
+                if (item.sectionId) onScrollTo(item.sectionId);
+              }}
+              style={{
+                ...sharedStyle,
+                gap: 8,
+                textDecoration: "none",
+                fontSize: "11px",
+                fontWeight: isActive ? 600 : 400,
+                fontFamily: "var(--ws-font,var(--font-sans))",
+                color: "var(--ws-dark,#241D1B)",
+                borderRight: isActive ? `2px solid ${branding.accentColor ?? "var(--gold)"}` : "2px solid transparent",
+                cursor: "pointer",
+              }}
+            >
+              {item.bearing ? (
+                <span style={{ fontFamily: "var(--ws-mono,var(--font-mono))", fontSize: "9px", opacity: 0.3, width: 16, flexShrink: 0 }}>{item.bearing}</span>
+              ) : (
+                <span style={{ width: 5, height: 5, background: isActive ? (branding.accentColor ?? "var(--gold)") : "color-mix(in srgb, var(--ws-dark,#241D1B) 30%, transparent)", flexShrink: 0 }} />
+              )}
+              {item.label}
+            </a>
+          );
+        })}
+      </div>
+    </nav>
   );
 }
 
