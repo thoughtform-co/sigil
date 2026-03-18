@@ -130,18 +130,20 @@ export function BrandedWorkshopFrame({ children }: BrandedWorkshopFrameProps) {
         </div>
       </aside>
 
-      {/* Bottom-left: Thoughtform brandmark */}
+      {/* Top-right: Thoughtform brandmark */}
       <div
         style={{
           position: "fixed",
-          bottom: `calc(var(--hud-padding) + 6px)`,
-          left: `calc(var(--hud-padding) + ${RAIL_WIDTH + 12}px)`,
+          top: "calc(var(--hud-padding) - 6px)",
+          right: "calc(var(--hud-padding) + 32px)",
           zIndex: 50,
           pointerEvents: "none",
-          opacity: 0.35,
         }}
       >
-        <ThoughtformBrandmark style={{ width: 20, height: 20 }} />
+        <ThoughtformBrandmark
+          color="#110F09"
+          style={{ width: 20, height: 20 }}
+        />
       </div>
 
       {children}

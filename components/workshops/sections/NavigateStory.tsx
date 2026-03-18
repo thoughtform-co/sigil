@@ -14,23 +14,23 @@ const POPPINS_ACCENT = "#FE6744";
 
 const PRINCIPLE_CARDS = [
   {
-    title: "Context \u203A templates",
-    body: "Don\u2019t start with a form. Dump everything relevant. AI finds what it needs.",
+    title: "Context \u203A Templates",
+    body: "Share the full picture.\nThe more AI knows,\nthe less it guesses.",
     bg: "#f7f9e6",
   },
   {
-    title: "Clear \u203A vague",
-    body: "Be specific about what you want. \u201CAnalyze for CTR\u201D beats \u201Cimprove this.\u201D",
+    title: "Clear \u203A Vague",
+    body: "Tell it where to go,\nnot what to say.",
     bg: POPPINS_LIME,
   },
   {
-    title: "Iterate \u203A perfect",
-    body: "First answer is a draft. Nudge it. Refine it. You\u2019re the navigator.",
+    title: "Iterate \u203A Perfect",
+    body: "First answer is a starting point.\nPush back. Redirect. Refine.",
     bg: POPPINS_PINK,
   },
   {
-    title: "Partner \u203A tool",
-    body: "Ask it to think out loud. Disagree with it. You\u2019re both responsible for the output.",
+    title: "Partner \u203A Tool",
+    body: "Explain your reasoning.\nThe best results come from\nconversations, not commands.",
     bg: POPPINS_ACCENT,
     dark: true,
   },
@@ -261,11 +261,19 @@ export function NavigateStory({
           flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
-          padding: "60px 48px",
+          padding: "var(--ws-slide-pad-y) var(--ws-slide-pad-x)",
           overflow: "hidden",
         }}
       >
-        <div style={{ maxWidth: 900, width: "100%", display: "grid" }}>
+        <div
+          style={{
+            maxWidth: "var(--ws-content-max)",
+            width: "100%",
+            marginLeft: "calc(var(--ws-content-left) - var(--ws-slide-pad-x))",
+            marginRight: "calc(var(--ws-content-right) - var(--ws-slide-pad-x))",
+            display: "grid",
+          }}
+        >
           {/* Phase 1: Principles */}
           <div
             style={{
@@ -317,7 +325,8 @@ export function NavigateStory({
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(4, 1fr)",
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(min(100%, 176px), 1fr))",
                 gap: 14,
                 marginTop: 40,
               }}
@@ -343,7 +352,7 @@ export function NavigateStory({
                     <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>
                       {card.title}
                     </h3>
-                    <p style={{ fontSize: 13, lineHeight: 1.7, opacity: 0.75 }}>
+                    <p style={{ fontSize: 13, lineHeight: 1.7, opacity: 0.75, whiteSpace: "pre-line" }}>
                       {card.body}
                     </p>
                   </div>

@@ -9,24 +9,84 @@ import { EncodeSystemScene } from "./sections/EncodeSystemScene";
 import { PoppinsLogo } from "./PoppinsLogo";
 import type { BrandedJourneySettings } from "@/lib/workshops/types";
 
-const SIDEBAR_WIDTH = 200;
 const HUD_PAD = 40;
-const SPINE_WIDTH = 140;
+const DESKTOP_CONTENT_MAX = 900;
 
-const CONTENT_LEFT = HUD_PAD + RAIL_WIDTH + SPINE_WIDTH + 16;
-const CONTENT_RIGHT = HUD_PAD + RAIL_WIDTH + SIDEBAR_WIDTH;
+type SectionMeta = {
+  chapterId: string;
+  chapterTitle: string;
+  chapterAnchorId: string;
+  sectionId: string;
+  title: string;
+  type?: string;
+  bearing?: string;
+};
+
+type WorkshopLayout = {
+  slidePadX: number;
+  slidePadY: number;
+  contentLeft: number;
+  contentRight: number;
+  contentMaxWidth: number;
+  chapterTitleSize: number;
+  contextLeft: number;
+  contextTop: number;
+  contextWidth: number;
+};
 
 type Props = { settings: BrandedJourneySettings; journeyName: string };
 
 export function BrandedWorkshopPage({ settings, journeyName }: Props) {
-  const { branding, hub, agenda, team, resources } = settings;
+  const { branding, agenda, team } = settings;
   const chapters = agenda.chapters;
-  const allSections = useMemo(() => chapters.flatMap((ch) => ch.sections), [chapters]);
+  const { hudPad, viewportWidth } = useWorkshopViewportMetrics();
+  const layout = useMemo(
+    () => buildWorkshopLayout(viewportWidth, hudPad),
+    [viewportWidth, hudPad],
+  );
+  const sectionMeta = useMemo<SectionMeta[]>(() => {
+    let bearing = 0;
+
+    return chapters.flatMap((chapter) => {
+      const chapterAnchorId = chapter.sections[0]?.id ?? chapter.id;
+
+      return chapter.sections.map((section) => {
+        const isChapterTitle = section.type === "chapter-title";
+        if (!isChapterTitle) bearing += 1;
+
+        return {
+          chapterId: chapter.id,
+          chapterTitle: chapter.title,
+          chapterAnchorId,
+          sectionId: section.id,
+          title: section.title,
+          type: section.type,
+          bearing: isChapterTitle ? undefined : String(bearing).padStart(2, "0"),
+        };
+      });
+    });
+  }, [chapters]);
+  const allSections = useMemo(
+    () =>
+      sectionMeta.map(({ sectionId, title, type }) => ({
+        id: sectionId,
+        title,
+        type,
+      })),
+    [sectionMeta],
+  );
 
   const [activeSection, setActiveSection] = useState(allSections[0]?.id ?? "");
   const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
   const [progress, setProgress] = useState(0);
   const [logoT, setLogoT] = useState(0);
+
+  useEffect(() => {
+    if (sectionMeta.length === 0) return;
+    if (!sectionMeta.some((section) => section.sectionId === activeSection)) {
+      setActiveSection(sectionMeta[0].sectionId);
+    }
+  }, [sectionMeta, activeSection]);
 
   useEffect(() => {
     function onScroll() {
@@ -72,34 +132,35 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
     return v;
   }, [branding]);
 
-  const tocItems = useMemo(() => {
-    const items: { key: string; type: "chapter" | "section"; label: string; sectionId?: string; bearing?: string; chapterTitle?: string }[] = [];
-    let b = 0;
-    for (const ch of chapters) {
-      items.push({ key: `ch-${ch.id}`, type: "chapter", label: ch.title });
-      for (const s of ch.sections) {
-        const isChTitle = s.type === "chapter-title";
-        if (!isChTitle) b++;
-        items.push({
-          key: s.id,
-          type: "section",
-          label: s.title,
-          sectionId: s.id,
-          bearing: isChTitle ? undefined : String(b).padStart(2, "0"),
-          chapterTitle: ch.title,
-        });
-      }
-    }
-    return items;
-  }, [chapters]);
-
-  const activeIdx = useMemo(() => {
-    const idx = tocItems.findIndex((t) => t.type === "section" && t.sectionId === activeSection);
-    return idx >= 0 ? idx : 0;
-  }, [tocItems, activeSection]);
+  const activeSectionMeta = useMemo(
+    () =>
+      sectionMeta.find((section) => section.sectionId === activeSection) ??
+      sectionMeta[0],
+    [sectionMeta, activeSection],
+  );
+  const pageStyle = useMemo(
+    () =>
+      ({
+        ...(vars as React.CSSProperties),
+        "--ws-slide-pad-x": `${layout.slidePadX}px`,
+        "--ws-slide-pad-y": `${layout.slidePadY}px`,
+        "--ws-content-left": `${layout.contentLeft}px`,
+        "--ws-content-right": `${layout.contentRight}px`,
+        "--ws-content-max": `${layout.contentMaxWidth}px`,
+        "--ws-chapter-title-size": `${layout.chapterTitleSize}px`,
+        "--ws-context-left": `${layout.contextLeft}px`,
+        "--ws-context-top": `${layout.contextTop}px`,
+        "--ws-context-width": `${layout.contextWidth}px`,
+        background: "var(--ws-bg,#FCF3EC)",
+        color: "var(--ws-dark,#241D1B)",
+        minHeight: "100vh",
+        overflowX: "clip",
+      }) as React.CSSProperties,
+    [vars, layout],
+  );
 
   return (
-    <div style={{ ...(vars as React.CSSProperties), background: "var(--ws-bg,#FCF3EC)", color: "var(--ws-dark,#241D1B)", minHeight: "100vh", overflowX: "clip" }}>
+    <div style={pageStyle}>
       {/* Accent handwritten font (Caveat -- closest to Verveine used on wearepoppins.com) */}
       {/* eslint-disable-next-line @next/next/no-page-custom-font */}
       <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -108,14 +169,16 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
       <div style={{ position: "fixed", top: 0, left: 0, height: 3, background: "var(--ws-accent,var(--gold))", zIndex: 200, transition: "width .15s ease", width: `${progress}%` }} />
 
       {/* Logo -- centered in hero, docks to left rail on scroll */}
-      <WorkshopLogoMotion t={logoT} />
+      <WorkshopLogoMotion t={logoT} hudPad={hudPad} viewportWidth={viewportWidth} />
 
-      {/* Right sidebar -- rolodex TOC */}
-      <RolodexTOC
-        items={tocItems}
-        activeIdx={activeIdx}
+      <WorkshopContextDock
+        chapterLabel={activeSectionMeta?.chapterTitle ?? journeyName}
+        chapterSectionId={activeSectionMeta?.chapterAnchorId}
+        sectionLabel={activeSectionMeta?.title ?? journeyName}
+        sectionId={activeSectionMeta?.sectionId}
+        sectionBearing={activeSectionMeta?.bearing}
         onScrollTo={scrollTo}
-        branding={branding}
+        accentColor={branding.accentColor}
       />
 
       {/* Slides */}
@@ -299,7 +362,7 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
       {/* Closing */}
       <Slide id="closing" reg={reg} style={{ background: "var(--ws-dark,#241D1B)", color: "var(--ws-bg,#FCF3EC)" }}>
         <h2 style={{ ...h2Style, marginBottom: 40 }}>Three <span style={caveatSpan}>Questions</span></h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
+        <div style={{ display: "grid", gridTemplateColumns: responsiveGridTemplate(3), gap: 14 }}>
           {[
             { n: "1", q: <>What were you <em style={{ fontWeight: 300, fontStyle: "italic", color: "var(--ws-accent,#FE6744)" }}>not</em> pursuing because you thought you couldn&apos;t?</> },
             { n: "2", q: <>What becomes a <em style={{ fontWeight: 300, fontStyle: "italic", color: "var(--ws-accent,#FE6744)" }}>Skill</em> you build this week?</> },
@@ -335,11 +398,69 @@ function buildTintBackground(tint?: string, tintFrom?: string, tintTo?: string):
   return tint;
 }
 
+function useWorkshopViewportMetrics() {
+  const [metrics, setMetrics] = useState({
+    hudPad: HUD_PAD,
+    viewportWidth: 1440,
+  });
+
+  useEffect(() => {
+    function syncMetrics() {
+      const nextHudPad = Number.parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue("--hud-padding"),
+      );
+
+      setMetrics({
+        hudPad: Number.isFinite(nextHudPad) ? nextHudPad : HUD_PAD,
+        viewportWidth: window.innerWidth,
+      });
+    }
+
+    syncMetrics();
+    window.addEventListener("resize", syncMetrics);
+    return () => window.removeEventListener("resize", syncMetrics);
+  }, []);
+
+  return metrics;
+}
+
+function buildWorkshopLayout(viewportWidth: number, hudPad: number): WorkshopLayout {
+  const compact = viewportWidth < 1100;
+  const medium = viewportWidth < 1280;
+
+  const slidePadX = compact ? 20 : medium ? 28 : 48;
+  const slidePadY = compact ? 60 : 80;
+  const leftDockWidth = compact ? 120 : medium ? 144 : 176;
+  const rightDockWidth = compact ? 28 : medium ? 40 : 56;
+  const contentLeft = hudPad + RAIL_WIDTH + leftDockWidth;
+  const contentRight = hudPad + RAIL_WIDTH + rightDockWidth;
+
+  return {
+    slidePadX,
+    slidePadY,
+    contentLeft,
+    contentRight,
+    contentMaxWidth: Math.min(
+      DESKTOP_CONTENT_MAX,
+      Math.max(560, viewportWidth - contentLeft - contentRight),
+    ),
+    chapterTitleSize: compact ? 56 : medium ? 68 : 84,
+    contextLeft: hudPad + 32,
+    contextTop: hudPad + 34,
+    contextWidth: compact ? 144 : medium ? 164 : 180,
+  };
+}
+
+function responsiveGridTemplate(cols: number) {
+  const minWidth = cols >= 4 ? 176 : cols === 3 ? 220 : 260;
+  return `repeat(auto-fit, minmax(min(100%, ${minWidth}px), 1fr))`;
+}
+
 function Slide({ id, reg, children, style, tint, tintFrom, tintTo, overlay }: { id: string; reg: (id: string, el: HTMLElement | null) => void; children: React.ReactNode; style?: React.CSSProperties; tint?: string; tintFrom?: string; tintTo?: string; overlay?: React.ReactNode }) {
   return (
-    <div id={id} ref={(el) => reg(id, el)} style={{ width: "100%", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: "80px 48px", position: "relative", scrollSnapAlign: "start", overflow: "hidden", background: buildTintBackground(tint, tintFrom, tintTo), ...style }}>
+    <div id={id} ref={(el) => reg(id, el)} style={{ width: "100%", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: "var(--ws-slide-pad-y) var(--ws-slide-pad-x)", position: "relative", scrollSnapAlign: "start", overflow: "hidden", background: buildTintBackground(tint, tintFrom, tintTo), ...style }}>
       {overlay && <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>{overlay}</div>}
-      <div style={{ maxWidth: 900, width: "100%", marginLeft: CONTENT_LEFT - 48, marginRight: CONTENT_RIGHT - 48, position: "relative", zIndex: 1 }}>{children}</div>
+      <div style={{ maxWidth: "var(--ws-content-max)", width: "100%", marginLeft: "calc(var(--ws-content-left) - var(--ws-slide-pad-x))", marginRight: "calc(var(--ws-content-right) - var(--ws-slide-pad-x))", position: "relative", zIndex: 1 }}>{children}</div>
     </div>
   );
 }
@@ -364,7 +485,7 @@ function ChapterSlide({ id, reg, title, subtitle, tint, tintFrom, accentColor, d
         ) : showBadge ? (
           <ChapterMapBadge accentColor={accentColor} darkColor={darkColor} />
         ) : null}
-        <h1 style={{ fontFamily: "var(--ws-font,var(--font-sans))", fontSize: 84, fontWeight: 700, lineHeight: 1, letterSpacing: "-0.02em" }}>{title}</h1>
+        <h1 style={{ fontFamily: "var(--ws-font,var(--font-sans))", fontSize: "var(--ws-chapter-title-size)", fontWeight: 700, lineHeight: 1, letterSpacing: "-0.02em" }}>{title}</h1>
         <p style={{ fontFamily: "var(--ws-font,var(--font-sans))", fontSize: 22, fontWeight: 500, opacity: 0.55, marginTop: 20, letterSpacing: "0.01em" }}>{subtitle}</p>
       </div>
     </Slide>
@@ -489,7 +610,7 @@ function Lead({ children, style }: { children: React.ReactNode; style?: React.CS
 }
 
 function CardGrid({ children, cols, style }: { children: React.ReactNode; cols: number; style?: React.CSSProperties }) {
-  return <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols},1fr)`, gap: 14, ...style }}>{children}</div>;
+  return <div style={{ display: "grid", gridTemplateColumns: responsiveGridTemplate(cols), gap: 14, ...style }}>{children}</div>;
 }
 
 function PCard({ title, body }: { title: string; body: string }) {
@@ -545,7 +666,7 @@ function ConceptStack({ items }: { items: { title: string; body: string }[] }) {
 
 function TeamGrid({ members, branding, cols, style }: { members: BrandedJourneySettings["team"]; branding: BrandedJourneySettings["branding"]; cols: number; style?: React.CSSProperties }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols},1fr)`, gap: 14, ...style }}>
+    <div style={{ display: "grid", gridTemplateColumns: responsiveGridTemplate(cols), gap: 14, ...style }}>
       {members.map((m) => (
         <div key={m.name} style={{ ...cardBase, display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
@@ -567,126 +688,139 @@ function TeamGrid({ members, branding, cols, style }: { members: BrandedJourneyS
   );
 }
 
-type TocItem = { key: string; type: "chapter" | "section"; label: string; sectionId?: string; bearing?: string; chapterTitle?: string };
+function WorkshopContextDock({
+  chapterLabel,
+  chapterSectionId,
+  sectionLabel,
+  sectionId,
+  sectionBearing,
+  onScrollTo,
+  accentColor,
+}: {
+  chapterLabel: string;
+  chapterSectionId?: string;
+  sectionLabel: string;
+  sectionId?: string;
+  sectionBearing?: string;
+  onScrollTo: (id: string) => void;
+  accentColor?: string;
+}) {
+  if (!chapterLabel && !sectionLabel) return null;
 
-function RolodexTOC({ items, activeIdx, onScrollTo, branding }: { items: TocItem[]; activeIdx: number; onScrollTo: (id: string) => void; branding: BrandedJourneySettings["branding"] }) {
-  const ITEM_H = 26;
-  const VISIBLE_RADIUS = 7;
+  const chapterClickable = Boolean(chapterSectionId);
+  const sectionClickable = Boolean(sectionId);
+  const accent = accentColor ?? "var(--gold)";
 
   return (
     <nav
       style={{
         position: "fixed",
-        top: HUD_PAD + 8,
-        right: HUD_PAD + RAIL_WIDTH + 4,
-        width: SIDEBAR_WIDTH,
-        bottom: HUD_PAD + 24,
+        top: "var(--ws-context-top)",
+        left: "var(--ws-context-left)",
+        width: "var(--ws-context-width)",
         zIndex: 40,
-        perspective: 800,
-        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
       }}
     >
-      <div
+      <button
+        type="button"
+        onClick={() => {
+          if (chapterSectionId) onScrollTo(chapterSectionId);
+        }}
         style={{
-          position: "relative",
-          transformStyle: "preserve-3d",
-          paddingTop: 8,
+          background: "none",
+          border: "none",
+          padding: 0,
+          margin: 0,
+          textAlign: "left",
+          cursor: chapterClickable ? "pointer" : "default",
+          pointerEvents: chapterClickable ? "auto" : "none",
+          fontFamily: "var(--ws-mono,var(--font-mono))",
+          fontSize: "8px",
+          fontWeight: 700,
+          letterSpacing: "0.14em",
+          textTransform: "uppercase",
+          color: "var(--ws-dark,#241D1B)",
+          opacity: 0.42,
         }}
       >
-        {items.map((item, i) => {
-          const dist = i - activeIdx;
-          const absDist = Math.abs(dist);
-
-          if (absDist > VISIBLE_RADIUS) return null;
-
-          const isActive = dist === 0 && item.type === "section";
-          const isChapter = item.type === "chapter";
-
-          const translateZ = -absDist * 24;
-          const opacity = isChapter
-            ? Math.max(0.1, 0.35 - absDist * 0.08)
-            : Math.max(0.08, 1 - absDist * 0.25);
-          const blur = Math.min(absDist * 0.6, 3);
-
-          const sharedStyle: React.CSSProperties = {
-            height: ITEM_H,
-            display: "flex",
-            alignItems: "center",
-            padding: "0 8px",
-            opacity,
-            filter: blur > 0 ? `blur(${blur}px)` : undefined,
-            transform: `translateZ(${translateZ}px)`,
-            transformOrigin: "center center",
-            transition: "transform 300ms cubic-bezier(0.4,0,0.2,1), opacity 220ms ease, filter 220ms ease",
-          };
-
-          if (isChapter) {
-            return (
-              <div
-                key={item.key}
-                style={{
-                  ...sharedStyle,
-                  fontSize: "8px",
-                  fontWeight: 700,
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
-                  fontFamily: "var(--ws-mono,var(--font-mono))",
-                  color: "var(--ws-dark,#241D1B)",
-                  pointerEvents: "none",
-                  marginTop: i > 0 ? 6 : 0,
-                }}
-              >
-                {item.label}
-              </div>
-            );
-          }
-
-          return (
-            <a
-              key={item.key}
-              href={item.sectionId ? `#${item.sectionId}` : undefined}
-              onClick={(e) => {
-                e.preventDefault();
-                if (item.sectionId) onScrollTo(item.sectionId);
-              }}
-              style={{
-                ...sharedStyle,
-                gap: 8,
-                textDecoration: "none",
-                fontSize: "11px",
-                fontWeight: isActive ? 600 : 400,
-                fontFamily: "var(--ws-font,var(--font-sans))",
-                color: "var(--ws-dark,#241D1B)",
-                borderRight: isActive ? `2px solid ${branding.accentColor ?? "var(--gold)"}` : "2px solid transparent",
-                cursor: "pointer",
-              }}
-            >
-              {item.bearing ? (
-                <span style={{ fontFamily: "var(--ws-mono,var(--font-mono))", fontSize: "9px", opacity: 0.3, width: 16, flexShrink: 0 }}>{item.bearing}</span>
-              ) : (
-                <span style={{ width: 5, height: 5, background: isActive ? (branding.accentColor ?? "var(--gold)") : "color-mix(in srgb, var(--ws-dark,#241D1B) 30%, transparent)", flexShrink: 0 }} />
-              )}
-              {item.label}
-            </a>
-          );
-        })}
-      </div>
+        {chapterLabel}
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          if (sectionId) onScrollTo(sectionId);
+        }}
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 8,
+          width: "100%",
+          background: "none",
+          border: "none",
+          borderLeft: `2px solid ${accent}`,
+          padding: "0 0 0 10px",
+          margin: 0,
+          textAlign: "left",
+          cursor: sectionClickable ? "pointer" : "default",
+          pointerEvents: sectionClickable ? "auto" : "none",
+          color: "var(--ws-dark,#241D1B)",
+        }}
+      >
+        {sectionBearing && (
+          <span
+            style={{
+              fontFamily: "var(--ws-mono,var(--font-mono))",
+              fontSize: "9px",
+              lineHeight: 1.4,
+              opacity: 0.32,
+              flexShrink: 0,
+              paddingTop: 1,
+            }}
+          >
+            {sectionBearing}
+          </span>
+        )}
+        <span
+          style={{
+            fontFamily: "var(--ws-font,var(--font-sans))",
+            fontSize: "12px",
+            fontWeight: 600,
+            lineHeight: 1.35,
+            minWidth: 0,
+          }}
+        >
+          {sectionLabel}
+        </span>
+      </button>
     </nav>
   );
 }
 
-function WorkshopLogoMotion({ t }: { t: number }) {
+function WorkshopLogoMotion({
+  t,
+  hudPad,
+  viewportWidth,
+}: {
+  t: number;
+  hudPad: number;
+  viewportWidth: number;
+}) {
   const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 
-  const heroTop = HUD_PAD + 24;
-  const dockedTop = HUD_PAD + 4;
-  const dockedLeft = HUD_PAD + RAIL_WIDTH + 12;
+  const heroTop = hudPad + 24;
+  // The SVG includes sparkles above the owl/text, so the container has to sit
+  // slightly above the HUD line for the visible logo to feel aligned.
+  const dockedTop = hudPad - 6;
+  const dockedLeft = hudPad + 32;
 
   const top = heroTop + (dockedTop - heroTop) * ease;
   const height = 36 + (20 - 36) * ease;
   const opacity = 0.85 + (0.6 - 0.85) * ease;
 
-  const viewportCenter = typeof window !== "undefined" ? window.innerWidth / 2 : 500;
+  const viewportCenter = viewportWidth / 2;
   const logoWidthEstimate = height * (499 / 128);
   const centeredLeft = viewportCenter - logoWidthEstimate / 2;
   const left = centeredLeft + (dockedLeft - centeredLeft) * ease;

@@ -298,6 +298,7 @@ export function LoopTerrainMap({ accentColor = "#FE6744", darkColor = "#241D1B" 
         maxWidth: MAX_W,
         height: MAX_H,
         margin: "40px auto 0",
+        overflow: "hidden",
       }}
     >
       {labelPositions.map((pos, i) => (
@@ -305,7 +306,7 @@ export function LoopTerrainMap({ accentColor = "#FE6744", darkColor = "#241D1B" 
           key={MOUNDS[i].label}
           style={{
             position: "absolute",
-            left: pos.x,
+            left: `clamp(68px, ${pos.x}px, calc(100% - 68px))`,
             top: pos.y,
             transform: "translate(-50%, -100%)",
             fontFamily: "var(--ws-font, var(--font-sans))",
@@ -314,7 +315,8 @@ export function LoopTerrainMap({ accentColor = "#FE6744", darkColor = "#241D1B" 
             color: "var(--ws-dark, #241D1B)",
             opacity: 0.7,
             pointerEvents: "none",
-            whiteSpace: "nowrap",
+            maxWidth: 120,
+            textAlign: "center",
             textShadow: "0 1px 4px rgba(255,255,255,0.6)",
           }}
         >

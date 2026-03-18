@@ -99,7 +99,7 @@ export function SemanticBridgeMap({
     x: rightPoint.x * 0.863,
     y: rightPoint.y * 0.824,
   };
-  const rightLabelLeft = `${rightPoint.x * 0.85}%`;
+  const rightLabelRight = `${Math.max(4, 100 - rightPoint.x * 0.85)}%`;
   const rightLabelTop = `${rightPoint.y * 0.706}%`;
 
   function contourRing(
@@ -132,6 +132,7 @@ export function SemanticBridgeMap({
         width: "100%",
         height: 330,
         position: "relative",
+        overflow: "hidden",
       }}
     >
       <svg
@@ -335,7 +336,7 @@ export function SemanticBridgeMap({
           left: "22%",
           top: "72%",
           transform: "translateY(-50%)",
-          maxWidth: 190,
+          maxWidth: "min(190px, 38%)",
           lineHeight: 1.12,
           pointerEvents: "none",
         }}
@@ -370,14 +371,14 @@ export function SemanticBridgeMap({
       <div
         style={{
           position: "absolute",
-          left: rightLabelLeft,
+          right: rightLabelRight,
           top: rightLabelTop,
           transform: "translateY(-50%)",
-          maxWidth: 180,
+          maxWidth: "min(180px, 34%)",
           lineHeight: 1.12,
           textAlign: "right" as const,
           pointerEvents: "none",
-          transition: "left 400ms ease, top 400ms ease",
+          transition: "right 400ms ease, top 400ms ease",
         }}
       >
         <div

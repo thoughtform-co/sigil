@@ -70,11 +70,19 @@ export function EncodeSystemScene({
           flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
-          padding: "60px 48px",
+          padding: "var(--ws-slide-pad-y) var(--ws-slide-pad-x)",
           overflow: "hidden",
         }}
       >
-        <div style={{ maxWidth: 900, width: "100%", display: "grid" }}>
+        <div
+          style={{
+            maxWidth: "var(--ws-content-max)",
+            width: "100%",
+            marginLeft: "calc(var(--ws-content-left) - var(--ws-slide-pad-x))",
+            marginRight: "calc(var(--ws-content-right) - var(--ws-slide-pad-x))",
+            display: "grid",
+          }}
+        >
           {/* Phase 1: Explanation */}
           <div
             style={{

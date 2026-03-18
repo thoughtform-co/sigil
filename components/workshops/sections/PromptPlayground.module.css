@@ -65,9 +65,14 @@
   margin-bottom: 20px;
 }
 
+.promptRow > span {
+  min-width: 0;
+}
+
 /* ── Select ── */
 
 .select {
+  flex: 0 1 auto;
   padding: 8px 12px;
   font-family: var(--ws-font, var(--font-sans));
   font-size: 0.72em;
@@ -78,7 +83,7 @@
   background: rgba(255, 255, 255, 0.7);
   color: inherit;
   outline: none;
-  min-width: 120px;
+  min-width: min(100%, 120px);
   max-width: 100%;
 }
 
@@ -196,6 +201,41 @@
 }
 
 /* ── Responsive ── */
+
+@media (max-width: 1100px) {
+  .promptRow {
+    align-items: flex-start;
+    gap: 6px;
+    line-height: 1.35;
+  }
+
+  .select {
+    flex: 1 1 220px;
+    min-width: min(100%, 180px);
+  }
+
+  .sliderRow {
+    flex-wrap: wrap;
+  }
+
+  .sliderLabel {
+    width: auto;
+  }
+}
+
+@media (max-width: 900px) {
+  .select {
+    flex-basis: 100%;
+  }
+
+  .actionRow {
+    justify-content: flex-start;
+  }
+
+  .cta {
+    width: 100%;
+  }
+}
 
 @media (max-width: 600px) {
   .promptRow {
