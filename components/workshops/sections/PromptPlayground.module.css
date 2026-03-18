@@ -1,0 +1,212 @@
+.card {
+  transition: background 400ms ease, border 400ms ease, box-shadow 400ms ease;
+}
+
+/* ── Source input ── */
+
+.sourceRow {
+  margin-bottom: 20px;
+}
+
+.sourceLabel {
+  display: block;
+  font-family: var(--ws-mono, var(--font-mono));
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.4;
+  margin-bottom: 6px;
+}
+
+.sourceInput {
+  width: 100%;
+  padding: 10px 14px;
+  font-family: var(--ws-font, var(--font-sans));
+  font-size: 14px;
+  line-height: 1.5;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  border-radius: 0;
+  color: inherit;
+  outline: none;
+  resize: vertical;
+  min-height: 38px;
+  transition: border-color 120ms ease;
+}
+
+.sourceInput:focus {
+  border-color: color-mix(in srgb, currentColor 30%, transparent);
+}
+
+/* ── Mode label ── */
+
+.modeLabel {
+  font-family: var(--ws-mono, var(--font-mono));
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, currentColor 45%, transparent);
+  margin-bottom: 16px;
+}
+
+/* ── Prompt row ── */
+
+.promptRow {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-family: var(--ws-font, var(--font-sans));
+  font-size: clamp(18px, 2vw, 24px);
+  font-weight: 600;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+/* ── Select ── */
+
+.select {
+  padding: 8px 12px;
+  font-family: var(--ws-font, var(--font-sans));
+  font-size: 0.72em;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.7);
+  color: inherit;
+  outline: none;
+  min-width: 120px;
+  max-width: 100%;
+}
+
+/* ── Action row ── */
+
+.actionRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+/* ── CTA button ── */
+
+.cta {
+  border: none;
+  padding: 10px 24px;
+  font-family: var(--ws-mono, var(--font-mono));
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 150ms;
+}
+
+.cta:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Expandable sections (slider / map) ── */
+
+.expandSection {
+  display: grid;
+  overflow: hidden;
+  transition: grid-template-rows 400ms ease, opacity 300ms ease;
+}
+
+.expandInner {
+  min-height: 0;
+}
+
+/* ── Slider ── */
+
+.sliderRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sliderLabel {
+  font-family: var(--ws-mono, var(--font-mono));
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.5;
+  flex-shrink: 0;
+  width: 90px;
+}
+
+.slider {
+  flex: 1;
+  height: 3px;
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: 0;
+  outline: none;
+  cursor: pointer;
+}
+
+.sliderValue {
+  font-family: var(--ws-mono, var(--font-mono));
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  width: 24px;
+  text-align: center;
+  opacity: 0.6;
+}
+
+/* ── Output ── */
+
+.output {
+  padding: 20px 24px;
+  min-height: 72px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.outputLabel {
+  font-family: var(--ws-mono, var(--font-mono));
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.4;
+  margin-bottom: 8px;
+}
+
+.outputText {
+  font-family: var(--ws-font, var(--font-sans));
+  font-size: 14px;
+  line-height: 1.7;
+  transition: opacity 200ms;
+}
+
+.outputPlaceholder {
+  font-family: var(--ws-mono, var(--font-mono));
+  font-size: 11px;
+  opacity: 0.3;
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 600px) {
+  .promptRow {
+    gap: 6px;
+  }
+
+  .sliderRow {
+    flex-wrap: wrap;
+  }
+
+  .sliderLabel {
+    width: auto;
+  }
+}

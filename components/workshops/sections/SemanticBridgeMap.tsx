@@ -8,6 +8,7 @@ type SemanticBridgeMapProps = {
   accentColor?: string;
   darkColor?: string;
   connected?: boolean;
+  destPoint?: { x: number; y: number };
 };
 
 export function SemanticBridgeMap({
@@ -16,11 +17,22 @@ export function SemanticBridgeMap({
   accentColor = "#FE6744",
   darkColor = "#241D1B",
   connected = false,
+  destPoint,
 }: SemanticBridgeMapProps) {
   const pathRef = useRef<SVGPathElement>(null);
   const animRef = useRef<number | null>(null);
   const tRef = useRef(0);
   const clipId = useId();
+
+  const leftPoint = { x: 22, y: 64 };
+  const rightPoint = destPoint ?? { x: 80, y: 34 };
+  const midPoint = {
+    x: (leftPoint.x + rightPoint.x) / 2 + 1,
+    y: (leftPoint.y + rightPoint.y) / 2 + 1,
+  };
+
+  const rpx = rightPoint.x;
+  const rpy = rightPoint.y;
 
   useEffect(() => {
     if (!connected) {
@@ -72,13 +84,22 @@ export function SemanticBridgeMap({
     return () => {
       if (animRef.current) cancelAnimationFrame(animRef.current);
     };
-  }, [connected]);
+  }, [connected, rpx, rpy]);
 
-  const leftPoint = { x: 22, y: 64 };
-  const rightPoint = { x: 80, y: 34 };
-  const midPoint = { x: 52, y: 50 };
   const planePath = "M 5 88 L 27 8 L 97 8 L 75 88 Z";
   const routeD = `M ${leftPoint.x} ${leftPoint.y} C ${leftPoint.x + 15} ${leftPoint.y - 20}, ${midPoint.x - 10} ${midPoint.y + 10}, ${midPoint.x} ${midPoint.y} C ${midPoint.x + 13} ${midPoint.y - 16}, ${rightPoint.x - 14} ${rightPoint.y + 10}, ${rightPoint.x} ${rightPoint.y}`;
+
+  const dx = rightPoint.x - leftPoint.x;
+  const dy = rightPoint.y - leftPoint.y;
+  const auxRing1 = { x: leftPoint.x + dx * 0.293, y: leftPoint.y + dy * 0.2 };
+  const auxRing2 = { x: leftPoint.x + dx * 0.759, y: leftPoint.y + dy * 0.7 };
+
+  const rightCalloutEnd = {
+    x: rightPoint.x * 0.863,
+    y: rightPoint.y * 0.824,
+  };
+  const rightLabelLeft = `${rightPoint.x * 0.85}%`;
+  const rightLabelTop = `${rightPoint.y * 0.706}%`;
 
   function contourRing(
     cx: number,
@@ -136,15 +157,43 @@ export function SemanticBridgeMap({
         <g clipPath={`url(#${clipId})`} stroke={darkColor} strokeOpacity={0.12}>
           {Array.from({ length: 22 }, (_, i) => {
             const x = -20 + i * 6.8;
-            return <line key={`iso-a-${i}`} x1={x} y1={92} x2={x + 34} y2={3} strokeWidth={0.2} />;
+            return (
+              <line
+                key={`iso-a-${i}`}
+                x1={x}
+                y1={92}
+                x2={x + 34}
+                y2={3}
+                strokeWidth={0.2}
+              />
+            );
           })}
           {Array.from({ length: 22 }, (_, i) => {
             const x = i * 6.8;
-            return <line key={`iso-b-${i}`} x1={x} y1={92} x2={x + 64} y2={3} strokeWidth={0.2} />;
+            return (
+              <line
+                key={`iso-b-${i}`}
+                x1={x}
+                y1={92}
+                x2={x + 64}
+                y2={3}
+                strokeWidth={0.2}
+              />
+            );
           })}
           {Array.from({ length: 15 }, (_, i) => {
             const y = 14 + i * 5.2;
-            return <line key={`iso-c-${i}`} x1={4} y1={y} x2={98} y2={y} strokeWidth={0.16} strokeOpacity={0.07} />;
+            return (
+              <line
+                key={`iso-c-${i}`}
+                x1={4}
+                y1={y}
+                x2={98}
+                y2={y}
+                strokeWidth={0.16}
+                strokeOpacity={0.07}
+              />
+            );
           })}
         </g>
 
@@ -162,8 +211,8 @@ export function SemanticBridgeMap({
           {contourRing(midPoint.x, midPoint.y, 4.8, 2.9, 4, 0.11, 0.26)}
           {contourRing(midPoint.x, midPoint.y, 8.1, 4.9, 4, 0.075, 0.22)}
           {contourRing(midPoint.x, midPoint.y, 11.8, 7.1, 4, 0.05, 0.2)}
-          {contourRing(39, 58, 6.2, 3.8, -5, 0.05, 0.18)}
-          {contourRing(66, 43, 6.1, 3.7, 8, 0.05, 0.18)}
+          {contourRing(auxRing1.x, auxRing1.y, 6.2, 3.8, -5, 0.05, 0.18)}
+          {contourRing(auxRing2.x, auxRing2.y, 6.1, 3.7, 8, 0.05, 0.18)}
         </g>
 
         <path
@@ -192,23 +241,71 @@ export function SemanticBridgeMap({
         <line
           x1={rightPoint.x - 3}
           y1={rightPoint.y + 1}
-          x2={69}
-          y2={28}
+          x2={rightCalloutEnd.x}
+          y2={rightCalloutEnd.y}
           stroke={accentColor}
           strokeOpacity={connected ? 0.36 : 0.18}
           strokeWidth={0.22}
         />
 
         <g transform={`translate(${leftPoint.x} ${leftPoint.y})`}>
-          <line x1={-6.2} y1={0} x2={6.2} y2={0} stroke={darkColor} strokeWidth={0.22} strokeOpacity={0.2} />
-          <line x1={0} y1={-6.2} x2={0} y2={6.2} stroke={darkColor} strokeWidth={0.22} strokeOpacity={0.2} />
-          <rect x={-2.05} y={-2.05} width={4.1} height={4.1} transform="rotate(45)" fill={accentColor} fillOpacity={0.9} />
-          <rect x={-0.88} y={-0.88} width={1.76} height={1.76} transform="rotate(45)" fill={darkColor} fillOpacity={0.14} />
+          <line
+            x1={-6.2}
+            y1={0}
+            x2={6.2}
+            y2={0}
+            stroke={darkColor}
+            strokeWidth={0.22}
+            strokeOpacity={0.2}
+          />
+          <line
+            x1={0}
+            y1={-6.2}
+            x2={0}
+            y2={6.2}
+            stroke={darkColor}
+            strokeWidth={0.22}
+            strokeOpacity={0.2}
+          />
+          <rect
+            x={-2.05}
+            y={-2.05}
+            width={4.1}
+            height={4.1}
+            transform="rotate(45)"
+            fill={accentColor}
+            fillOpacity={0.9}
+          />
+          <rect
+            x={-0.88}
+            y={-0.88}
+            width={1.76}
+            height={1.76}
+            transform="rotate(45)"
+            fill={darkColor}
+            fillOpacity={0.14}
+          />
         </g>
 
         <g transform={`translate(${rightPoint.x} ${rightPoint.y})`}>
-          <line x1={-6.2} y1={0} x2={6.2} y2={0} stroke={darkColor} strokeWidth={0.22} strokeOpacity={0.2} />
-          <line x1={0} y1={-6.2} x2={0} y2={6.2} stroke={darkColor} strokeWidth={0.22} strokeOpacity={0.2} />
+          <line
+            x1={-6.2}
+            y1={0}
+            x2={6.2}
+            y2={0}
+            stroke={darkColor}
+            strokeWidth={0.22}
+            strokeOpacity={0.2}
+          />
+          <line
+            x1={0}
+            y1={-6.2}
+            x2={0}
+            y2={6.2}
+            stroke={darkColor}
+            strokeWidth={0.22}
+            strokeOpacity={0.2}
+          />
           <rect
             x={-2.05}
             y={-2.05}
@@ -219,7 +316,15 @@ export function SemanticBridgeMap({
             fillOpacity={connected ? 0.9 : 0.3}
             style={{ transition: "fill 400ms, fill-opacity 400ms" }}
           />
-          <rect x={-0.88} y={-0.88} width={1.76} height={1.76} transform="rotate(45)" fill={darkColor} fillOpacity={0.14} />
+          <rect
+            x={-0.88}
+            y={-0.88}
+            width={1.76}
+            height={1.76}
+            transform="rotate(45)"
+            fill={darkColor}
+            fillOpacity={0.14}
+          />
         </g>
       </svg>
 
@@ -264,13 +369,14 @@ export function SemanticBridgeMap({
       <div
         style={{
           position: "absolute",
-          left: "68%",
-          top: "24%",
+          left: rightLabelLeft,
+          top: rightLabelTop,
           transform: "translateY(-50%)",
           maxWidth: 180,
           lineHeight: 1.12,
-          textAlign: "right",
+          textAlign: "right" as const,
           pointerEvents: "none",
+          transition: "left 400ms ease, top 400ms ease",
         }}
       >
         <div

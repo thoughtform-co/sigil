@@ -7,12 +7,8 @@ const requestSchema = z.object({
   sourceText: z.string().min(1).max(2000),
   stage: z.enum(["basic", "dimensional", "semantic"]),
   clientName: z.string().optional(),
-  dimensions: z
-    .object({
-      cringe: z.number().min(0).max(10).optional(),
-      formality: z.number().min(0).max(10).optional(),
-    })
-    .optional(),
+  attribute: z.string().max(100).optional(),
+  dimensionValue: z.number().min(0).max(10).optional(),
   bridgePerspective: z.string().max(200).optional(),
 });
 
@@ -21,22 +17,27 @@ const MODEL =
   process.env.ANTHROPIC_PROMPT_ENHANCE_MODEL ||
   "claude-sonnet-4-20250514";
 
-function buildSystemPrompt(stage: string, clientName?: string): string {
+function buildSystemPrompt(
+  stage: string,
+  clientName?: string,
+  attribute?: string,
+): string {
   const brand = clientName ? ` for the ${clientName} brand` : "";
 
   if (stage === "basic") {
+    const attr = attribute || "clarity";
     return `You are a writing assistant helping a workshop participant rewrite a social media post${brand}.
-The user will provide a post and ask for a rewrite focused on clarity or brevity.
+The user will provide a post and ask for a rewrite focused on ${attr}.
 Return ONLY the rewritten post. No explanations, labels, or commentary.
 Keep the core message intact. Make it better.`;
   }
 
   if (stage === "dimensional") {
+    const attr = attribute || "clarity";
     return `You are a writing assistant demonstrating dimensional prompt navigation${brand}.
-The user provides a social media post and two dimension values (cringe 0-10 and formality 0-10).
-Rewrite the post matching those dimension values exactly:
-- Cringe 0 = professional and grounded. Cringe 10 = maximum internet-speak, emojis, exclamation marks.
-- Formality 0 = casual and conversational. Formality 10 = corporate/institutional language.
+The user provides a social media post and a target level (0-10) for ${attr}.
+Rewrite the post to match that ${attr} level:
+- 0 = minimal ${attr}. 10 = maximum ${attr}.
 Return ONLY the rewritten post. No explanations.`;
   }
 
@@ -50,17 +51,19 @@ Return ONLY the rewritten analysis (2-4 sentences). No meta-commentary.`;
 function buildUserMessage(
   sourceText: string,
   stage: string,
-  dimensions?: { cringe?: number; formality?: number },
+  attribute?: string,
+  dimensionValue?: number,
   bridgePerspective?: string,
 ): string {
   if (stage === "basic") {
-    return `Rewrite this post for clarity and brevity:\n\n${sourceText}`;
+    const attr = attribute || "clarity";
+    return `Rewrite this post for ${attr}:\n\n${sourceText}`;
   }
 
   if (stage === "dimensional") {
-    const c = dimensions?.cringe ?? 5;
-    const f = dimensions?.formality ?? 5;
-    return `Rewrite this post with cringe level ${c}/10 and formality level ${f}/10:\n\n${sourceText}`;
+    const attr = attribute || "clarity";
+    const val = dimensionValue ?? 5;
+    return `Rewrite this post with ${attr} level ${val}/10:\n\n${sourceText}`;
   }
 
   const perspective = bridgePerspective || "a pack of wolves protecting territory";
@@ -88,7 +91,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  const { sourceText, stage, clientName, dimensions, bridgePerspective } = parsed.data;
+  const { sourceText, stage, clientName, attribute, dimensionValue, bridgePerspective } =
+    parsed.data;
 
   try {
     const anthropic = new Anthropic({ apiKey });
@@ -97,11 +101,17 @@ export async function POST(request: Request) {
       model: MODEL,
       max_tokens: 800,
       temperature: 0.7,
-      system: buildSystemPrompt(stage, clientName),
+      system: buildSystemPrompt(stage, clientName, attribute),
       messages: [
         {
           role: "user",
-          content: buildUserMessage(sourceText, stage, dimensions, bridgePerspective),
+          content: buildUserMessage(
+            sourceText,
+            stage,
+            attribute,
+            dimensionValue,
+            bridgePerspective,
+          ),
         },
       ],
     });
