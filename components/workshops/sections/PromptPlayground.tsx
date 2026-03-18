@@ -94,7 +94,7 @@ export function PromptPlayground({
         {mode === "semantic" ? (
           <>
             <span>
-              {`\u201CAnalyze ${clientName}\u2019s brand strategy from the perspective of`}
+              {`\u201CRewrite this ${clientName} social post from the perspective of`}
             </span>
             <select
               className={s.select}

@@ -5,6 +5,7 @@ import { RAIL_WIDTH } from "./BrandedWorkshopFrame";
 import { LoopTerrainMap } from "./sections/LoopTerrainMap";
 import { WaypointTopography } from "./sections/WaypointTopography";
 import { NavigateStory } from "./sections/NavigateStory";
+import { EncodeSystemScene } from "./sections/EncodeSystemScene";
 import { PoppinsLogo } from "./PoppinsLogo";
 import type { BrandedJourneySettings } from "@/lib/workshops/types";
 
@@ -161,24 +162,14 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
         <p style={{ fontFamily: "var(--ws-font,var(--font-sans))", fontSize: 17, textAlign: "center", marginTop: 40, color: "color-mix(in srgb, var(--ws-dark,#241D1B) 55%, transparent)", lineHeight: 1.7 }}>
           Without context → median output.<br />With context → <strong>your</strong> output.
         </p>
-        <Exercise title="Context Audit" tag="Reflection" tagBg="rgba(254,179,210,0.2)">
+        <RoomQuestion title="Context Audit" tag="Reflection">
           What context already exists for {branding.clientName}? Where is it scattered? (Slack, Notion, Figma, email, documents?) What&apos;s the one piece you&apos;d dump first?
-        </Exercise>
+        </RoomQuestion>
       </Slide>
 
-      <Slide id="enc-system" reg={reg} tint="#fcf0f5">
-        <Tag bg="rgba(254,179,210,0.2)">First layer</Tag>
-        <h2 style={h2Style}>System <span style={caveatSpan}>Prompts</span></h2>
-        <Lead style={{ textAlign: "center", marginBottom: 32 }}>The simplest form of encoding. Your baseline. The instruction set that travels with every conversation.</Lead>
-        <ConceptStack items={[
-          { title: "What is it?", body: "A persistent instruction that defines how AI should behave in conversations with you. It's the foundation for everything that follows." },
-          { title: "Build one for your role", body: "Don't overthink it. What do you need AI to understand before every conversation? Write that down. Start there." },
-          { title: "It travels with you", body: "In Claude Projects, your system prompt stays active across conversations. Consistency without repetition." },
-        ]} />
-        <Exercise title="Draft Your System Prompt" tag="Individual" tagBg="rgba(254,179,210,0.2)">
-          What&apos;s one instruction you find yourself repeating? What context is always relevant? Draft a 2-3 sentence system prompt for your role at {branding.clientName}.
-        </Exercise>
-      </Slide>
+      <div id="enc-system" ref={(el) => reg("enc-system", el)} style={{ background: "#fcf0f5", position: "relative", overflow: "visible" }}>
+        <EncodeSystemScene clientName={branding.clientName} accentColor={branding.accentColor} darkColor={branding.darkColor} />
+      </div>
 
       <Slide id="enc-projects" reg={reg} tint="#fcf0f5">
         <Tag bg="rgba(254,179,210,0.2)">Context container</Tag>
@@ -191,9 +182,9 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
         <div style={{ background: "var(--ws-dark,#241D1B)", color: "var(--ws-bg,#FCF3EC)", padding: "24px 28px", marginTop: 32, fontFamily: "var(--ws-mono,var(--font-mono))", fontSize: 13, lineHeight: 1.8 }}>
           Learn more: <a href="https://support.claude.com/en/articles/9519177" target="_blank" rel="noopener noreferrer" style={{ color: "var(--ws-accent,#FE6744)", textDecoration: "underline" }}>Claude Projects — manage context and collaborate</a>
         </div>
-        <Exercise title="Project Mapping" tag="Pair discussion" tagBg="rgba(254,179,210,0.2)">
+        <RoomQuestion title="Project Mapping" tag="Pair discussion">
           What&apos;s one workflow where you&apos;d benefit from a persistent Project? What would you put in it? Who else would use it?
-        </Exercise>
+        </RoomQuestion>
       </Slide>
 
       <Slide id="enc-skills" reg={reg} tint="#fcf0f5">
@@ -523,6 +514,19 @@ function Exercise({ title, children, tag, tagBg }: { title: string; children: Re
   );
 }
 
+function RoomQuestion({ title, children, tag, accentColor = "var(--ws-accent,#FE6744)" }: { title: string; children: React.ReactNode; tag: string; accentColor?: string }) {
+  return (
+    <div style={{ background: `color-mix(in srgb, ${accentColor} 6%, white)`, border: `2px solid color-mix(in srgb, ${accentColor} 22%, transparent)`, padding: 32, marginTop: 40, position: "relative" }}>
+      <div style={{ position: "absolute", top: -10, left: 24, background: `color-mix(in srgb, ${accentColor} 6%, white)`, padding: "0 8px", fontFamily: "var(--ws-mono,var(--font-mono))", fontSize: 10, fontWeight: 500, letterSpacing: "0.12em", color: accentColor }}>
+        ✦ QUESTION FOR THE ROOM
+      </div>
+      <h4 style={{ fontSize: 18, fontWeight: 600, marginBottom: 10 }}>{title}</h4>
+      <p style={{ fontSize: 14, lineHeight: 1.7, color: "color-mix(in srgb, var(--ws-dark,#241D1B) 55%, transparent)" }}>{children}</p>
+      <span style={{ display: "inline-block", fontSize: 11, fontWeight: 600, padding: "5px 14px", borderRadius: 40, marginTop: 14, background: `color-mix(in srgb, ${accentColor} 12%, transparent)`, color: "var(--ws-dark,#241D1B)", fontFamily: "var(--ws-font,var(--font-sans))" }}>{tag}</span>
+    </div>
+  );
+}
+
 function ConceptStack({ items }: { items: { title: string; body: string }[] }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 28, overflow: "hidden" }}>
@@ -733,7 +737,7 @@ function FlowRow() {
 
 function ContextIcons() {
   return (
-    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 24, margin: "40px 0", flexWrap: "wrap" }}>
+    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 40, margin: "48px 0", flexWrap: "wrap" }}>
       {[
         { label: "Images", svg: <svg viewBox="0 0 48 48"><rect x="8" y="8" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.5" rx="4" /><circle cx="16" cy="16" r="2" fill="currentColor" /><path d="M 8 28 L 20 16 L 28 24 L 40 12" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" /></svg> },
         { label: "Documents", svg: <svg viewBox="0 0 48 48"><rect x="10" y="8" width="28" height="32" fill="none" stroke="currentColor" strokeWidth="1.5" rx="2" /><line x1="14" y1="14" x2="34" y2="14" stroke="currentColor" strokeWidth="1" /><line x1="14" y1="20" x2="34" y2="20" stroke="currentColor" strokeWidth="1" /><line x1="14" y1="26" x2="30" y2="26" stroke="currentColor" strokeWidth="1" /><line x1="14" y1="32" x2="28" y2="32" stroke="currentColor" strokeWidth="1" /></svg> },
@@ -741,10 +745,10 @@ function ContextIcons() {
         { label: "Transcripts", svg: <svg viewBox="0 0 48 48"><circle cx="16" cy="18" r="2" fill="currentColor" /><path d="M 12 24 L 20 24" stroke="currentColor" strokeWidth="1" /><circle cx="32" cy="18" r="2" fill="currentColor" /><path d="M 28 24 L 36 24" stroke="currentColor" strokeWidth="1" /><path d="M 20 32 Q 24 28 28 32" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" /></svg> },
         { label: "Video", caveat: "(Gemini only)", svg: <svg viewBox="0 0 48 48"><rect x="8" y="10" width="32" height="28" fill="none" stroke="currentColor" strokeWidth="1.5" rx="2" /><rect x="10" y="12" width="28" height="6" fill="currentColor" opacity="0.3" /><circle cx="14" cy="22" r="3" fill="none" stroke="currentColor" strokeWidth="1" /><path d="M 22 22 L 30 28" stroke="currentColor" strokeWidth="1" /><circle cx="30" cy="32" r="3" fill="none" stroke="currentColor" strokeWidth="1" /></svg> },
       ].map((c) => (
-        <div key={c.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, textAlign: "center" }}>
-          <div style={{ width: 48, height: 48 }}>{c.svg}</div>
-          <p style={{ fontSize: 12, fontWeight: 500 }}>{c.label}</p>
-          {c.caveat && <span style={{ fontSize: 10, color: "var(--ws-accent,#FE6744)" }}>{c.caveat}</span>}
+        <div key={c.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, textAlign: "center" }}>
+          <div style={{ width: 64, height: 64 }}>{c.svg}</div>
+          <p style={{ fontSize: 14, fontWeight: 600 }}>{c.label}</p>
+          {c.caveat && <span style={{ fontSize: 11, color: "var(--ws-accent,#FE6744)" }}>{c.caveat}</span>}
         </div>
       ))}
     </div>
