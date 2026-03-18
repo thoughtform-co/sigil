@@ -4,7 +4,6 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   POPPINS_PROFILES,
   POPPINS_ROLES,
-  type PoppinsProfile,
 } from "@/lib/workshops/poppinsTeamProfiles";
 import s from "./PromptPlayground.module.css";
 
@@ -83,10 +82,6 @@ export function SystemPromptStudio({
   const ctaLabel = loading ? "Navigating\u2026" : "Navigate";
   const showOutput = output !== null && !outputStale;
 
-  const profile: PoppinsProfile | undefined = POPPINS_PROFILES.find(
-    (p) => p.name === selectedName,
-  );
-
   return (
     <div
       className={s.card}
@@ -128,72 +123,30 @@ export function SystemPromptStudio({
 
       <div className={s.sourceRow}>
         <label className={s.sourceLabel}>Background &amp; context</label>
-        <textarea
-          className={s.sourceInput}
-          value={contextText}
-          onChange={(e) => setContextText(e.target.value)}
-          placeholder="Your role context, recurring tasks, what AI should always know\u2026"
-          rows={3}
-          style={{ minHeight: 72 }}
-        />
-      </div>
-
-      {profile && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            marginBottom: 20,
-            padding: "10px 14px",
-            background: `color-mix(in srgb, ${profile.color} 8%, transparent)`,
-            border: `1px solid color-mix(in srgb, ${profile.color} 15%, transparent)`,
-          }}
-        >
-          <div
+        <div className={s.sourceWithCta}>
+          <textarea
+            className={s.sourceInput}
+            value={contextText}
+            onChange={(e) => setContextText(e.target.value)}
+            placeholder="Your role context, recurring tasks, what AI should always know\u2026"
+            rows={3}
+            style={{ minHeight: 72 }}
+          />
+          <button
+            type="button"
+            className={s.cta}
             style={{
-              width: 32,
-              height: 32,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 12,
-              fontWeight: 700,
-              flexShrink: 0,
-              color: "white",
-              background: profile.color,
+              background: darkColor,
+              color: "var(--ws-bg, #FCF3EC)",
+              opacity: loading ? 0.5 : 1,
+              alignSelf: "flex-end",
             }}
+            onClick={generate}
+            disabled={!canGenerate}
           >
-            {profile.initials}
-          </div>
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 600 }}>{profile.name}</div>
-            <div
-              style={{
-                fontSize: 11,
-                color: `color-mix(in srgb, ${darkColor} 50%, transparent)`,
-              }}
-            >
-              {selectedRole}
-            </div>
-          </div>
+            {ctaLabel}
+          </button>
         </div>
-      )}
-
-      <div className={s.actionRow}>
-        <button
-          type="button"
-          className={s.cta}
-          style={{
-            background: darkColor,
-            color: "var(--ws-bg, #FCF3EC)",
-            opacity: loading ? 0.5 : 1,
-          }}
-          onClick={generate}
-          disabled={!canGenerate}
-        >
-          {ctaLabel}
-        </button>
       </div>
 
       <div

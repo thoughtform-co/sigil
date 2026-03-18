@@ -130,7 +130,7 @@ export function SemanticBridgeMap({
     <div
       style={{
         width: "100%",
-        height: 330,
+        height: "clamp(200px, 28vh, 330px)",
         position: "relative",
         overflow: "hidden",
       }}

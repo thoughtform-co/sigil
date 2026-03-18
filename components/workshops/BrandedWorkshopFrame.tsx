@@ -134,7 +134,7 @@ export function BrandedWorkshopFrame({ children }: BrandedWorkshopFrameProps) {
       <div
         style={{
           position: "fixed",
-          top: "calc(var(--hud-padding) - 6px)",
+          top: "var(--hud-padding)",
           right: "calc(var(--hud-padding) + 32px)",
           zIndex: 50,
           pointerEvents: "none",

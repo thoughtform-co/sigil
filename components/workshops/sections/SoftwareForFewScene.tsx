@@ -1,18 +1,16 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { SystemPromptStudio } from "./SystemPromptStudio";
+import { POPPINS_USE_CASES } from "@/lib/workshops/poppinsUseCases";
 
 const TOTAL_STAGES = 6;
 
 type Props = {
-  clientName: string;
   accentColor?: string;
   darkColor?: string;
 };
 
-export function EncodeSystemScene({
-  clientName,
+export function SoftwareForFewScene({
   accentColor = "#FE6744",
   darkColor = "#241D1B",
 }: Props) {
@@ -38,8 +36,8 @@ export function EncodeSystemScene({
   }, []);
 
   const stage = Math.min(TOTAL_STAGES - 1, Math.floor(progress * TOTAL_STAGES));
-  const showIntro = stage <= 2;
-  const showStudio = stage >= 3;
+  const showOverview = stage <= 2;
+  const showExamples = stage >= 3;
 
   const mono: React.CSSProperties = {
     fontFamily: "var(--ws-mono, var(--font-mono))",
@@ -55,6 +53,21 @@ export function EncodeSystemScene({
     fontSize: "1.1em",
     fontStyle: "normal",
   };
+
+  const cardBase: React.CSSProperties = {
+    background: "rgba(255,255,255,0.7)",
+    border: `1px solid color-mix(in srgb, ${darkColor} 8%, transparent)`,
+    padding: 24,
+  };
+
+  const toolExamples = POPPINS_USE_CASES
+    .filter((uc) => uc.softwareForFew.length > 0)
+    .slice(0, 6)
+    .map((uc) => ({
+      name: uc.name,
+      role: uc.role,
+      idea: uc.softwareForFew[0],
+    }));
 
   return (
     <div
@@ -83,14 +96,14 @@ export function EncodeSystemScene({
             display: "grid",
           }}
         >
-          {/* Phase 1: Explanation */}
+          {/* Phase 1: Overview */}
           <div
             style={{
               gridArea: "1 / 1",
-              opacity: showIntro ? 1 : 0,
-              transform: showIntro ? "translateY(0)" : "translateY(-24px)",
+              opacity: showOverview ? 1 : 0,
+              transform: showOverview ? "translateY(0)" : "translateY(-24px)",
               transition: "opacity 500ms ease, transform 500ms ease",
-              pointerEvents: showIntro ? "auto" : "none",
+              pointerEvents: showOverview ? "auto" : "none",
             }}
           >
             <div
@@ -98,12 +111,12 @@ export function EncodeSystemScene({
                 ...mono,
                 marginBottom: 14,
                 color: accentColor,
-                background: "rgba(254,179,210,0.2)",
+                background: "rgba(254,103,68,0.1)",
                 display: "inline-block",
                 padding: "4px 12px",
               }}
             >
-              First layer
+              The flywheel
             </div>
             <h2
               style={{
@@ -115,7 +128,7 @@ export function EncodeSystemScene({
                 marginBottom: 0,
               }}
             >
-              System <span style={caveat}>Prompts</span>
+              Software for <span style={caveat}>Few</span>
             </h2>
             <p
               style={{
@@ -128,29 +141,22 @@ export function EncodeSystemScene({
                 margin: "8px 0 32px",
               }}
             >
-              Your baseline. The context that travels with every conversation.
+              Build tools that only you need. Too specific to buy, too small to outsource, built with AI.
             </p>
 
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 3,
-                overflow: "hidden",
-              }}
-            >
+            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
               {[
                 {
-                  title: "What is it?",
-                  body: "A persistent context that shapes how AI thinks with you. Everything that follows builds on this.",
+                  title: "Claude Code",
+                  body: "Give Claude files. Describe what you want. It builds. You navigate the solution space. For one-off tools that solve your specific problem.",
                 },
                 {
-                  title: "Build one for your role",
-                  body: "What does AI need to know before every conversation? Your role, your voice, your constraints. Write that down. Start there.",
+                  title: "80% of enterprise value at 1% cost",
+                  body: "Every team has tools they wish existed but no vendor would build. A dashboard for YOUR metrics. A calculator for YOUR logic. Purpose-built, instantly modifiable.",
                 },
                 {
-                  title: "It travels with you",
-                  body: "In Claude Projects, your context stays active across conversations. Consistency without repetition.",
+                  title: "The flywheel",
+                  body: "Navigate the problem \u2192 encode what you learn \u2192 build a tool \u2192 discover what\u2019s missing \u2192 encode again. Each lap, your tool gets tighter.",
                 },
               ].map((item, i, arr) => (
                 <div
@@ -200,14 +206,14 @@ export function EncodeSystemScene({
             </div>
           </div>
 
-          {/* Phase 2: System Prompt Studio */}
+          {/* Phase 2: Poppins Tool Ideas */}
           <div
             style={{
               gridArea: "1 / 1",
-              opacity: showStudio ? 1 : 0,
-              transform: showStudio ? "translateY(0)" : "translateY(24px)",
+              opacity: showExamples ? 1 : 0,
+              transform: showExamples ? "translateY(0)" : "translateY(24px)",
               transition: "opacity 500ms ease, transform 500ms ease",
-              pointerEvents: showStudio ? "auto" : "none",
+              pointerEvents: showExamples ? "auto" : "none",
             }}
           >
             <div
@@ -215,12 +221,12 @@ export function EncodeSystemScene({
                 ...mono,
                 marginBottom: 14,
                 color: accentColor,
-                background: "rgba(254,179,210,0.2)",
+                background: "rgba(254,103,68,0.1)",
                 display: "inline-block",
                 padding: "4px 12px",
               }}
             >
-              Draft yours
+              For Poppins
             </div>
             <h2
               style={{
@@ -232,14 +238,55 @@ export function EncodeSystemScene({
                 marginBottom: 20,
               }}
             >
-              Draft Your System <span style={caveat}>Prompt</span>
+              Tool <span style={caveat}>Ideas</span>
             </h2>
 
-            <SystemPromptStudio
-              clientName={clientName}
-              accentColor={accentColor}
-              darkColor={darkColor}
-            />
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))",
+                gap: 14,
+              }}
+            >
+              {toolExamples.map((ex, i) => (
+                <div
+                  key={ex.name}
+                  style={{
+                    ...cardBase,
+                    opacity: showExamples ? 1 : 0,
+                    transform: showExamples ? "translateY(0)" : "translateY(12px)",
+                    transition: `opacity 400ms ease ${i * 80}ms, transform 400ms ease ${i * 80}ms`,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontFamily: "var(--ws-mono,var(--font-mono))",
+                      fontSize: 10,
+                      fontWeight: 600,
+                      color: accentColor,
+                      marginBottom: 8,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.08em",
+                    }}
+                  >
+                    {ex.name} \u2014 {ex.role}
+                  </div>
+                  <h4 style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>
+                    {ex.idea.title}
+                  </h4>
+                  <p
+                    style={{
+                      fontSize: 13,
+                      lineHeight: 1.7,
+                      color: `color-mix(in srgb, ${darkColor} 55%, transparent)`,
+                      margin: 0,
+                    }}
+                  >
+                    {ex.idea.description}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

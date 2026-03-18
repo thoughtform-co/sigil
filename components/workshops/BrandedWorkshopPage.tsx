@@ -6,6 +6,9 @@ import { LoopTerrainMap } from "./sections/LoopTerrainMap";
 import { WaypointTopography } from "./sections/WaypointTopography";
 import { NavigateStory } from "./sections/NavigateStory";
 import { EncodeSystemScene } from "./sections/EncodeSystemScene";
+import { EncodeSkillsScene } from "./sections/EncodeSkillsScene";
+import { CoworkScene } from "./sections/CoworkScene";
+import { SoftwareForFewScene } from "./sections/SoftwareForFewScene";
 import { PoppinsLogo } from "./PoppinsLogo";
 import type { BrandedJourneySettings } from "@/lib/workshops/types";
 
@@ -230,9 +233,13 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
         </RoomQuestion>
       </Slide>
 
+      <div aria-hidden style={{ height: "30vh", background: "#fcf0f5" }} />
+
       <div id="enc-system" ref={(el) => reg("enc-system", el)} style={{ background: "#fcf0f5", position: "relative", overflow: "visible" }}>
         <EncodeSystemScene clientName={branding.clientName} accentColor={branding.accentColor} darkColor={branding.darkColor} />
       </div>
+
+      <div aria-hidden style={{ height: "30vh", background: "#fcf0f5" }} />
 
       <Slide id="enc-projects" reg={reg} tint="#fcf0f5">
         <Tag bg="rgba(254,179,210,0.2)">Context container</Tag>
@@ -250,31 +257,17 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
         </RoomQuestion>
       </Slide>
 
-      <Slide id="enc-skills" reg={reg} tint="#fcf0f5">
-        <Tag bg="rgba(254,179,210,0.2)">Reusable patterns</Tag>
-        <h2 style={h2Style}><span style={caveatSpan}>Skills</span></h2>
-        <Lead>Different from Projects. Projects = context. Skills = process.</Lead>
-        <CardGrid cols={3} style={{ marginTop: 32 }}>
-          <PCard title="What it is" body="A reusable workflow. Format: SKILL.md. Think of it as a template for a repeated task. Build once, use everywhere." />
-          <PCard title="Open standard" body="Not locked to Claude. agentskills.io is an open format. Your skill works in other tools too." />
-          <PCard title="The secret weapon" body='Embed a "never say" list. Define the tone. Set constraints. Your process, automated.' />
-        </CardGrid>
-        <div style={{ background: "rgba(254,103,68,0.05)", border: "1px solid rgba(254,103,68,0.15)", padding: 24, marginTop: 24 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 600, color: "var(--ws-accent,#FE6744)", marginBottom: 6 }}>Never Say List</h3>
-          <p style={{ fontSize: 13, lineHeight: 1.7, color: "color-mix(in srgb, var(--ws-dark,#241D1B) 55%, transparent)" }}>
-            One powerful skill technique: define what NOT to say. &quot;Never: &apos;leverage,&apos; &apos;synergy,&apos; &apos;touch base.&apos; Always: active voice, real data, specific stakes.&quot; Your voice, enforced.
-          </p>
-        </div>
-        {team.length > 0 && (
-          <>
-            <h4 style={{ marginTop: 40, marginBottom: 20, fontSize: 14, fontWeight: 600 }}>Team Skills Ideas</h4>
-            <TeamGrid members={team} branding={branding} cols={3} />
-          </>
-        )}
-        <Exercise title="Skill Design Workshop" tag="Small group" tagBg="rgba(254,179,210,0.2)">
-          Pick one role above. Design a skill for them in 3 lines: input → logic → output. What would make that skill valuable enough to use every week?
-        </Exercise>
-      </Slide>
+      <div aria-hidden style={{ height: "30vh", background: "#fcf0f5" }} />
+
+      <div id="enc-skills" ref={(el) => reg("enc-skills", el)} style={{ background: "#fcf0f5" }}>
+        <EncodeSkillsScene
+          clientName={settings.branding?.clientName ?? "Poppins"}
+          accentColor={branding.accentColor}
+          darkColor={branding.darkColor}
+        />
+      </div>
+
+      <div aria-hidden style={{ height: "30vh", background: "#fcf0f5" }} />
 
       <Slide id="enc-memory" reg={reg} tint="#fcf0f5" tintTo="#fef0eb">
         <Tag bg="rgba(254,179,210,0.2)">Over time</Tag>
@@ -293,45 +286,19 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
       {/* Accelerate chapter */}
       <ChapterSlide id="acc-chapter" reg={reg} title="Accelerate" subtitle="How to force-multiply your team" tint="#fef0eb" tintFrom="#fcf0f5" accentColor={branding.accentColor} darkColor={branding.darkColor} mapAnchorX={56} />
 
-      <Slide id="acc-cowork" reg={reg} tint="#fef0eb" overlay={<SectionMapBackdrop accentColor={branding.accentColor} darkColor={branding.darkColor} anchorX={56} />}>
-        <Tag bg="rgba(254,103,68,0.1)">Still chat, more autonomous</Tag>
-        <h2 style={h2Style}><span style={caveatSpan}>Cowork</span></h2>
-        <Lead style={{ textAlign: "center", marginBottom: 32 }}>Files in. Work out. Scheduled tasks. Connectors that travel.</Lead>
-        <CardGrid cols={3}>
-          {[{ icon: "\uD83D\uDCC1", title: "Files In / Work Out", body: "Upload a spreadsheet. Get a report. Upload a sketch. Get a design system. Files move. Work gets done. No copy-paste." },
-            { icon: "\u23F0", title: "Scheduled Tasks", body: '"Every Monday, audit last week\'s metrics." "Daily, monitor competitor pricing." Work that runs without you asking.' },
-            { icon: "\uD83D\uDD17", title: "Connected Tools", body: "Slack, Google Sheets, Linear, Notion. Claude reads them. Claude updates them. Your tools talk to each other." },
-          ].map((c) => (
-            <div key={c.title} style={cardBase}>
-              <div style={{ fontSize: 32, marginBottom: 12 }}>{c.icon}</div>
-              <h4 style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>{c.title}</h4>
-              <p style={{ fontSize: 13, lineHeight: 1.7, color: "color-mix(in srgb, var(--ws-dark,#241D1B) 55%, transparent)" }}>{c.body}</p>
-            </div>
-          ))}
-        </CardGrid>
-        <Exercise title="Monday Morning Report" tag="Brainstorm" tagBg="rgba(254,103,68,0.1)">
-          What&apos;s the one report you create every Monday? Weekend social metrics? Competitor moves? Customer signals? Design that automated.
-        </Exercise>
-      </Slide>
+      <div id="acc-cowork" ref={(el) => reg("acc-cowork", el)} style={{ background: "#fef0eb" }}>
+        <CoworkScene
+          accentColor={branding.accentColor}
+          darkColor={branding.darkColor}
+        />
+      </div>
 
-      <Slide id="acc-build" reg={reg} tint="#fef0eb">
-        <Tag bg="rgba(254,103,68,0.1)">The flywheel</Tag>
-        <h2 style={h2Style}>Software for <span style={caveatSpan}>Few</span></h2>
-        <Lead style={{ textAlign: "center", marginBottom: 40 }}>Build tools that only you need. The ones that don&apos;t exist yet.</Lead>
-        <CardGrid cols={2}>
-          <PCard title="Claude Code" body="Give Claude files. Describe what you want. It builds. You navigate the solution space. For one-off tools that solve your specific problem." />
-          <PCard title="Cursor + AI" body="Your IDE + Claude. Code faster. Refactor entire files. The AI pairs with your instincts. You stay in flow." />
-        </CardGrid>
-        <div style={{ background: "rgba(254,103,68,0.05)", border: "1px solid rgba(254,103,68,0.15)", padding: 24, marginTop: 32 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 600, color: "var(--ws-accent,#FE6744)", marginBottom: 6 }}>The Flywheel</h3>
-          <p style={{ fontSize: 13, lineHeight: 1.7, color: "color-mix(in srgb, var(--ws-dark,#241D1B) 55%, transparent)" }}>
-            <strong>Navigate</strong> the problem space → <strong>encode</strong> what you&apos;ve learned → <strong>build</strong> a tool → <strong>discover</strong> what you&apos;re missing → <strong>encode</strong> again → <strong>build</strong> again. Each lap, your tool gets tighter.
-          </p>
-        </div>
-        <Exercise title="Tool Ideation" tag="Brainstorm" tagBg="rgba(254,103,68,0.1)">
-          What repetitive task is trapped in a PDF or email right now? Something that would be 2-3x faster as a tiny web app? That&apos;s your target.
-        </Exercise>
-      </Slide>
+      <div id="acc-build" ref={(el) => reg("acc-build", el)} style={{ background: "#fef0eb" }}>
+        <SoftwareForFewScene
+          accentColor={branding.accentColor}
+          darkColor={branding.darkColor}
+        />
+      </div>
 
       <Slide id="acc-team" reg={reg} tint="#fef0eb" tintTo="var(--ws-bg,#FCF3EC)">
         <Tag bg="rgba(254,103,68,0.1)">Mapped to capabilities</Tag>
@@ -406,12 +373,15 @@ function useWorkshopViewportMetrics() {
 
   useEffect(() => {
     function syncMetrics() {
-      const nextHudPad = Number.parseFloat(
-        getComputedStyle(document.documentElement).getPropertyValue("--hud-padding"),
-      );
+      const probe = document.createElement("div");
+      probe.style.cssText =
+        "position:absolute;visibility:hidden;width:var(--hud-padding)";
+      document.documentElement.appendChild(probe);
+      const resolved = probe.offsetWidth;
+      document.documentElement.removeChild(probe);
 
       setMetrics({
-        hudPad: Number.isFinite(nextHudPad) ? nextHudPad : HUD_PAD,
+        hudPad: resolved > 0 ? resolved : HUD_PAD,
         viewportWidth: window.innerWidth,
       });
     }
@@ -811,9 +781,7 @@ function WorkshopLogoMotion({
   const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 
   const heroTop = hudPad + 24;
-  // The SVG includes sparkles above the owl/text, so the container has to sit
-  // slightly above the HUD line for the visible logo to feel aligned.
-  const dockedTop = hudPad - 6;
+  const dockedTop = hudPad;
   const dockedLeft = hudPad + 32;
 
   const top = heroTop + (dockedTop - heroTop) * ease;

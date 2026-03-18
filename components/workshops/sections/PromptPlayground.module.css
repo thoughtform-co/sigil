@@ -39,6 +39,22 @@
   border-color: color-mix(in srgb, currentColor 30%, transparent);
 }
 
+.sourceWithCta {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.sourceWithCta .sourceInput {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+.sourceWithCta .cta {
+  flex-shrink: 0;
+  align-self: flex-end;
+}
+
 /* ── Mode label ── */
 
 .modeLabel {
@@ -198,6 +214,20 @@
   font-family: var(--ws-mono, var(--font-mono));
   font-size: 11px;
   opacity: 0.3;
+}
+
+/* ── Skill generator split panel ── */
+
+.skillGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 960px) {
+  .skillGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ── Responsive ── */
