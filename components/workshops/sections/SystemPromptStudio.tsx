@@ -151,11 +151,11 @@ export function SystemPromptStudio({
 
       <div
         className={s.output}
-        style={{ background: darkColor, color: "var(--ws-bg, #FCF3EC)" }}
+        style={{ background: "#FEB3D2", color: darkColor }}
       >
         <div
           className={s.outputLabel}
-          style={{ color: "var(--ws-bg, #FCF3EC)" }}
+          style={{ color: darkColor }}
         >
           Generated System Prompt
         </div>
@@ -169,7 +169,7 @@ export function SystemPromptStudio({
         ) : (
           <div
             className={s.outputPlaceholder}
-            style={{ color: "var(--ws-bg, #FCF3EC)" }}
+            style={{ color: `color-mix(in srgb, ${darkColor} 50%, transparent)` }}
           >
             {outputStale
               ? "Parameters changed \u2014 click Navigate to update"

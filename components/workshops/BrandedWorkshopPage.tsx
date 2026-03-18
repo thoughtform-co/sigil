@@ -249,8 +249,8 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
           <PCard title="What it is" body="A container for context that stays active. Upload docs, paste your brand guide, include competitor research. AI starts every conversation in the right context." />
           <PCard title="When to use it" body="When you need consistent context across many conversations. Building something over time. Collaborating with others on the same topic." />
         </CardGrid>
-        <div style={{ background: "var(--ws-dark,#241D1B)", color: "var(--ws-bg,#FCF3EC)", padding: "24px 28px", marginTop: 32, fontFamily: "var(--ws-mono,var(--font-mono))", fontSize: 13, lineHeight: 1.8 }}>
-          Learn more: <a href="https://support.claude.com/en/articles/9519177" target="_blank" rel="noopener noreferrer" style={{ color: "var(--ws-accent,#FE6744)", textDecoration: "underline" }}>Claude Projects — manage context and collaborate</a>
+        <div style={{ background: "#FEB3D2", color: "var(--ws-dark,#241D1B)", padding: "24px 28px", marginTop: 32, fontFamily: "var(--ws-mono,var(--font-mono))", fontSize: 13, lineHeight: 1.8 }}>
+          Learn more: <a href="https://support.claude.com/en/articles/9519177" target="_blank" rel="noopener noreferrer" style={{ color: "var(--ws-dark,#241D1B)", textDecoration: "underline", fontWeight: 600 }}>Claude Projects — manage context and collaborate</a>
         </div>
         <RoomQuestion title="Project Mapping" tag="Pair discussion">
           What&apos;s one workflow where you&apos;d benefit from a persistent Project? What would you put in it? Who else would use it?
@@ -327,7 +327,7 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
       </Slide>
 
       {/* Closing */}
-      <Slide id="closing" reg={reg} style={{ background: "var(--ws-dark,#241D1B)", color: "var(--ws-bg,#FCF3EC)" }}>
+      <Slide id="closing" reg={reg} style={{ background: "#FEB3D2", color: "var(--ws-dark,#241D1B)" }}>
         <h2 style={{ ...h2Style, marginBottom: 40 }}>Three <span style={caveatSpan}>Questions</span></h2>
         <div style={{ display: "grid", gridTemplateColumns: responsiveGridTemplate(3), gap: 14 }}>
           {[
@@ -335,7 +335,7 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
             { n: "2", q: <>What becomes a <em style={{ fontWeight: 300, fontStyle: "italic", color: "var(--ws-accent,#FE6744)" }}>Skill</em> you build this week?</> },
             { n: "3", q: <>What runs <em style={{ fontWeight: 300, fontStyle: "italic", color: "var(--ws-accent,#FE6744)" }}>every week</em> without you asking?</> },
           ].map((item) => (
-            <div key={item.n} style={{ border: "1px solid color-mix(in srgb, var(--ws-bg,#FCF3EC) 8%, transparent)", padding: 24 }}>
+            <div key={item.n} style={{ border: "1px solid color-mix(in srgb, var(--ws-dark,#241D1B) 12%, transparent)", padding: 24 }}>
               <div style={{ fontFamily: "var(--ws-mono,var(--font-mono))", fontSize: 32, fontWeight: 500, opacity: 0.1, marginBottom: 10 }}>{item.n}</div>
               <p style={{ fontSize: 15, fontWeight: 500, lineHeight: 1.4, fontFamily: "var(--ws-font,var(--font-sans))" }}>{item.q}</p>
             </div>

@@ -423,8 +423,9 @@ function SkillGeneratorPanel({
               type="button"
               className={s.cta}
               style={{
-                background: darkColor,
-                color: "var(--ws-bg, #FCF3EC)",
+                background: "#FEB3D2",
+                color: darkColor,
+                fontWeight: 700,
                 opacity: loading ? 0.5 : 1,
                 width: "100%",
               }}
@@ -441,8 +442,8 @@ function SkillGeneratorPanel({
       <div
         className={s.card}
         style={{
-          background: darkColor,
-          color: "var(--ws-bg, #FCF3EC)",
+          background: "#FEB3D2",
+          color: darkColor,
           padding: 28,
           display: "flex",
           flexDirection: "column",
@@ -450,7 +451,7 @@ function SkillGeneratorPanel({
       >
         <div
           className={s.outputLabel}
-          style={{ color: "var(--ws-bg, #FCF3EC)" }}
+          style={{ color: darkColor }}
         >
           Generated Skill
         </div>
@@ -478,8 +479,8 @@ function SkillGeneratorPanel({
                 type="button"
                 className={s.cta}
                 style={{
-                  background: accentColor,
-                  color: "#fff",
+                  background: darkColor,
+                  color: "#FEB3D2",
                   flex: 1,
                 }}
                 onClick={copySkill}
@@ -490,8 +491,8 @@ function SkillGeneratorPanel({
                 type="button"
                 className={s.cta}
                 style={{
-                  background: "rgba(255,255,255,0.15)",
-                  color: "var(--ws-bg, #FCF3EC)",
+                  background: `color-mix(in srgb, ${darkColor} 15%, transparent)`,
+                  color: darkColor,
                   flex: 1,
                 }}
                 onClick={downloadSkill}
@@ -504,7 +505,7 @@ function SkillGeneratorPanel({
           <div
             className={s.outputPlaceholder}
             style={{
-              color: "var(--ws-bg, #FCF3EC)",
+              color: darkColor,
               flex: 1,
               display: "flex",
               alignItems: "center",
