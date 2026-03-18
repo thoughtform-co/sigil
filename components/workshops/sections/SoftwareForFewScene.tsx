@@ -141,22 +141,22 @@ export function SoftwareForFewScene({
                 margin: "8px 0 32px",
               }}
             >
-              Build tools that only you need. Too specific to buy, too small to outsource, built with AI.
+              Too specific to buy. Too small to outsource. Built with AI.
             </p>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
               {[
                 {
-                  title: "Claude Code",
-                  body: "Give Claude files. Describe what you want. It builds. You navigate the solution space. For one-off tools that solve your specific problem.",
+                  title: "The delta",
+                  body: "Every team has tools they wish existed but no vendor would build. AI closes that gap.",
                 },
                 {
-                  title: "80% of enterprise value at 1% cost",
-                  body: "Every team has tools they wish existed but no vendor would build. A dashboard for YOUR metrics. A calculator for YOUR logic. Purpose-built, instantly modifiable.",
+                  title: "Five users, not five thousand",
+                  body: "A dashboard for YOUR metrics. A calculator for YOUR logic. Purpose-built, instantly modifiable.",
                 },
                 {
                   title: "The flywheel",
-                  body: "Navigate the problem \u2192 encode what you learn \u2192 build a tool \u2192 discover what\u2019s missing \u2192 encode again. Each lap, your tool gets tighter.",
+                  body: "Navigate the problem \u2192 build a tool \u2192 discover what\u2019s missing \u2192 encode again. Each lap, your tool gets tighter.",
                 },
               ].map((item, i, arr) => (
                 <div
