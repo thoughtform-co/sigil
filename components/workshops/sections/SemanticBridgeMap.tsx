@@ -58,12 +58,13 @@ export function SemanticBridgeMap({
     const startTime = performance.now();
     const drawDuration = 1250;
 
+    const p = path;
     function tick(now: number) {
       const elapsed = now - startTime;
       const t = Math.min(1, elapsed / drawDuration);
       const eased = 1 - Math.pow(1 - t, 3);
 
-      path.style.strokeDashoffset = `${totalLen * (1 - eased)}`;
+      p.style.strokeDashoffset = `${totalLen * (1 - eased)}`;
 
       if (t < 1) {
         animRef.current = requestAnimationFrame(tick);
@@ -73,8 +74,8 @@ export function SemanticBridgeMap({
       tRef.current = 0;
       function flow() {
         tRef.current += 0.0036;
-        path.style.strokeDasharray = "7 6";
-        path.style.strokeDashoffset = `${-tRef.current * 76}`;
+        p.style.strokeDasharray = "7 6";
+        p.style.strokeDashoffset = `${-tRef.current * 76}`;
         animRef.current = requestAnimationFrame(flow);
       }
       animRef.current = requestAnimationFrame(flow);
