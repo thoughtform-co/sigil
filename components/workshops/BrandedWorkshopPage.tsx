@@ -143,7 +143,7 @@ export function BrandedWorkshopPage({ settings, journeyName }: Props) {
       </Slide>
 
       {/* Navigate chapter */}
-      <ChapterSlide id="nav-chapter" reg={reg} title="Navigate" subtitle="How to steer a possibility space" tint="#f7f9e6" tintFrom="var(--ws-bg,#FCF3EC)" accentColor={branding.accentColor} darkColor={branding.darkColor} mapAnchorX={52} />
+      <ChapterSlide id="nav-chapter" reg={reg} title="Navigate" subtitle="How to steer a possibility space" tint="#f7f9e6" tintFrom="var(--ws-bg,#FCF3EC)" accentColor={branding.accentColor} darkColor={branding.darkColor} mapAnchorX={52} mascotSrc="/images/poppins-mascot-map-transparent.png" />
 
       <div id="nav-story" ref={(el) => reg("nav-story", el)} style={{ background: "#f7f9e6", position: "relative", overflow: "visible" }}>
         <NavigateStory clientName={branding.clientName} accentColor={branding.accentColor} darkColor={branding.darkColor} />
@@ -353,11 +353,27 @@ function Slide({ id, reg, children, style, tint, tintFrom, tintTo, overlay }: { 
   );
 }
 
-function ChapterSlide({ id, reg, title, subtitle, tint, tintFrom, accentColor, darkColor, mapAnchorX = 50 }: { id: string; reg: (id: string, el: HTMLElement | null) => void; title: string; subtitle: string; tint?: string; tintFrom?: string; accentColor?: string; darkColor?: string; mapAnchorX?: number }) {
+function ChapterSlide({ id, reg, title, subtitle, tint, tintFrom, accentColor, darkColor, mapAnchorX = 50, mascotSrc }: { id: string; reg: (id: string, el: HTMLElement | null) => void; title: string; subtitle: string; tint?: string; tintFrom?: string; accentColor?: string; darkColor?: string; mapAnchorX?: number; mascotSrc?: string }) {
   return (
     <Slide id={id} reg={reg} tint={tint} tintFrom={tintFrom} overlay={<ChapterMapBackdrop accentColor={accentColor} darkColor={darkColor} anchorX={mapAnchorX} />}>
       <div style={{ textAlign: "center", position: "relative", zIndex: 1 }}>
-        <ChapterMapBadge accentColor={accentColor} darkColor={darkColor} />
+        {mascotSrc ? (
+          <img
+            src={mascotSrc}
+            alt=""
+            style={{
+              width: 120,
+              height: 120,
+              objectFit: "contain",
+              margin: "0 auto 28px",
+              display: "block",
+              opacity: 0.82,
+              filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.06))",
+            }}
+          />
+        ) : (
+          <ChapterMapBadge accentColor={accentColor} darkColor={darkColor} />
+        )}
         <h1 style={{ fontFamily: "var(--ws-font,var(--font-sans))", fontSize: 84, fontWeight: 700, lineHeight: 1, letterSpacing: "-0.02em" }}>{title}</h1>
         <p style={{ fontFamily: "var(--ws-font,var(--font-sans))", fontSize: 22, fontWeight: 500, opacity: 0.55, marginTop: 20, letterSpacing: "0.01em" }}>{subtitle}</p>
       </div>
