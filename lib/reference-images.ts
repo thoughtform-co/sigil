@@ -145,5 +145,16 @@ export async function hydrateReferenceParameters(
     next.referenceImageUrl = await refreshReferenceImageUrl(singleUrl, singlePath);
   }
 
+  const endFrameUrl = typeof parameters.endFrameImageUrl === "string"
+    ? parameters.endFrameImageUrl
+    : null;
+  const endFramePath = typeof parameters.endFrameImagePath === "string" &&
+    parameters.endFrameImagePath.trim().length > 0
+    ? parameters.endFrameImagePath.trim()
+    : null;
+  if (endFrameUrl) {
+    next.endFrameImageUrl = await refreshReferenceImageUrl(endFrameUrl, endFramePath);
+  }
+
   return next;
 }

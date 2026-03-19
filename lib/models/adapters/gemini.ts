@@ -79,6 +79,7 @@ export const VEO_3_1_CONFIG: ModelConfig = {
   capabilities: {
     "text-2-video": true,
     "image-2-video": true,
+    "frame-interpolation": true,
   },
 };
 

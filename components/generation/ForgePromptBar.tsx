@@ -58,6 +58,9 @@ type ForgePromptBarProps = {
   message?: string | null;
   brainstormOpen?: boolean;
   onBrainstormToggle?: () => void;
+  endFrameUrl?: string;
+  onEndFrameChange?: (value: string) => void;
+  supportsEndFrame?: boolean;
 };
 
 export function ForgePromptBar({
@@ -88,6 +91,9 @@ export function ForgePromptBar({
   message = null,
   brainstormOpen,
   onBrainstormToggle,
+  endFrameUrl = "",
+  onEndFrameChange = () => {},
+  supportsEndFrame = false,
 }: ForgePromptBarProps) {
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
@@ -101,6 +107,10 @@ export function ForgePromptBar({
   const modelPickerRef = useRef<HTMLDivElement>(null);
   const attachMenuRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const endFrameInputRef = useRef<HTMLInputElement>(null);
+  const endFrameMenuRef = useRef<HTMLDivElement>(null);
+  const [showEndFrameMenu, setShowEndFrameMenu] = useState(false);
+  const [browseTarget, setBrowseTarget] = useState<"reference" | "endFrame">("reference");
 
   const [inputHeight, setInputHeight] = useState(52);
   const [isResizing, setIsResizing] = useState(false);
@@ -206,6 +216,18 @@ export function ForgePromptBar({
   }, [showAttachMenu]);
 
   useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (endFrameMenuRef.current && !endFrameMenuRef.current.contains(e.target as Node)) {
+        setShowEndFrameMenu(false);
+      }
+    };
+    if (showEndFrameMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showEndFrameMenu]);
+
+  useEffect(() => {
     if (!referencePreviewOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setReferencePreviewOpen(false);
@@ -229,9 +251,24 @@ export function ForgePromptBar({
 
   const handleBrowseSelect = useCallback(
     (url: string) => {
-      appendReferences([url]);
+      if (browseTarget === "endFrame") {
+        onEndFrameChange(url);
+      } else {
+        appendReferences([url]);
+      }
     },
-    [appendReferences],
+    [browseTarget, appendReferences, onEndFrameChange],
+  );
+
+  const handleEndFrameImageSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file || !file.type.startsWith("image/")) return;
+      const objectUrl = URL.createObjectURL(file);
+      onEndFrameChange(objectUrl);
+      if (endFrameInputRef.current) endFrameInputRef.current.value = "";
+    },
+    [onEndFrameChange],
   );
 
   const handleImageSelect = useCallback(
@@ -389,6 +426,13 @@ export function ForgePromptBar({
             onChange={handleImageSelect}
             className={styles.fileInput}
           />
+          <input
+            ref={endFrameInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleEndFrameImageSelect}
+            className={styles.fileInput}
+          />
 
           <div className={styles.promptAndParams}>
             {/* Attachments row above prompt */}
@@ -426,6 +470,7 @@ export function ForgePromptBar({
                       className={styles.attachOption}
                       onClick={() => {
                         setShowAttachMenu(false);
+                        setBrowseTarget("reference");
                         setBrowseModalOpen(true);
                       }}
                     >
@@ -442,9 +487,12 @@ export function ForgePromptBar({
               </div>
               {referenceImages.map((ref, index) => (
                 <div key={`${ref}-${index}`} className={styles.attachThumb}>
+                  {generationType === "video" && index === 0 && (
+                    <span className={styles.frameTag}>START</span>
+                  )}
                   <img
                     src={ref}
-                    alt="Reference"
+                    alt={generationType === "video" && index === 0 ? "Start frame" : "Reference"}
                     role="button"
                     tabIndex={0}
                     title="Open full preview"
@@ -472,6 +520,88 @@ export function ForgePromptBar({
                   </button>
                 </div>
               ))}
+              {generationType === "video" && supportsEndFrame && referenceImages.length > 0 && (
+                endFrameUrl ? (
+                  <div className={styles.attachThumb}>
+                    <span className={styles.frameTag}>END</span>
+                    <img
+                      src={endFrameUrl}
+                      alt="End frame"
+                      role="button"
+                      tabIndex={0}
+                      title="Open full preview"
+                      onClick={() => {
+                        setPreviewImageUrl(endFrameUrl);
+                        setReferencePreviewOpen(true);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setPreviewImageUrl(endFrameUrl);
+                          setReferencePreviewOpen(true);
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className={styles.attachRemove}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEndFrameChange("");
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ) : (
+                  <div className={styles.attachMenuContainer} ref={endFrameMenuRef}>
+                    <button
+                      type="button"
+                      className={styles.addImageBtn}
+                      onClick={() => setShowEndFrameMenu(!showEndFrameMenu)}
+                      title="Add end frame"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M12 5v14M5 12h14" />
+                      </svg>
+                    </button>
+                    {showEndFrameMenu && (
+                      <div className={styles.attachDropdown}>
+                        <button
+                          type="button"
+                          className={styles.attachOption}
+                          onClick={() => {
+                            setShowEndFrameMenu(false);
+                            endFrameInputRef.current?.click();
+                          }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+                          </svg>
+                          Upload
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.attachOption}
+                          onClick={() => {
+                            setShowEndFrameMenu(false);
+                            setBrowseTarget("endFrame");
+                            setBrowseModalOpen(true);
+                          }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                            <rect x="3" y="3" width="7" height="7" />
+                            <rect x="14" y="3" width="7" height="7" />
+                            <rect x="3" y="14" width="7" height="7" />
+                            <rect x="14" y="14" width="7" height="7" />
+                          </svg>
+                          Browse
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )
+              )}
               {showUrlInput && (
                 <input
                   type="url"

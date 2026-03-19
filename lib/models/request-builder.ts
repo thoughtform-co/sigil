@@ -17,6 +17,10 @@ export function normalizeGenerationRequest(
     ? params.referenceImageUrl
     : referenceImages[0];
 
+  const endFrameImageUrl = typeof params.endFrameImageUrl === "string"
+    ? params.endFrameImageUrl
+    : undefined;
+
   return {
     prompt,
     negativePrompt: negativePrompt ?? undefined,
@@ -30,5 +34,6 @@ export function normalizeGenerationRequest(
         : referenceImageUrl
           ? [referenceImageUrl]
           : undefined,
+    endFrame: endFrameImageUrl,
   };
 }

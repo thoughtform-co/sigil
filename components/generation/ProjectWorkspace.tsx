@@ -10,6 +10,7 @@ import { useGenerationsRealtime } from "@/hooks/useGenerationsRealtime";
 import { ForgeGallery } from "@/components/generation/ForgeGallery";
 import { ForgePromptBar } from "@/components/generation/ForgePromptBar";
 import { WaypointBranch } from "@/components/hud/WaypointBranch";
+import { useClipboardImage } from "@/hooks/useClipboardImage";
 
 const DEFAULT_ASPECT_RATIOS = ["1:1", "16:9", "9:16", "4:3", "3:4"];
 
@@ -93,6 +94,7 @@ export function ProjectWorkspace({
   const [resolution, setResolution] = useState("4096");
   const [numOutputs, setNumOutputs] = useState("1");
   const [duration, setDuration] = useState("5");
+  const [endFrameUrl, setEndFrameUrl] = useState("");
   const [modelId, setModelId] = useState("");
   const [projectName, setProjectName] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -479,6 +481,49 @@ export function ProjectWorkspace({
     [models, mode],
   );
 
+  const selectedModelConfig = useMemo(
+    () => compatibleModels.find((m) => m.id === modelId),
+    [compatibleModels, modelId],
+  );
+  const supportsEndFrame = mode === "video" && !!selectedModelConfig?.capabilities?.["frame-interpolation"];
+
+  useEffect(() => {
+    if (!supportsEndFrame && endFrameUrl) setEndFrameUrl("");
+  }, [supportsEndFrame, endFrameUrl]);
+
+  useEffect(() => {
+    if (mode === "video" && referenceImages.length === 0 && endFrameUrl) setEndFrameUrl("");
+  }, [mode, referenceImages.length, endFrameUrl]);
+
+  const handleClipboardImage = useCallback(
+    (files: File[]) => {
+      if (mode === "canvas" || files.length === 0) return;
+      const objectUrls = files.map((f) => URL.createObjectURL(f));
+      if (mode === "image") {
+        setReferenceImages((prev) => [...prev, ...objectUrls]);
+      } else if (mode === "video") {
+        if (referenceImages.length === 0) {
+          setReferenceImages([objectUrls[0]]);
+          const firstUrl = objectUrls[0];
+          const img = new window.Image();
+          img.onload = () => {
+            const ratio = img.naturalWidth / img.naturalHeight;
+            const supported = selectedModelConfig?.supportedAspectRatios?.length
+              ? selectedModelConfig.supportedAspectRatios
+              : DEFAULT_ASPECT_RATIOS;
+            const closest = detectClosestAspectRatio(img.naturalWidth, img.naturalHeight, supported);
+            if (closest) setAspectRatio(closest);
+          };
+          img.src = firstUrl;
+        } else if (supportsEndFrame) {
+          setEndFrameUrl(objectUrls[0]);
+        }
+      }
+    },
+    [mode, referenceImages.length, supportsEndFrame, selectedModelConfig],
+  );
+  useClipboardImage(mode !== "canvas" ? handleClipboardImage : null);
+
   const handleUseAsReference = useCallback(
     (url: string) => {
       setReferenceImages((prev) => (prev.includes(url) ? prev : [...prev, url]));
@@ -634,6 +679,48 @@ export function ProjectWorkspace({
         if (resolvedReferencePaths.some(Boolean)) {
           if (resolvedReferencePaths[0]) parameters.referenceImagePath = resolvedReferencePaths[0];
           parameters.referenceImagePaths = resolvedReferencePaths;
+        }
+      }
+
+      if (mode === "video" && endFrameUrl) {
+        const shouldUpload =
+          endFrameUrl.startsWith("data:") ||
+          endFrameUrl.startsWith("blob:") ||
+          endFrameUrl.startsWith("http");
+        if (shouldUpload) {
+          const compressed = await compressImage(endFrameUrl, {
+            maxDim: 2048,
+            maxSizeMB: 4,
+            quality: 0.85,
+          });
+          if (compressed) {
+            const efUploadRes = await fetch("/api/upload/reference-image", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ dataUrl: compressed, projectId: projectId || undefined }),
+            });
+            const efCt = efUploadRes.headers.get("content-type") ?? "";
+            if (efCt.includes("application/json")) {
+              const efData = (await efUploadRes.json()) as {
+                url?: string;
+                referenceImageUrl?: string;
+                path?: string;
+                error?: string;
+              };
+              if (efUploadRes.ok) {
+                parameters.endFrameImageUrl = efData.referenceImageUrl ?? efData.url ?? endFrameUrl;
+                if (efData.path) parameters.endFrameImagePath = efData.path;
+              } else {
+                parameters.endFrameImageUrl = endFrameUrl;
+              }
+            } else {
+              parameters.endFrameImageUrl = endFrameUrl;
+            }
+          } else {
+            parameters.endFrameImageUrl = endFrameUrl;
+          }
+        } else {
+          parameters.endFrameImageUrl = endFrameUrl;
         }
       }
 
@@ -938,6 +1025,11 @@ export function ProjectWorkspace({
     } else {
       setReferenceImages([]);
     }
+    if (typeof params.endFrameImageUrl === "string") {
+      setEndFrameUrl(params.endFrameImageUrl);
+    } else {
+      setEndFrameUrl("");
+    }
     setMessage("Parameters loaded from previous generation.");
   }
 
@@ -1145,6 +1237,9 @@ export function ProjectWorkspace({
         message={message}
         brainstormOpen={brainstormOpen}
         onBrainstormToggle={() => setBrainstormOpen((v) => !v)}
+        endFrameUrl={endFrameUrl}
+        onEndFrameChange={setEndFrameUrl}
+        supportsEndFrame={supportsEndFrame}
       />
       {brainstormOpen && (
         <BrainstormPanel

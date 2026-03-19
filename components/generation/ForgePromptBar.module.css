@@ -278,6 +278,24 @@
   color: var(--dawn);
 }
 
+.frameTag {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  font-family: var(--font-mono);
+  font-size: 7px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dawn);
+  background: rgba(5, 4, 3, 0.75);
+  text-align: center;
+  padding: 1px 0;
+  pointer-events: none;
+  line-height: 1.3;
+}
+
 /* Prompt + params column */
 .promptAndParams {
   flex: 1;

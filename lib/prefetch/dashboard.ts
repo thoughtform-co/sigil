@@ -22,6 +22,7 @@ export async function prefetchDashboard(
           name: true,
           description: true,
           type: true,
+          updatedAt: true,
           _count: { select: { briefings: true } },
           briefings: {
             select: {
@@ -40,9 +41,34 @@ export async function prefetchDashboard(
       }),
     ]);
     const isAdmin = profile?.role === "admin";
-    const workspaceProjects = isAdmin
+    const filteredProjects = isAdmin
       ? allWorkspaceProjects
       : allWorkspaceProjects.filter((wp) => wp.members.length > 0);
+
+    const filteredIds = filteredProjects.map((wp) => wp.id);
+    const activityByWpId = new Map<string, Date>();
+    if (filteredIds.length > 0) {
+      const activityRows = await prisma.$queryRaw<
+        { wp_id: string; latest_at: Date }[]
+      >(Prisma.sql`
+        SELECT
+          p.workspace_project_id AS wp_id,
+          MAX(g.created_at) AS latest_at
+        FROM projects p
+        INNER JOIN sessions s ON s.project_id = p.id
+        INNER JOIN generations g ON g.session_id = s.id
+        WHERE p.workspace_project_id = ANY(${filteredIds}::uuid[])
+        GROUP BY p.workspace_project_id
+      `);
+      for (const row of activityRows) {
+        activityByWpId.set(row.wp_id, row.latest_at);
+      }
+    }
+    const workspaceProjects = [...filteredProjects].sort((a, b) => {
+      const aTime = activityByWpId.get(a.id)?.getTime() ?? a.updatedAt.getTime();
+      const bTime = activityByWpId.get(b.id)?.getTime() ?? b.updatedAt.getTime();
+      return bTime - aTime;
+    });
 
     const allBriefingIds = workspaceProjects.flatMap((wp) =>
       wp.briefings.map((b) => b.id),

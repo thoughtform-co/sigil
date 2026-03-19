@@ -44,4 +44,8 @@ export type ModelItem = {
   type: "image" | "video";
   provider: string;
   supportedAspectRatios?: string[];
+  capabilities?: {
+    "frame-interpolation"?: boolean;
+    [key: string]: boolean | number | undefined;
+  };
 };
