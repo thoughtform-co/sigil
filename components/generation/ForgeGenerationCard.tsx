@@ -17,9 +17,8 @@ function isFailed(status: string): boolean {
   return status === "failed";
 }
 
-function usesParticleLoadingField(modelId: string): boolean {
-  const id = modelId.toLowerCase();
-  return id.includes("kling") || id.includes("veo");
+function usesParticleLoadingField(_modelId: string): boolean {
+  return false;
 }
 
 async function downloadFile(url: string, filename?: string) {

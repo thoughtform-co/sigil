@@ -150,11 +150,11 @@ export class KlingOfficialAdapter extends BaseModelAdapter {
       }
     }
 
+    const klingEndpoint = startImage ? "image2video" : "text2video";
     const token = generateKlingJWT();
     let response: Response | null = null;
     for (let attempt = 1; attempt <= 3; attempt++) {
       const attemptToken = attempt === 1 ? token : generateKlingJWT();
-      const klingEndpoint = startImage ? "image2video" : "text2video";
       response = await fetch(`${this.baseUrl}/videos/${klingEndpoint}`, {
         method: "POST",
         headers: {
@@ -196,7 +196,7 @@ export class KlingOfficialAdapter extends BaseModelAdapter {
     while (attempts < maxAttempts) {
       await new Promise((r) => setTimeout(r, 5000));
       const pollToken = generateKlingJWT();
-      const statusUrl = `${this.baseUrl}/videos/image2video?task_id=${taskId}`;
+      const statusUrl = `${this.baseUrl}/videos/${klingEndpoint}?task_id=${taskId}`;
       let statusResponse = await fetch(statusUrl, {
         method: "GET",
         headers: { Authorization: `Bearer ${pollToken}` },
