@@ -308,9 +308,15 @@ export function ForgePromptBar({
         onEndFrameChange(url);
       } else {
         appendReferences([url]);
+        const img = new window.Image();
+        img.onload = () => {
+          const match = detectClosestAspectRatio(img.naturalWidth, img.naturalHeight, aspectRatios);
+          if (match) onAspectRatioChange(match);
+        };
+        img.src = url;
       }
     },
-    [browseTarget, appendReferences, onEndFrameChange, replaceEndFrameLocalPreview],
+    [browseTarget, appendReferences, onEndFrameChange, replaceEndFrameLocalPreview, aspectRatios, onAspectRatioChange],
   );
 
   const handleEndFrameImageSelect = useCallback(

@@ -56,6 +56,20 @@ function generateKlingJWT(secretOverride?: Buffer): string {
   return `${signingInput}.${signatureB64}`;
 }
 
+function klingOutputDimensions(aspectRatio: string): { width: number; height: number } {
+  const DIMS: Record<string, [number, number]> = {
+    "16:9": [1280, 720],
+    "9:16": [720, 1280],
+    "1:1": [1080, 1080],
+    "4:3": [1280, 960],
+    "3:4": [960, 1280],
+    "3:2": [1280, 854],
+    "2:3": [854, 1280],
+  };
+  const pair = DIMS[aspectRatio];
+  return pair ? { width: pair[0], height: pair[1] } : { width: 1280, height: 720 };
+}
+
 export const KLING_OFFICIAL_CONFIG: ModelConfig = {
   id: "kling-official",
   name: "Kling 2.6",
@@ -301,8 +315,7 @@ export class KlingOfficialAdapter extends BaseModelAdapter {
           outputs: [
             {
               url: videoUrl,
-              width: aspectRatio === "9:16" ? 720 : 1280,
-              height: aspectRatio === "9:16" ? 1280 : 720,
+              ...klingOutputDimensions(aspectRatio),
               duration: videoDuration,
             },
           ],
