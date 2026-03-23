@@ -344,6 +344,13 @@
   justify-content: start;
 }
 
+.refThumbItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
 .refThumb {
   position: relative;
   display: block;

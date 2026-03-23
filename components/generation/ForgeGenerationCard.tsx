@@ -308,12 +308,47 @@ export function ForgeGenerationCard({
     }
     return refs;
   })();
-  const refImageUrl = referenceImageUrls[0] ?? null;
+  const endFrameImageUrl =
+    typeof generation.parameters?.endFrameImageUrl === "string"
+      ? generation.parameters.endFrameImageUrl.trim()
+      : "";
+  const displayReferenceEntries = (() => {
+    const entries: Array<{ url: string; label: string; key: string }> = [];
+    if (generation.modelId.includes("kling") || generation.modelId.includes("veo")) {
+      if (referenceImageUrls[0]) {
+        entries.push({
+          url: referenceImageUrls[0],
+          label: "Start",
+          key: `start-${referenceImageUrls[0]}`,
+        });
+      }
+      referenceImageUrls.slice(1).forEach((url, index) => {
+        entries.push({
+          url,
+          label: `Ref ${index + 1}`,
+          key: `reference-${index}-${url}`,
+        });
+      });
+      if (endFrameImageUrl) {
+        entries.push({
+          url: endFrameImageUrl,
+          label: "End",
+          key: `end-${endFrameImageUrl}`,
+        });
+      }
+      return entries;
+    }
+    return referenceImageUrls.map((url, index) => ({
+      url,
+      label: referenceImageUrls.length === 1 ? "Reference" : `Reference ${index + 1}`,
+      key: `reference-${index}-${url}`,
+    }));
+  })();
   const referenceRowCount =
-    referenceImageUrls.length <= 5 ? 1 : Math.ceil(referenceImageUrls.length / 5);
+    displayReferenceEntries.length <= 5 ? 1 : Math.ceil(displayReferenceEntries.length / 5);
   const referenceColumnCount = Math.max(
     1,
-    Math.ceil(referenceImageUrls.length / referenceRowCount),
+    Math.ceil(displayReferenceEntries.length / referenceRowCount),
   );
   const referenceThumbGap = 4;
   const referenceGridMaxWidth = 156;
@@ -364,28 +399,34 @@ export function ForgeGenerationCard({
         </button>
 
         <div className={styles.promptFooter}>
-          {referenceImageUrls.length > 0 && (
+          {displayReferenceEntries.length > 0 && (
             <>
               <span className={styles.sectionTitle}>
-                {referenceImageUrls.length === 1 ? "Reference" : `References / ${referenceImageUrls.length}`}
+                {(generation.modelId.includes("kling") || generation.modelId.includes("veo"))
+                  ? `Frames / ${displayReferenceEntries.length}`
+                  : displayReferenceEntries.length === 1
+                    ? "Reference"
+                    : `References / ${displayReferenceEntries.length}`}
               </span>
               <div className={styles.refThumbGrid} style={referenceGridStyle}>
-                {referenceImageUrls.map((url, index) => (
-                  <button
-                    key={`${url}-${index}`}
-                    type="button"
-                    className={styles.refThumb}
-                    onClick={() => {
-                      if (onLightboxOpen) {
-                        onLightboxOpen(url);
-                        return;
-                      }
-                      setRefPopupUrl(url);
-                    }}
-                    title={onLightboxOpen ? `Open reference image ${index + 1}` : `View reference image ${index + 1}`}
-                  >
-                    <img src={url} alt={`Reference ${index + 1}`} className={styles.refThumbImg} />
-                  </button>
+                {displayReferenceEntries.map((entry, index) => (
+                  <div key={entry.key} className={styles.refThumbItem}>
+                    <span className={styles.refThumbLabel}>{entry.label}</span>
+                    <button
+                      type="button"
+                      className={styles.refThumb}
+                      onClick={() => {
+                        if (onLightboxOpen) {
+                          onLightboxOpen(entry.url);
+                          return;
+                        }
+                        setRefPopupUrl(entry.url);
+                      }}
+                      title={onLightboxOpen ? `Open ${entry.label.toLowerCase()} image` : `View ${entry.label.toLowerCase()} image`}
+                    >
+                      <img src={entry.url} alt={`${entry.label} ${index + 1}`} className={styles.refThumbImg} />
+                    </button>
+                  </div>
                 ))}
               </div>
             </>

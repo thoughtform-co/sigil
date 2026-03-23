@@ -104,10 +104,10 @@ export function ImageBrowseModal({
     return () => document.removeEventListener("keydown", handler);
   }, [open, onClose]);
 
-  if (!open || typeof document === "undefined") return null;
-
   const totalLoaded = activeImages.length;
   const showCount = filteredImages.length;
+
+  if (!open || typeof document === "undefined") return null;
 
   const groupedByProject = (() => {
     if (activeTab !== "all" || crossProjectFilter) return null;
