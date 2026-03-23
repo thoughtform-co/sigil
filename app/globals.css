@@ -119,8 +119,28 @@
   --z-modal: 40;
   --z-nav: 50;
 
-  /* HUD corner/shell padding (overridden at 1280px for tighter layout) */
-  --hud-padding: clamp(24px, 4vw, 56px);
+  /* HUD shell — Figma TF grid (1920×1080 ref, node 120:968)
+     Corners at y=50px top/bottom, guide line at x≈49px from each edge.
+     Corner stub height 30px, gap to guide ~14px → corner zone total ≈44px. */
+  --hud-margin: clamp(16px, min(2.8125vw, 5vmin), 54px);
+  --hud-padding: var(--hud-margin);
+  /* Visual width of the rail aside container (contains guide + outward ticks) */
+  --hud-rail-width: clamp(48px, 4.27vw, 82px);
+  /* Offset from rail aside left/right edge to the guide line (1px hairline) */
+  --hud-rail-guide-inset: clamp(5px, 0.47vw, 9px);
+  /* Vertical clearance from rail top/bottom to guide line start/end (skips corner zone) */
+  --hud-corner-zone: clamp(28px, 4.17vmin, 45px);
+  --hud-rail-top: clamp(32px, min(2.604vw, 4.63vmin), 50px);
+  --hud-rail-bottom: var(--hud-rail-top);
+  --hud-nav-height: 48px;
+  --hud-nav-offset-top: 8px;
+  --hud-shell-pad-top: calc(var(--hud-nav-offset-top) + var(--hud-nav-height));
+  --hud-content-rail-gap: 8px;
+  --hud-content-end-gap: 20px;
+  /* Content clearance = corner arm (24px) + gap — spine card added per-page on <main> */
+  --hud-inner-offset: calc(24px + var(--hud-content-rail-gap));
+  /* 11-column metaphor: 2 + 7 + 2 for journeys workspace */
+  --hud-dashboard-col-gap: var(--space-xl);
 
   /* Overlay (token-only; no hardcoded color) */
   --overlay-bg: rgba(19, 17, 15, 0.76);
@@ -275,12 +295,15 @@ body {
   animation: slideInLeft 0.5s var(--ease-out) both;
 }
 
-/* ─── HUD CORNER BRACKETS ─── */
+/* ─── HUD CORNER BRACKETS ───
+   Figma node 120:415 "tf-hud-main-latent-night-2-straight-corners":
+   Non-intersecting L-shape. Stub (23px) and arm (24px) meet at the same point.
+   Arm extends inward from the guide x; stub extends away from the corner edge. */
 
 .hud-corner {
   position: fixed;
-  width: 24px;
-  height: 24px;
+  width: 48px;
+  height: 48px;
   pointer-events: none;
   z-index: var(--z-modal);
 }
@@ -289,83 +312,79 @@ body {
 .hud-corner::after {
   content: "";
   position: absolute;
-  background: var(--gold);
+  background: var(--dawn-30);
 }
 
+/* ── Top-left: arm goes right, stub goes down ── */
 .hud-corner-tl {
-  top: var(--hud-padding);
-  left: var(--hud-padding);
+  top: var(--hud-margin);
+  left: var(--hud-margin);
 }
-
 .hud-corner-tl::before {
   top: 0;
-  left: 0;
+  left: var(--hud-rail-guide-inset);
   width: 24px;
   height: 1px;
 }
-
 .hud-corner-tl::after {
   top: 0;
-  left: 0;
+  left: var(--hud-rail-guide-inset);
   width: 1px;
-  height: 24px;
+  height: 23px;
 }
 
+/* ── Top-right: arm goes left, stub goes down ── */
 .hud-corner-tr {
-  top: var(--hud-padding);
-  right: var(--hud-padding);
+  top: var(--hud-margin);
+  right: var(--hud-margin);
 }
-
 .hud-corner-tr::before {
   top: 0;
-  right: 0;
+  right: var(--hud-rail-guide-inset);
   width: 24px;
   height: 1px;
 }
-
 .hud-corner-tr::after {
   top: 0;
-  right: 0;
+  right: var(--hud-rail-guide-inset);
   width: 1px;
-  height: 24px;
+  height: 23px;
 }
 
+/* ── Bottom-left: arm goes right, stub goes up ── */
 .hud-corner-bl {
-  bottom: var(--hud-padding);
-  left: var(--hud-padding);
+  bottom: var(--hud-margin);
+  left: var(--hud-margin);
 }
-
 .hud-corner-bl::before {
   bottom: 0;
-  left: 0;
+  left: var(--hud-rail-guide-inset);
   width: 24px;
   height: 1px;
 }
-
 .hud-corner-bl::after {
   bottom: 0;
-  left: 0;
+  left: var(--hud-rail-guide-inset);
   width: 1px;
-  height: 24px;
+  height: 23px;
 }
 
+/* ── Bottom-right: arm goes left, stub goes up ── */
 .hud-corner-br {
-  bottom: var(--hud-padding);
-  right: var(--hud-padding);
+  bottom: var(--hud-margin);
+  right: var(--hud-margin);
 }
-
 .hud-corner-br::before {
   bottom: 0;
-  right: 0;
+  right: var(--hud-rail-guide-inset);
   width: 24px;
   height: 1px;
 }
-
 .hud-corner-br::after {
   bottom: 0;
-  right: 0;
+  right: var(--hud-rail-guide-inset);
   width: 1px;
-  height: 24px;
+  height: 23px;
 }
 
 /* ─── NAVIGATION RAILS (tick marks rendered in React) ─── */
@@ -374,7 +393,12 @@ body {
 
 @media (max-width: 1280px) {
   :root {
-    --hud-padding: clamp(16px, 2.5vw, 32px);
+    --hud-margin: clamp(14px, min(2.2vw, 4vmin), 40px);
+    --hud-padding: var(--hud-margin);
+    --hud-rail-width: clamp(44px, 3.6vw, 72px);
+    --hud-rail-guide-inset: clamp(4px, 0.47vw, 6px);
+    --hud-corner-zone: clamp(22px, 4.17vmin, 30px);
+    --hud-rail-top: clamp(28px, min(2.2vw, 3.8vmin), 44px);
   }
 }
 
@@ -385,23 +409,18 @@ body {
 }
 
 @media (max-width: 600px) {
-  .hud-corner {
-    width: 16px;
-    height: 16px;
-  }
-
   .hud-corner-tl::before,
   .hud-corner-tr::before,
   .hud-corner-bl::before,
   .hud-corner-br::before {
-    width: 16px;
+    width: 18px;
   }
 
   .hud-corner-tl::after,
   .hud-corner-tr::after,
   .hud-corner-bl::after,
   .hud-corner-br::after {
-    height: 16px;
+    height: 20px;
   }
 }
 
@@ -435,11 +454,14 @@ body {
 
 .hud-shell {
   min-height: 100vh;
-  padding-top: calc(var(--hud-padding) + 24px);
-  padding-bottom: calc(var(--hud-padding) + 40px);
+  padding-top: var(--hud-shell-pad-top);
+  padding-bottom: calc(var(--hud-margin) + 40px);
+  padding-left: calc(var(--hud-margin) + var(--hud-inner-offset));
+  padding-right: calc(var(--hud-margin) + var(--hud-inner-offset));
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  --content-inset-left: calc(var(--hud-margin) + var(--hud-inner-offset));
 }
 
 /* Workspace pages own scrolling internally (gallery feed), so lock shell height
@@ -448,9 +470,9 @@ body {
   height: 100vh;
   min-height: 0;
   overflow: hidden;
-  padding-top: calc(var(--hud-padding) + 24px);
+  padding-top: var(--hud-shell-pad-top);
   /* Bottom padding so content ends above the bottom HUD corners (24px); match corner inset so content bottom = corner top */
-  padding-bottom: calc(var(--hud-padding) + 24px);
+  padding-bottom: calc(var(--hud-margin) + 24px);
 }
 
 /* Dashboard two-panel fills workspace height and must not overflow past the shell */
@@ -843,18 +865,7 @@ body {
   100% { background-position: 0 120px; }
 }
 
-[data-hud-rail="right"]::before {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  opacity: 0.22;
-  background: linear-gradient(to bottom, transparent 0%, var(--gold-30) 20%, var(--gold-30) 80%, transparent 100%);
-  box-shadow: 0 0 6px rgba(202, 165, 84, 0.2);
-  pointer-events: none;
-}
+/* Right rail guide line is drawn in HudFrame; keep only scroll beam here */
 
 [data-hud-rail="right"].has-scroll::after {
   content: '';
@@ -866,23 +877,13 @@ body {
     linear-gradient(
       to bottom,
       transparent 0%,
-      var(--gold) 15%,
-      var(--gold) 85%,
+      var(--dawn-30) 15%,
+      var(--dawn-30) 85%,
       transparent 100%
-    ),
-    repeating-linear-gradient(
-      to bottom,
-      transparent 0px,
-      transparent 4px,
-      rgba(202, 165, 84, 0.3) 4px,
-      rgba(202, 165, 84, 0.3) 6px
     );
   opacity: 0.82;
   top: var(--scroll-beam-position, 0%);
   transition: top 0.15s ease-out, opacity 0.3s ease;
-  box-shadow:
-    0 0 8px var(--gold-dim),
-    0 0 16px rgba(202, 165, 84, 0.25);
   pointer-events: none;
   animation: energyFlow 2s linear infinite;
 }
@@ -907,7 +908,8 @@ body {
   /* Keeps the nav spine fixed but allows it to be hidden on mobile */
 }
 
-@media (max-width: 980px) {
+/* Hide nav spine when HUD rails are hidden (same breakpoint) */
+@media (max-width: 1100px) {
   .nav-spine {
     display: none !important;
   }
@@ -957,5 +959,53 @@ body {
   to {
     opacity: 1;
     transform: translateX(0);
+  }
+}
+
+/* ─── HUD CHAPTER LABEL & PAGINATION ─── */
+
+.hud-chapter-label {
+  position: fixed;
+  top: var(--hud-rail-top);
+  right: var(--hud-margin);
+  z-index: var(--z-nav);
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.hud-chapter-label__tick {
+  width: 1px;
+  height: 8px;
+  background: var(--dawn-30);
+}
+
+.hud-chapter-label__text {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dawn-30);
+}
+
+.hud-pagination {
+  position: fixed;
+  bottom: var(--hud-margin);
+  right: var(--hud-margin);
+  z-index: var(--z-nav);
+  pointer-events: none;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--dawn-30);
+}
+
+
+@media (max-width: 600px) {
+  .hud-chapter-label,
+  .hud-pagination {
+    display: none;
   }
 }

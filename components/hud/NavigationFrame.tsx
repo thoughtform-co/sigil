@@ -5,8 +5,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { NavSpineProvider, useNavSpine } from "@/context/NavSpineContext";
-import { SigilParticleLogo } from "./SigilParticleLogo";
 import { ContextAnchor } from "@/components/ui/ContextAnchor";
+import { HudFrame } from "./HudFrame";
+import { NAV_SPINE_CARD_WIDTH } from "./grid-constants";
 
 const THEME_KEY = "sigil-theme";
 const GRID = 3;
@@ -30,15 +31,7 @@ type NavigationFrameProps = {
   lessonName?: string;
 };
 
-export const NAV_SPINE_CARD_WIDTH = 280;
-const RAIL_WIDTH = 48;
-const TICK_COUNT = 24;
-const MAJOR_INDICES = new Set([6, 12, 18]);
-const TICK_LABELS: Record<number, string> = {
-  6: "2",
-  12: "5",
-  18: "7",
-};
+export { NAV_SPINE_CARD_WIDTH };
 
 const LEFT_NAV = [
   { href: "/journeys", label: "journeys" },
@@ -152,17 +145,21 @@ function JourneyConnector() {
     let rafId: number;
     let currentY = 0;
     let initialized = false;
-    let hudPad = 40;
+    let hudMargin = 40;
+    let railEndX = 96;
     let lastTime = 0;
     const TRACK_SPEED_PX_PER_SEC = 450;
 
-    function readHudPadding() {
-      const val = getComputedStyle(document.documentElement).getPropertyValue("--hud-padding");
-      hudPad = parseFloat(val) || 40;
+    function readRailEnd() {
+      const st = getComputedStyle(document.documentElement);
+      const m = parseFloat(st.getPropertyValue("--hud-margin")) || 54;
+      const gi = parseFloat(st.getPropertyValue("--hud-rail-guide-inset")) || 9;
+      hudMargin = m;
+      railEndX = m + gi;
     }
 
-    readHudPadding();
-    window.addEventListener("resize", readHudPadding);
+    readRailEnd();
+    window.addEventListener("resize", readRailEnd);
 
     const update = (time: number) => {
       const dt = lastTime ? Math.min((time - lastTime) / 1000, 0.05) : 0.016;
@@ -183,7 +180,7 @@ function JourneyConnector() {
 
       const rect = el.getBoundingClientRect();
       const targetY = rect.top + rect.height / 2;
-      const endX = hudPad + RAIL_WIDTH;
+      const endX = railEndX;
 
       if (!initialized) {
         currentY = targetY;
@@ -200,8 +197,8 @@ function JourneyConnector() {
 
       const settled = Math.abs(currentY - targetY) < 0.3;
       if (!settled || !svg.style.opacity || svg.style.opacity === "0") {
-        path.setAttribute("d", `M ${hudPad} ${currentY} L ${endX} ${currentY}`);
-        diamond.setAttribute("x", String(hudPad - 3));
+        path.setAttribute("d", `M ${hudMargin} ${currentY} L ${endX} ${currentY}`);
+        diamond.setAttribute("x", String(hudMargin - 3));
         diamond.setAttribute("y", String(currentY - 3));
       }
 
@@ -212,7 +209,7 @@ function JourneyConnector() {
     rafId = requestAnimationFrame(update);
     return () => {
       cancelAnimationFrame(rafId);
-      window.removeEventListener("resize", readHudPadding);
+      window.removeEventListener("resize", readRailEnd);
     };
   }, []);
 
@@ -236,7 +233,7 @@ function JourneyConnector() {
       <path
         ref={pathRef}
         fill="none"
-        stroke="var(--gold)"
+        stroke="var(--dawn-30)"
         strokeWidth="1.5"
         strokeLinecap="round"
       />
@@ -244,12 +241,11 @@ function JourneyConnector() {
         ref={diamondRef}
         width="6"
         height="6"
-        fill="var(--gold)"
+        fill="var(--dawn-30)"
         style={{
           transformOrigin: "center",
           transformBox: "fill-box",
           transform: "rotate(45deg)",
-          filter: "drop-shadow(0 0 4px rgba(202, 165, 84, 0.4))",
         }}
       />
     </svg>
@@ -307,23 +303,6 @@ function NavigationFrameInner({
     }
   }
 
-  const rightRailRef = useRef<HTMLElement>(null);
-  const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    function onScroll() {
-      rightRailRef.current?.classList.add("rail-scrolling");
-      if (scrollTimer.current) clearTimeout(scrollTimer.current);
-      scrollTimer.current = setTimeout(() => {
-        rightRailRef.current?.classList.remove("rail-scrolling");
-      }, 800);
-    }
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      if (scrollTimer.current) clearTimeout(scrollTimer.current);
-    };
-  }, []);
 
   const settingsPx = useMemo(() => settingsPixels(), []);
   const themePx = useMemo(() => themePixels(isLight), [isLight]);
@@ -404,177 +383,138 @@ function NavigationFrameInner({
     }
   }, [breadcrumb?.backHref, router]);
 
+  // Determine chapter label from context
+  const chapterLabel = useMemo(() => {
+    if (journeyName) {
+      // Use journey name as chapter identifier
+      return `CHAPTER ${journeyName.toUpperCase().slice(0, 8)}`;
+    }
+    // Fallback to section name from pathname
+    const parts = pathname.split("/").filter(Boolean);
+    if (parts.length > 0) {
+      const section = parts[0].toUpperCase();
+      return `CHAPTER ${section}`;
+    }
+    return undefined;
+  }, [journeyName, pathname]);
+
+  // Determine pagination from pathname depth
+  const paginationLabel = useMemo(() => {
+    const parts = pathname.split("/").filter(Boolean);
+    if (parts.length > 0) {
+      return String(parts.length).padStart(2, "0");
+    }
+    return "01";
+  }, [pathname]);
+
   return (
-    <div className="relative min-h-screen bg-void text-dawn dot-grid-bg">
-      <div className="hud-corner hud-corner-tl" />
-      <div className="hud-corner hud-corner-tr" />
-      <div className="hud-corner hud-corner-bl" />
-      <div className="hud-corner hud-corner-br" />
+    <HudFrame
+      chapterLabel={chapterLabel}
+      paginationLabel={paginationLabel}
+      showRails={true}
 
-      {/* Left rail */}
-      <aside
-        className="hud-rail-tick fixed z-30 pointer-events-none"
-        style={{
-          top: "calc(var(--hud-padding) + 24px)",
-          bottom: "calc(var(--hud-padding) + 24px)",
-          left: "var(--hud-padding)",
-          width: RAIL_WIDTH,
-        }}
-      >
-        <div
-          className="absolute left-0 top-0 bottom-0 w-[1px]"
-          style={{
-            background: "linear-gradient(to bottom, transparent 0%, var(--dawn-30) 10%, var(--dawn-30) 90%, transparent 100%)",
-          }}
-        />
-        <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-between">
-          {Array.from({ length: TICK_COUNT + 1 }).map((_, i) => {
-            const isMajor = MAJOR_INDICES.has(i);
-            return (
-              <div key={i} className="relative">
-                <div
-                  style={{
-                    height: 1,
-                    width: isMajor ? 20 : 10,
-                    background: isMajor ? "var(--gold)" : "var(--gold-30)",
+      enableScrollReveal={true}
+    >
+      <div className="bg-void text-dawn dot-grid-bg">
+        <JourneyConnector />
+
+        {/* Top bar: left nav | home link | right nav — above the HUD rails */}
+        <nav
+          className="fixed z-50 pointer-events-auto left-0 right-0 flex items-center justify-center"
+          style={{ top: "var(--hud-nav-offset-top)", height: "var(--hud-nav-height)" }}
+        >
+          <div style={{ position: "relative", display: "flex", alignItems: "center", gap: "24px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              {LEFT_NAV.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  style={navLinkStyle(item.href)}
+                  onMouseEnter={(e) => {
+                    const style = e.currentTarget.style;
+                    if (style.color !== "var(--gold)") style.color = "var(--dawn-70)";
                   }}
-                />
-                {TICK_LABELS[i] && (
+                  onMouseLeave={(e) => {
+                    const isActive = isNavActive(item.href);
+                    e.currentTarget.style.color = isActive ? "var(--gold)" : "var(--dawn-40)";
+                  }}
+                >
+                  <span>{item.label}</span>
                   <span
-                    className="absolute text-[9px]"
+                    aria-hidden="true"
                     style={{
-                      top: -4,
-                      left: 28,
-                      color: "var(--dawn-30)",
-                      fontFamily: "var(--font-mono)",
+                      width: 16,
+                      height: 2,
+                      marginTop: 4,
+                      background: isNavActive(item.href) ? "var(--gold)" : "transparent",
+                      transition: "background-color var(--duration-fast)",
                     }}
-                  >
-                    {TICK_LABELS[i]}
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </aside>
+                  />
+                </Link>
+              ))}
+            </div>
+            {/* Home link - no longer centered brandmark */}
+            <Link
+              href="/"
+              style={{
+                textDecoration: "none",
+                color: "var(--dawn-40)",
+                fontFamily: "var(--font-mono)",
+                fontSize: "11px",
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                transition: "color var(--duration-fast)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "var(--gold)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "var(--dawn-40)";
+              }}
+            >
+              SIGIL
+            </Link>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              {RIGHT_NAV.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  style={navLinkStyle(item.href)}
+                  onMouseEnter={(e) => {
+                    const style = e.currentTarget.style;
+                    if (style.color !== "var(--gold)") style.color = "var(--dawn-70)";
+                  }}
+                  onMouseLeave={(e) => {
+                    const isActive = isNavActive(item.href);
+                    e.currentTarget.style.color = isActive ? "var(--gold)" : "var(--dawn-40)";
+                  }}
+                >
+                  <span>{item.label}</span>
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      width: 16,
+                      height: 2,
+                      marginTop: 4,
+                      background: isNavActive(item.href) ? "var(--gold)" : "transparent",
+                      transition: "background-color var(--duration-fast)",
+                    }}
+                  />
+                </Link>
+              ))}
+            </div>
+          </div>
+        </nav>
 
-      <JourneyConnector />
-
-      {/* Right rail */}
-      <aside
-        ref={rightRailRef}
-        data-hud-rail="right"
-        className="hud-rail-tick fixed z-30 pointer-events-none"
-        style={{
-          top: "calc(var(--hud-padding) + 24px)",
-          bottom: "calc(var(--hud-padding) + 24px)",
-          right: "var(--hud-padding)",
-          width: RAIL_WIDTH,
-        }}
-      >
+        {/* Top-right: theme toggle + admin settings — aligned with nav bar */}
         <div
-          className="absolute right-0 top-0 bottom-0 w-[1px]"
+          className="fixed z-50 pointer-events-auto flex flex-row items-center gap-3"
           style={{
-            background: "linear-gradient(to bottom, transparent 0%, var(--dawn-30) 10%, var(--dawn-30) 90%, transparent 100%)",
+            top: "var(--hud-nav-offset-top)",
+            right: "var(--hud-margin)",
+            height: "var(--hud-nav-height)",
           }}
-        />
-        <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-between items-end">
-          {Array.from({ length: TICK_COUNT + 1 }).map((_, i) => {
-            const isMajor = MAJOR_INDICES.has(i);
-            return (
-              <div
-                key={i}
-                className={isMajor ? "rail-major-tick" : undefined}
-                style={{
-                  height: 1,
-                  width: isMajor ? 20 : 10,
-                  background: isMajor ? "var(--gold)" : "var(--gold-30)",
-                  opacity: isMajor ? 0 : 1,
-                  transition: isMajor ? "opacity 400ms ease" : undefined,
-                }}
-              />
-            );
-          })}
-        </div>
-      </aside>
-
-      {/* Centered top bar: left nav | logo | right nav — above the HUD rails */}
-      <nav
-        className="fixed z-50 pointer-events-auto left-0 right-0 flex items-center justify-center"
-        style={{ top: 8, height: "48px" }}
-      >
-        <div style={{ position: "relative", display: "flex", alignItems: "center", gap: "24px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            {LEFT_NAV.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                style={navLinkStyle(item.href)}
-                onMouseEnter={(e) => {
-                  const style = e.currentTarget.style;
-                  if (style.color !== "var(--gold)") style.color = "var(--dawn-70)";
-                }}
-                onMouseLeave={(e) => {
-                  const isActive = isNavActive(item.href);
-                  e.currentTarget.style.color = isActive ? "var(--gold)" : "var(--dawn-40)";
-                }}
-              >
-                <span>{item.label}</span>
-                <span
-                  aria-hidden="true"
-                  style={{
-                    width: 16,
-                    height: 2,
-                    marginTop: 4,
-                    background: isNavActive(item.href) ? "var(--gold)" : "transparent",
-                    transition: "background-color var(--duration-fast)",
-                  }}
-                />
-              </Link>
-            ))}
-          </div>
-          <SigilParticleLogo />
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            {RIGHT_NAV.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                style={navLinkStyle(item.href)}
-                onMouseEnter={(e) => {
-                  const style = e.currentTarget.style;
-                  if (style.color !== "var(--gold)") style.color = "var(--dawn-70)";
-                }}
-                onMouseLeave={(e) => {
-                  const isActive = isNavActive(item.href);
-                  e.currentTarget.style.color = isActive ? "var(--gold)" : "var(--dawn-40)";
-                }}
-              >
-                <span>{item.label}</span>
-                <span
-                  aria-hidden="true"
-                  style={{
-                    width: 16,
-                    height: 2,
-                    marginTop: 4,
-                    background: isNavActive(item.href) ? "var(--gold)" : "transparent",
-                    transition: "background-color var(--duration-fast)",
-                  }}
-                />
-              </Link>
-            ))}
-          </div>
-        </div>
-      </nav>
-
-      {/* Top-right: theme toggle + admin settings — aligned with nav bar */}
-      <div
-        className="fixed z-50 pointer-events-auto flex flex-row items-center gap-3"
-        style={{
-          top: 8,
-          right: "var(--hud-padding)",
-          height: 48,
-        }}
-      >
+        >
         <button
           type="button"
           onClick={toggleTheme}
@@ -602,16 +542,16 @@ function NavigationFrameInner({
         )}
       </div>
 
-      {/* Breadcrumb tree — aligned with first tick of left rail */}
-      {breadcrumb && (
-        <nav
-          aria-label="Breadcrumb"
-          className="nav-spine fixed z-40 pointer-events-auto animate-fade-in-up"
-          style={{
-            top: "calc(var(--hud-padding) + 24px)",
-            left: `calc(var(--hud-padding) + ${RAIL_WIDTH + 8}px)`,
-          }}
-        >
+        {/* Breadcrumb tree — aligned with first tick of left rail */}
+        {breadcrumb && (
+          <nav
+            aria-label="Breadcrumb"
+            className="nav-spine fixed z-40 pointer-events-auto animate-fade-in-up"
+            style={{
+              top: "var(--hud-rail-top)",
+              left: "calc(var(--hud-margin) + var(--hud-rail-guide-inset) + var(--hud-content-rail-gap))",
+            }}
+          >
           {journeyName ? (
             <ContextAnchor
               mode="spine"
@@ -643,17 +583,19 @@ function NavigationFrameInner({
         </nav>
       )}
 
-      <main
-        className={`hud-shell ${workspaceLayout ? "hud-shell--workspace" : ""}`}
-        style={{
-          paddingLeft: `calc(var(--hud-padding) + ${journeyName ? RAIL_WIDTH + NAV_SPINE_CARD_WIDTH + 24 : RAIL_WIDTH + 8}px)`,
-          paddingRight: `calc(var(--hud-padding) + 20px)`,
-          paddingTop: "calc(var(--hud-padding) + 24px)",
-          ...({ "--content-inset-left": `calc(var(--hud-padding) + ${journeyName ? RAIL_WIDTH + NAV_SPINE_CARD_WIDTH + 24 : RAIL_WIDTH + 8}px)` } as React.CSSProperties),
-        }}
-      >
-        {children}
-      </main>
-    </div>
+        <main
+          className={`hud-shell ${workspaceLayout ? "hud-shell--workspace" : ""}`}
+          style={
+            journeyName
+              ? ({
+                  "--hud-inner-offset": `calc(24px + var(--hud-content-rail-gap) + ${NAV_SPINE_CARD_WIDTH + 16}px)`,
+                } as React.CSSProperties)
+              : undefined
+          }
+        >
+          {children}
+        </main>
+      </div>
+    </HudFrame>
   );
 }
