@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { RAIL_WIDTH } from "./BrandedWorkshopFrame";
+import { RAIL_GUIDE_INSET, RAIL_WIDTH } from "@/components/hud/grid-constants";
 import { LoopTerrainMap } from "./sections/LoopTerrainMap";
 import { WaypointTopography } from "./sections/WaypointTopography";
 import { NavigateStory } from "./sections/NavigateStory";
@@ -373,15 +373,11 @@ function useWorkshopViewportMetrics() {
 
   useEffect(() => {
     function syncMetrics() {
-      const probe = document.createElement("div");
-      probe.style.cssText =
-        "position:absolute;visibility:hidden;width:var(--hud-padding)";
-      document.documentElement.appendChild(probe);
-      const resolved = probe.offsetWidth;
-      document.documentElement.removeChild(probe);
+      const st = getComputedStyle(document.documentElement);
+      const m = parseFloat(st.getPropertyValue("--hud-margin")) || HUD_PAD;
 
       setMetrics({
-        hudPad: resolved > 0 ? resolved : HUD_PAD,
+        hudPad: m,
         viewportWidth: window.innerWidth,
       });
     }
@@ -402,8 +398,12 @@ function buildWorkshopLayout(viewportWidth: number, hudPad: number): WorkshopLay
   const slidePadY = compact ? 60 : 80;
   const leftDockWidth = compact ? 120 : medium ? 144 : 176;
   const rightDockWidth = compact ? 28 : medium ? 40 : 56;
-  const contentLeft = hudPad + RAIL_WIDTH + leftDockWidth;
-  const contentRight = hudPad + RAIL_WIDTH + rightDockWidth;
+  const hudMargin =
+    typeof document !== "undefined"
+      ? parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--hud-margin")) || hudPad
+      : hudPad;
+  const contentLeft = hudMargin + RAIL_WIDTH + leftDockWidth;
+  const contentRight = hudMargin + RAIL_WIDTH + rightDockWidth;
 
   return {
     slidePadX,
@@ -415,8 +415,8 @@ function buildWorkshopLayout(viewportWidth: number, hudPad: number): WorkshopLay
       Math.max(560, viewportWidth - contentLeft - contentRight),
     ),
     chapterTitleSize: compact ? 56 : medium ? 68 : 84,
-    contextLeft: hudPad + 32,
-    contextTop: hudPad + 34,
+    contextLeft: hudMargin + RAIL_GUIDE_INSET + 6,
+    contextTop: hudMargin + RAIL_GUIDE_INSET + 8,
     contextWidth: compact ? 144 : medium ? 164 : 180,
   };
 }
@@ -780,9 +780,19 @@ function WorkshopLogoMotion({
 }) {
   const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 
-  const heroTop = hudPad + 24;
-  const dockedTop = hudPad;
-  const dockedLeft = hudPad + 32;
+  // Use --hud-margin for new grid system
+  const hudMargin =
+    typeof document !== "undefined"
+      ? parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--hud-margin")) || hudPad
+      : hudPad;
+  const shellPadTop =
+    typeof document !== "undefined"
+      ? parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--hud-shell-pad-top")) ||
+        hudMargin + 56
+      : hudMargin + 56;
+  const heroTop = shellPadTop + 8;
+  const dockedTop = hudMargin;
+  const dockedLeft = hudMargin + Math.max(8, RAIL_GUIDE_INSET - 10);
 
   const top = heroTop + (dockedTop - heroTop) * ease;
   const height = 36 + (20 - 36) * ease;
