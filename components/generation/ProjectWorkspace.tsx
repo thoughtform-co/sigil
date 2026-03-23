@@ -95,6 +95,8 @@ export function ProjectWorkspace({
   const [numOutputs, setNumOutputs] = useState("1");
   const [duration, setDuration] = useState("5");
   const [endFrameUrl, setEndFrameUrl] = useState("");
+  const [endFramePath, setEndFramePath] = useState("");
+  const [endFrameUploading, setEndFrameUploading] = useState(false);
   const [modelId, setModelId] = useState("");
   const [projectName, setProjectName] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -487,13 +489,53 @@ export function ProjectWorkspace({
   );
   const supportsEndFrame = mode === "video" && !!selectedModelConfig?.capabilities?.["frame-interpolation"];
 
+  const handleEndFrameChange = useCallback((url: string, path?: string) => {
+    setEndFrameUrl(url);
+    setEndFramePath(path?.trim() ? path.trim() : "");
+  }, []);
+
   useEffect(() => {
-    if (!supportsEndFrame && endFrameUrl) setEndFrameUrl("");
+    if (!supportsEndFrame && endFrameUrl) {
+      setEndFrameUrl("");
+      setEndFramePath("");
+    }
   }, [supportsEndFrame, endFrameUrl]);
 
   useEffect(() => {
-    if (mode === "video" && referenceImages.length === 0 && endFrameUrl) setEndFrameUrl("");
+    if (mode === "video" && referenceImages.length === 0 && endFrameUrl) {
+      setEndFrameUrl("");
+      setEndFramePath("");
+    }
   }, [mode, referenceImages.length, endFrameUrl]);
+
+  const uploadImageFileMultipart = useCallback(
+    async (file: File): Promise<{ url: string; path?: string }> => {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("projectId", projectId);
+      const res = await fetch("/api/upload/reference-image", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      const ct = res.headers.get("content-type") ?? "";
+      if (!ct.includes("application/json")) {
+        const text = await res.text();
+        throw new Error(`Upload failed (${res.status}): ${text.slice(0, 120)}`);
+      }
+      const data = (await res.json()) as {
+        url?: string;
+        referenceImageUrl?: string;
+        path?: string;
+        error?: string;
+      };
+      if (!res.ok) throw new Error(data.error ?? "Upload failed");
+      const url = data.referenceImageUrl ?? data.url;
+      if (!url) throw new Error("Upload returned no URL");
+      return { url, path: data.path };
+    },
+    [projectId],
+  );
 
   const handleClipboardImage = useCallback(
     (files: File[]) => {
@@ -516,11 +558,31 @@ export function ProjectWorkspace({
           };
           img.src = firstUrl;
         } else if (supportsEndFrame) {
-          setEndFrameUrl(objectUrls[0]);
+          const file = files[0];
+          void (async () => {
+            setEndFrameUploading(true);
+            setMessage(null);
+            try {
+              const { url, path } = await uploadImageFileMultipart(file);
+              handleEndFrameChange(url, path);
+            } catch (err) {
+              setMessage(err instanceof Error ? err.message : "End frame upload failed");
+              handleEndFrameChange("", "");
+            } finally {
+              setEndFrameUploading(false);
+            }
+          })();
         }
       }
     },
-    [mode, referenceImages.length, supportsEndFrame, selectedModelConfig],
+    [
+      mode,
+      referenceImages.length,
+      supportsEndFrame,
+      selectedModelConfig,
+      uploadImageFileMultipart,
+      handleEndFrameChange,
+    ],
   );
   useClipboardImage(mode !== "canvas" ? handleClipboardImage : null);
 
@@ -584,6 +646,10 @@ export function ProjectWorkspace({
 
   async function submitGeneration() {
     if (!prompt.trim()) return;
+    if (mode === "video" && endFrameUploading) {
+      setMessage("Wait for the end frame image to finish uploading.");
+      return;
+    }
     setBusy(true);
     setMessage(null);
     try {
@@ -683,45 +749,13 @@ export function ProjectWorkspace({
       }
 
       if (mode === "video" && endFrameUrl) {
-        const shouldUpload =
-          endFrameUrl.startsWith("data:") ||
-          endFrameUrl.startsWith("blob:") ||
-          endFrameUrl.startsWith("http");
-        if (shouldUpload) {
-          const compressed = await compressImage(endFrameUrl, {
-            maxDim: 2048,
-            maxSizeMB: 4,
-            quality: 0.85,
-          });
-          if (compressed) {
-            const efUploadRes = await fetch("/api/upload/reference-image", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ dataUrl: compressed, projectId: projectId || undefined }),
-            });
-            const efCt = efUploadRes.headers.get("content-type") ?? "";
-            if (efCt.includes("application/json")) {
-              const efData = (await efUploadRes.json()) as {
-                url?: string;
-                referenceImageUrl?: string;
-                path?: string;
-                error?: string;
-              };
-              if (efUploadRes.ok) {
-                parameters.endFrameImageUrl = efData.referenceImageUrl ?? efData.url ?? endFrameUrl;
-                if (efData.path) parameters.endFrameImagePath = efData.path;
-              } else {
-                parameters.endFrameImageUrl = endFrameUrl;
-              }
-            } else {
-              parameters.endFrameImageUrl = endFrameUrl;
-            }
-          } else {
-            parameters.endFrameImageUrl = endFrameUrl;
-          }
-        } else {
-          parameters.endFrameImageUrl = endFrameUrl;
+        if (!endFrameUrl.startsWith("http")) {
+          throw new Error(
+            "End frame must be a stored image URL. Wait for upload to finish or pick the end frame again.",
+          );
         }
+        parameters.endFrameImageUrl = endFrameUrl;
+        if (endFramePath) parameters.endFrameImagePath = endFramePath;
       }
 
       const response = await fetch("/api/generate", {
@@ -815,20 +849,30 @@ export function ProjectWorkspace({
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext("2d");
-      if (!ctx) return undefined;
-      ctx.drawImage(img, 0, 0, width, height);
-
-      let quality = initQuality;
-      let dataUrl = canvas.toDataURL("image/jpeg", quality);
-      const approxMB = (s: string) => Math.floor(((s.split(",")[1] || "").length * 3) / 4) / (1024 * 1024);
-      let attempts = 0;
-      while (approxMB(dataUrl) > maxSizeMB && attempts < 4 && quality > 0.5) {
-        quality = Math.max(0.5, quality - 0.1);
-        dataUrl = canvas.toDataURL("image/jpeg", quality);
-        attempts++;
+      if (!ctx) {
+        canvas.width = 0;
+        canvas.height = 0;
+        return undefined;
       }
-      if (approxMB(dataUrl) > maxSizeMB) return undefined;
-      return dataUrl;
+      try {
+        ctx.drawImage(img, 0, 0, width, height);
+
+        let quality = initQuality;
+        let dataUrl = canvas.toDataURL("image/jpeg", quality);
+        const approxMB = (s: string) =>
+          Math.floor(((s.split(",")[1] || "").length * 3) / 4) / (1024 * 1024);
+        let attempts = 0;
+        while (approxMB(dataUrl) > maxSizeMB && attempts < 4 && quality > 0.5) {
+          quality = Math.max(0.5, quality - 0.1);
+          dataUrl = canvas.toDataURL("image/jpeg", quality);
+          attempts++;
+        }
+        if (approxMB(dataUrl) > maxSizeMB) return undefined;
+        return dataUrl;
+      } finally {
+        canvas.width = 0;
+        canvas.height = 0;
+      }
     } catch {
       return undefined;
     }
@@ -1027,8 +1071,12 @@ export function ProjectWorkspace({
     }
     if (typeof params.endFrameImageUrl === "string") {
       setEndFrameUrl(params.endFrameImageUrl);
+      setEndFramePath(
+        typeof params.endFrameImagePath === "string" ? params.endFrameImagePath.trim() : "",
+      );
     } else {
       setEndFrameUrl("");
+      setEndFramePath("");
     }
     setMessage("Parameters loaded from previous generation.");
   }
@@ -1238,7 +1286,9 @@ export function ProjectWorkspace({
         brainstormOpen={brainstormOpen}
         onBrainstormToggle={() => setBrainstormOpen((v) => !v)}
         endFrameUrl={endFrameUrl}
-        onEndFrameChange={setEndFrameUrl}
+        onEndFrameChange={handleEndFrameChange}
+        onEndFrameUploadingChange={setEndFrameUploading}
+        onEndFrameUploadError={(msg) => setMessage(msg)}
         supportsEndFrame={supportsEndFrame}
       />
       {brainstormOpen && (

@@ -8,6 +8,9 @@ import styles from "./ForgePromptBar.module.css";
 
 const DEFAULT_ASPECT_RATIOS = ["1:1", "16:9", "9:16", "4:3", "3:4"];
 
+/** Matches [`app/api/upload/reference-image/route.ts`](app/api/upload/reference-image/route.ts) MAX_FILE_SIZE */
+const MAX_END_FRAME_FILE_BYTES = 25 * 1024 * 1024;
+
 function detectClosestAspectRatio(
   width: number,
   height: number,
@@ -59,8 +62,13 @@ type ForgePromptBarProps = {
   brainstormOpen?: boolean;
   onBrainstormToggle?: () => void;
   endFrameUrl?: string;
-  onEndFrameChange?: (value: string) => void;
+  /** Second arg is storage path when known (for signed URL refresh). */
+  onEndFrameChange?: (url: string, path?: string) => void;
   supportsEndFrame?: boolean;
+  /** Fired when a file-based end frame upload starts or finishes. */
+  onEndFrameUploadingChange?: (uploading: boolean) => void;
+  /** User-visible error (e.g. oversized file or upload failure). */
+  onEndFrameUploadError?: (message: string) => void;
 };
 
 export function ForgePromptBar({
@@ -94,6 +102,8 @@ export function ForgePromptBar({
   endFrameUrl = "",
   onEndFrameChange = () => {},
   supportsEndFrame = false,
+  onEndFrameUploadingChange,
+  onEndFrameUploadError,
 }: ForgePromptBarProps) {
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
@@ -111,6 +121,48 @@ export function ForgePromptBar({
   const endFrameMenuRef = useRef<HTMLDivElement>(null);
   const [showEndFrameMenu, setShowEndFrameMenu] = useState(false);
   const [browseTarget, setBrowseTarget] = useState<"reference" | "endFrame">("reference");
+  /** Blob URL for thumb while multipart upload is in flight (parent endFrameUrl is empty until done). */
+  const [endFrameLocalPreview, setEndFrameLocalPreview] = useState<string | null>(null);
+  const endFrameLocalPreviewRef = useRef<string | null>(null);
+  const [endFrameUploading, setEndFrameUploading] = useState(false);
+
+  const replaceEndFrameLocalPreview = useCallback((next: string | null) => {
+    const prev = endFrameLocalPreviewRef.current;
+    if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+    endFrameLocalPreviewRef.current = next;
+    setEndFrameLocalPreview(next);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      const p = endFrameLocalPreviewRef.current;
+      if (p?.startsWith("blob:")) URL.revokeObjectURL(p);
+      endFrameLocalPreviewRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!supportsEndFrame) {
+      replaceEndFrameLocalPreview(null);
+      setEndFrameUploading(false);
+      onEndFrameUploadingChange?.(false);
+    }
+  }, [supportsEndFrame, replaceEndFrameLocalPreview, onEndFrameUploadingChange]);
+
+  /** Parent cleared the URL (e.g. no start frame); drop orphan blob preview unless an upload is in flight. */
+  useEffect(() => {
+    if (!endFrameUrl && !endFrameUploading && endFrameLocalPreviewRef.current) {
+      replaceEndFrameLocalPreview(null);
+    }
+  }, [endFrameUrl, endFrameUploading, replaceEndFrameLocalPreview]);
+
+  const setUploading = useCallback(
+    (v: boolean) => {
+      setEndFrameUploading(v);
+      onEndFrameUploadingChange?.(v);
+    },
+    [onEndFrameUploadingChange],
+  );
 
   const [inputHeight, setInputHeight] = useState(52);
   const [isResizing, setIsResizing] = useState(false);
@@ -252,23 +304,61 @@ export function ForgePromptBar({
   const handleBrowseSelect = useCallback(
     (url: string) => {
       if (browseTarget === "endFrame") {
+        replaceEndFrameLocalPreview(null);
         onEndFrameChange(url);
       } else {
         appendReferences([url]);
       }
     },
-    [browseTarget, appendReferences, onEndFrameChange],
+    [browseTarget, appendReferences, onEndFrameChange, replaceEndFrameLocalPreview],
   );
 
   const handleEndFrameImageSelect = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
-      if (!file || !file.type.startsWith("image/")) return;
-      const objectUrl = URL.createObjectURL(file);
-      onEndFrameChange(objectUrl);
       if (endFrameInputRef.current) endFrameInputRef.current.value = "";
+      if (!file || !file.type.startsWith("image/")) return;
+      if (file.size > MAX_END_FRAME_FILE_BYTES) {
+        onEndFrameUploadError?.(`Image must be ${MAX_END_FRAME_FILE_BYTES / (1024 * 1024)}MB or smaller.`);
+        return;
+      }
+      onEndFrameChange("");
+      replaceEndFrameLocalPreview(URL.createObjectURL(file));
+      setUploading(true);
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("projectId", projectId);
+        const res = await fetch("/api/upload/reference-image", {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+        });
+        const ct = res.headers.get("content-type") ?? "";
+        if (!ct.includes("application/json")) {
+          const text = await res.text();
+          throw new Error(`Upload failed (${res.status}): ${text.slice(0, 120)}`);
+        }
+        const data = (await res.json()) as {
+          url?: string;
+          referenceImageUrl?: string;
+          path?: string;
+          error?: string;
+        };
+        if (!res.ok) throw new Error(data.error ?? "End frame upload failed");
+        const uploadedUrl = data.referenceImageUrl ?? data.url;
+        if (!uploadedUrl) throw new Error("Upload returned no URL");
+        replaceEndFrameLocalPreview(null);
+        onEndFrameChange(uploadedUrl, data.path);
+      } catch (err) {
+        replaceEndFrameLocalPreview(null);
+        onEndFrameChange("");
+        onEndFrameUploadError?.(err instanceof Error ? err.message : "End frame upload failed");
+      } finally {
+        setUploading(false);
+      }
     },
-    [onEndFrameChange],
+    [onEndFrameChange, onEndFrameUploadError, projectId, replaceEndFrameLocalPreview, setUploading],
   );
 
   const handleImageSelect = useCallback(
@@ -335,7 +425,16 @@ export function ForgePromptBar({
     }
   };
 
-  const canSubmit = modelId && prompt.trim() && !busy;
+  const endFrameDisplaySrc =
+    endFrameUrl.trim() && endFrameUrl.startsWith("http")
+      ? endFrameUrl
+      : endFrameLocalPreview ?? "";
+  const hasEndFrameThumb = Boolean(endFrameDisplaySrc);
+  const canSubmit =
+    modelId &&
+    prompt.trim() &&
+    !busy &&
+    !(generationType === "video" && endFrameUploading);
 
   if (minimal) {
     return (
@@ -521,23 +620,23 @@ export function ForgePromptBar({
                 </div>
               ))}
               {generationType === "video" && supportsEndFrame && referenceImages.length > 0 && (
-                endFrameUrl ? (
-                  <div className={styles.attachThumb}>
+                hasEndFrameThumb ? (
+                  <div className={styles.attachThumb} aria-busy={endFrameUploading}>
                     <span className={styles.frameTag}>END</span>
                     <img
-                      src={endFrameUrl}
+                      src={endFrameDisplaySrc}
                       alt="End frame"
                       role="button"
                       tabIndex={0}
-                      title="Open full preview"
+                      title={endFrameUploading ? "Uploading end frame…" : "Open full preview"}
                       onClick={() => {
-                        setPreviewImageUrl(endFrameUrl);
+                        setPreviewImageUrl(endFrameDisplaySrc);
                         setReferencePreviewOpen(true);
                       }}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
-                          setPreviewImageUrl(endFrameUrl);
+                          setPreviewImageUrl(endFrameDisplaySrc);
                           setReferencePreviewOpen(true);
                         }
                       }}
@@ -547,6 +646,8 @@ export function ForgePromptBar({
                       className={styles.attachRemove}
                       onClick={(e) => {
                         e.stopPropagation();
+                        replaceEndFrameLocalPreview(null);
+                        setUploading(false);
                         onEndFrameChange("");
                       }}
                     >

@@ -10,7 +10,7 @@ import { json } from "@/lib/api/responses";
 import { checkRateLimit } from "@/lib/api/rate-limit";
 import { getProcessor } from "@/lib/models/processor";
 import { projectAccessFilter } from "@/lib/auth/project-access";
-import { hydrateReferenceParameters } from "@/lib/reference-images";
+import { hydrateReferenceParameters, persistReferenceImage } from "@/lib/reference-images";
 
 export const maxDuration = 30;
 
@@ -30,7 +30,20 @@ export async function POST(request: Request) {
     }
 
     const { modelId, negativePrompt, parameters, prompt, sessionId, source, workflowExecutionId } = parsed.data;
-    const hydratedParameters = await hydrateReferenceParameters(parameters);
+
+    let workingParameters: Record<string, unknown> = { ...parameters };
+    const endFrameInline = workingParameters.endFrameImage;
+    if (typeof endFrameInline === "string" && endFrameInline.startsWith("data:")) {
+      const persisted = await persistReferenceImage(endFrameInline, user.id);
+      workingParameters = {
+        ...workingParameters,
+        endFrameImageUrl: persisted.referenceImageUrl,
+        endFrameImagePath: persisted.referenceImagePath,
+      };
+      delete workingParameters.endFrameImage;
+    }
+
+    const hydratedParameters = await hydrateReferenceParameters(workingParameters);
 
     const accessFilter = await projectAccessFilter(user.id);
     const session = await prisma.session.findFirst({

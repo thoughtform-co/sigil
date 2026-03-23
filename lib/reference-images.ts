@@ -130,6 +130,17 @@ export async function hydrateReferenceParameters(
       )
     : [];
 
+  const endFrameUrl = typeof parameters.endFrameImageUrl === "string"
+    ? parameters.endFrameImageUrl
+    : null;
+  const endFramePath = typeof parameters.endFrameImagePath === "string" &&
+    parameters.endFrameImagePath.trim().length > 0
+    ? parameters.endFrameImagePath.trim()
+    : null;
+  if (endFrameUrl) {
+    next.endFrameImageUrl = await refreshReferenceImageUrl(endFrameUrl, endFramePath);
+  }
+
   if (imageUrls.length > 0) {
     const refreshed = await Promise.all(
       imageUrls.map((url, index) =>
@@ -143,17 +154,6 @@ export async function hydrateReferenceParameters(
 
   if (singleUrl) {
     next.referenceImageUrl = await refreshReferenceImageUrl(singleUrl, singlePath);
-  }
-
-  const endFrameUrl = typeof parameters.endFrameImageUrl === "string"
-    ? parameters.endFrameImageUrl
-    : null;
-  const endFramePath = typeof parameters.endFrameImagePath === "string" &&
-    parameters.endFrameImagePath.trim().length > 0
-    ? parameters.endFrameImagePath.trim()
-    : null;
-  if (endFrameUrl) {
-    next.endFrameImageUrl = await refreshReferenceImageUrl(endFrameUrl, endFramePath);
   }
 
   return next;
