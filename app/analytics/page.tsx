@@ -1,22 +1,12 @@
-import { NavigationFrame } from "@/components/hud/NavigationFrame";
-import { RequireAuth } from "@/components/auth/RequireAuth";
-import { AnalyticsOverview } from "@/components/analytics/AnalyticsOverview";
-import { HudPanel, HudPanelHeader } from "@/components/ui/hud";
+import { redirect } from "next/navigation";
+import { getAuthedUser } from "@/lib/auth/server";
+import { getLockedJourneyHomeHref } from "@/lib/auth/workshop-redirect";
+import { AnalyticsPageClient } from "./AnalyticsPageClient";
 
-export default function AnalyticsPage() {
-  return (
-    <RequireAuth>
-      <NavigationFrame title="SIGIL" modeLabel="analytics">
-        <section
-          className="w-full animate-fade-in-up"
-          style={{ maxWidth: "var(--layout-content-sm, 960px)", paddingTop: "var(--space-2xl)" }}
-        >
-          <HudPanel>
-            <HudPanelHeader title="generation analytics" />
-            <AnalyticsOverview />
-          </HudPanel>
-        </section>
-      </NavigationFrame>
-    </RequireAuth>
-  );
+export default async function AnalyticsPage() {
+  const user = await getAuthedUser();
+  if (!user) redirect("/login");
+  const workshopHome = await getLockedJourneyHomeHref(user.id);
+  if (workshopHome) redirect(workshopHome);
+  return <AnalyticsPageClient />;
 }

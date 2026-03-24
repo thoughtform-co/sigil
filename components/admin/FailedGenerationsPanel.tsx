@@ -152,7 +152,7 @@ export function FailedGenerationsPanel() {
                         {badge.label}
                       </span>
                       <span className="admin-stat-label">
-                        {item.session.project.name} / {item.session.name}
+                        {item.session?.project?.name ?? "unknown route"} / {item.session?.name ?? "session"}
                       </span>
                     </div>
                     <button
@@ -173,7 +173,10 @@ export function FailedGenerationsPanel() {
                     </p>
                   )}
                   <div className="admin-stat-label" style={{ color: "var(--dawn-30)" }}>
-                    Model: {item.modelId} &middot; User: {item.user.displayName || item.user.username || item.user.id.slice(0, 8)}
+                    Model: {item.modelId} &middot; User:{" "}
+                    {item.user
+                      ? item.user.displayName || item.user.username || item.user.id.slice(0, 8)
+                      : "—"}
                     {item.errorCategory && <> &middot; Category: {item.errorCategory}</>}
                     {item.errorRetryable !== null && <> &middot; {item.errorRetryable ? "Retryable" : "Not retryable"}</>}
                   </div>

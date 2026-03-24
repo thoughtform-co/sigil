@@ -14,18 +14,16 @@ export async function GET() {
     prisma.output.count(),
   ]);
 
-  const isDev = process.env.NODE_ENV === "development";
+  const env = {
+    supabase: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+    database: Boolean(process.env.DATABASE_URL),
+    replicate: Boolean(process.env.REPLICATE_API_TOKEN || process.env.REPLICATE_API_KEY),
+    gemini: Boolean(process.env.GEMINI_API_KEY),
+    fal: Boolean(process.env.FAL_KEY),
+    klingOfficial: Boolean(process.env.KLING_ACCESS_KEY && process.env.KLING_SECRET_KEY),
+  };
   return json({
     stats: { projects, sessions, generations, outputs },
-    ...(isDev && {
-      env: {
-        supabase: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
-        database: Boolean(process.env.DATABASE_URL),
-        replicate: Boolean(process.env.REPLICATE_API_TOKEN || process.env.REPLICATE_API_KEY),
-        gemini: Boolean(process.env.GEMINI_API_KEY),
-        fal: Boolean(process.env.FAL_KEY),
-        klingOfficial: Boolean(process.env.KLING_ACCESS_KEY && process.env.KLING_SECRET_KEY),
-      },
-    }),
+    env,
   });
 }

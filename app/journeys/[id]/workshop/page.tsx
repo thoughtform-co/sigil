@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getAuthedUser } from "@/lib/auth/server";
+import { getLockedJourneyHomeHref } from "@/lib/auth/workshop-redirect";
 import { prefetchJourneyDetail } from "@/lib/prefetch/journeys";
 import { parseBrandedSettings, defaultBrandedSettings } from "@/lib/workshops/types";
 import { BrandedWorkshopFrame } from "@/components/workshops/BrandedWorkshopFrame";
@@ -11,7 +12,10 @@ async function WorkshopContent({ id }: { id: string }) {
   if (!user) redirect("/login");
 
   const result = await prefetchJourneyDetail(user.id, id);
-  if (!result) redirect("/journeys");
+  if (!result) {
+    const home = await getLockedJourneyHomeHref(user.id);
+    redirect(home ?? "/journeys");
+  }
 
   const { data } = result;
   if (data.journey.type !== "branded") redirect(`/journeys/${id}`);

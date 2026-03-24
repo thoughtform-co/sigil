@@ -272,7 +272,7 @@ function NavigationFrameInner({
   const { portalRef } = useNavSpine();
   const pathname = usePathname();
   const router = useRouter();
-  const { isAdmin } = useAuth();
+  const { isAdmin, isWorkshopLocked, lockedWorkspaceProjectId } = useAuth();
   const [isLight, setIsLight] = useState(false);
 
   useEffect(() => {
@@ -366,14 +366,27 @@ function NavigationFrameInner({
           ],
         };
       }
+      const journeysHub =
+        isWorkshopLocked && lockedWorkspaceProjectId
+          ? `/journeys/${lockedWorkspaceProjectId}`
+          : "/journeys";
       return {
-        backHref: "/journeys",
-        segments: [{ label: "journeys", href: "/journeys" }],
+        backHref: journeysHub,
+        segments: [{ label: "journeys", href: journeysHub }],
       };
     }
 
     return null;
-  }, [pathname, breadcrumbOverride, journeyName, journeyId, routeName, lessonName]);
+  }, [
+    pathname,
+    breadcrumbOverride,
+    journeyName,
+    journeyId,
+    routeName,
+    lessonName,
+    isWorkshopLocked,
+    lockedWorkspaceProjectId,
+  ]);
 
   const handleBack = useCallback(() => {
     if (breadcrumb?.backHref) {
@@ -424,85 +437,117 @@ function NavigationFrameInner({
           style={{ top: "var(--hud-nav-offset-top)", height: "var(--hud-nav-height)" }}
         >
           <div style={{ position: "relative", display: "flex", alignItems: "center", gap: "24px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              {LEFT_NAV.map((item) => (
+            {isWorkshopLocked && lockedWorkspaceProjectId ? (
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <Link
-                  key={item.href}
-                  href={item.href}
-                  style={navLinkStyle(item.href)}
+                  href={`/journeys/${lockedWorkspaceProjectId}`}
+                  style={navLinkStyle(`/journeys/${lockedWorkspaceProjectId}`)}
                   onMouseEnter={(e) => {
                     const style = e.currentTarget.style;
                     if (style.color !== "var(--gold)") style.color = "var(--dawn-70)";
                   }}
                   onMouseLeave={(e) => {
-                    const isActive = isNavActive(item.href);
+                    const isActive = isNavActive(`/journeys/${lockedWorkspaceProjectId}`);
                     e.currentTarget.style.color = isActive ? "var(--gold)" : "var(--dawn-40)";
                   }}
                 >
-                  <span>{item.label}</span>
+                  <span>workshop</span>
                   <span
                     aria-hidden="true"
                     style={{
                       width: 16,
                       height: 2,
                       marginTop: 4,
-                      background: isNavActive(item.href) ? "var(--gold)" : "transparent",
+                      background: isNavActive(`/journeys/${lockedWorkspaceProjectId}`)
+                        ? "var(--gold)"
+                        : "transparent",
                       transition: "background-color var(--duration-fast)",
                     }}
                   />
                 </Link>
-              ))}
-            </div>
-            {/* Home link - no longer centered brandmark */}
-            <Link
-              href="/"
-              style={{
-                textDecoration: "none",
-                color: "var(--dawn-40)",
-                fontFamily: "var(--font-mono)",
-                fontSize: "11px",
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-                transition: "color var(--duration-fast)",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "var(--gold)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "var(--dawn-40)";
-              }}
-            >
-              SIGIL
-            </Link>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              {RIGHT_NAV.map((item) => (
+              </div>
+            ) : (
+              <>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  {LEFT_NAV.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      style={navLinkStyle(item.href)}
+                      onMouseEnter={(e) => {
+                        const style = e.currentTarget.style;
+                        if (style.color !== "var(--gold)") style.color = "var(--dawn-70)";
+                      }}
+                      onMouseLeave={(e) => {
+                        const isActive = isNavActive(item.href);
+                        e.currentTarget.style.color = isActive ? "var(--gold)" : "var(--dawn-40)";
+                      }}
+                    >
+                      <span>{item.label}</span>
+                      <span
+                        aria-hidden="true"
+                        style={{
+                          width: 16,
+                          height: 2,
+                          marginTop: 4,
+                          background: isNavActive(item.href) ? "var(--gold)" : "transparent",
+                          transition: "background-color var(--duration-fast)",
+                        }}
+                      />
+                    </Link>
+                  ))}
+                </div>
                 <Link
-                  key={item.href}
-                  href={item.href}
-                  style={navLinkStyle(item.href)}
+                  href="/"
+                  style={{
+                    textDecoration: "none",
+                    color: "var(--dawn-40)",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "11px",
+                    letterSpacing: "0.1em",
+                    textTransform: "uppercase",
+                    transition: "color var(--duration-fast)",
+                  }}
                   onMouseEnter={(e) => {
-                    const style = e.currentTarget.style;
-                    if (style.color !== "var(--gold)") style.color = "var(--dawn-70)";
+                    e.currentTarget.style.color = "var(--gold)";
                   }}
                   onMouseLeave={(e) => {
-                    const isActive = isNavActive(item.href);
-                    e.currentTarget.style.color = isActive ? "var(--gold)" : "var(--dawn-40)";
+                    e.currentTarget.style.color = "var(--dawn-40)";
                   }}
                 >
-                  <span>{item.label}</span>
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      width: 16,
-                      height: 2,
-                      marginTop: 4,
-                      background: isNavActive(item.href) ? "var(--gold)" : "transparent",
-                      transition: "background-color var(--duration-fast)",
-                    }}
-                  />
+                  SIGIL
                 </Link>
-              ))}
-            </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  {RIGHT_NAV.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      style={navLinkStyle(item.href)}
+                      onMouseEnter={(e) => {
+                        const style = e.currentTarget.style;
+                        if (style.color !== "var(--gold)") style.color = "var(--dawn-70)";
+                      }}
+                      onMouseLeave={(e) => {
+                        const isActive = isNavActive(item.href);
+                        e.currentTarget.style.color = isActive ? "var(--gold)" : "var(--dawn-40)";
+                      }}
+                    >
+                      <span>{item.label}</span>
+                      <span
+                        aria-hidden="true"
+                        style={{
+                          width: 16,
+                          height: 2,
+                          marginTop: 4,
+                          background: isNavActive(item.href) ? "var(--gold)" : "transparent",
+                          transition: "background-color var(--duration-fast)",
+                        }}
+                      />
+                    </Link>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </nav>
 

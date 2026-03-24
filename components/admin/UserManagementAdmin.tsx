@@ -19,6 +19,7 @@ type UserRow = {
   role: string;
   isDisabled: boolean;
   createdAt: string;
+  lockedWorkspaceProjectId?: string | null;
   workspaceProjectMembers: Array<{
     workspaceProject: { id: string; name: string };
     role: string;
@@ -40,6 +41,7 @@ export function UserManagementAdmin() {
   const [inviteEmails, setInviteEmails] = useState("");
   const [inviteJourneyId, setInviteJourneyId] = useState("");
   const [inviteNote, setInviteNote] = useState("");
+  const [inviteLockToJourney, setInviteLockToJourney] = useState(true);
   const [inviting, setInviting] = useState(false);
   const [inviteResults, setInviteResults] = useState<BulkInviteResult[] | null>(null);
 
@@ -48,6 +50,7 @@ export function UserManagementAdmin() {
   const [journeyFilterId, setJourneyFilterId] = useState<string>("");
   const [assignJourneyId, setAssignJourneyId] = useState("");
   const [removeJourneyId, setRemoveJourneyId] = useState("");
+  const [assignLockToJourney, setAssignLockToJourney] = useState(true);
   const [bulkLoading, setBulkLoading] = useState(false);
 
   const loadUsers = useCallback(async () => {
@@ -87,7 +90,9 @@ export function UserManagementAdmin() {
   }, [loadWorkspaceProjects]);
 
   const filteredUsers = journeyFilterId
-    ? users.filter((u) => u.workspaceProjectMembers.some((m) => m.workspaceProject.id === journeyFilterId))
+    ? users.filter((u) =>
+        (u.workspaceProjectMembers ?? []).some((m) => m.workspaceProject.id === journeyFilterId),
+      )
     : users;
 
   const selectedJourneyName = journeyFilterId
@@ -144,6 +149,7 @@ export function UserManagementAdmin() {
         emails,
         workspaceProjectId: inviteJourneyId || undefined,
         note: inviteNote.trim() || undefined,
+        lockToJourney: inviteJourneyId ? inviteLockToJourney : undefined,
       }),
     });
     const data = await res.json().catch(() => ({}));
@@ -167,6 +173,7 @@ export function UserManagementAdmin() {
         action: "assign",
         userIds: Array.from(selectedIds),
         workspaceProjectId: assignJourneyId,
+        lockToJourney: assignLockToJourney,
       }),
     });
     setBulkLoading(false);
@@ -186,6 +193,24 @@ export function UserManagementAdmin() {
         action: "remove",
         userIds: Array.from(selectedIds),
         workspaceProjectId: removeJourneyId,
+      }),
+    });
+    setBulkLoading(false);
+    if (res.ok) {
+      setSelectedIds(new Set());
+      void loadUsers();
+    }
+  }
+
+  async function handleBulkUnlockLock() {
+    if (selectedIds.size === 0 || bulkLoading) return;
+    setBulkLoading(true);
+    const res = await fetch("/api/admin/users/bulk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "unlock",
+        userIds: Array.from(selectedIds),
       }),
     });
     setBulkLoading(false);
@@ -255,6 +280,16 @@ other@example.com"
                 ))}
               </select>
             </div>
+            {inviteJourneyId && (
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "12px", color: "var(--dawn-50)" }}>
+                <input
+                  type="checkbox"
+                  checked={inviteLockToJourney}
+                  onChange={(e) => setInviteLockToJourney(e.target.checked)}
+                />
+                Lock invited users to this journey (workshop mode)
+              </label>
+            )}
             <div>
               <label htmlFor="invite-note" className="admin-label">Note (optional)</label>
               <input
@@ -306,7 +341,9 @@ other@example.com"
             >
               <option value="">All users ({users.length})</option>
               {journeys.map((wp) => {
-                const count = users.filter((u) => u.workspaceProjectMembers.some((m) => m.workspaceProject.id === wp.id)).length;
+                const count = users.filter((u) =>
+                  (u.workspaceProjectMembers ?? []).some((m) => m.workspaceProject.id === wp.id),
+                ).length;
                 return (
                   <option key={wp.id} value={wp.id}>{wp.name} ({count})</option>
                 );
@@ -342,6 +379,14 @@ other@example.com"
                     <option key={wp.id} value={wp.id}>{wp.name}</option>
                   ))}
                 </select>
+                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "11px", color: "var(--dawn-50)" }}>
+                  <input
+                    type="checkbox"
+                    checked={assignLockToJourney}
+                    onChange={(e) => setAssignLockToJourney(e.target.checked)}
+                  />
+                  Lock
+                </label>
                 <button
                   type="button"
                   onClick={handleBulkAssign}
@@ -369,6 +414,14 @@ other@example.com"
                   className="admin-btn"
                 >
                   {bulkLoading ? "…" : "Remove"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleBulkUnlockLock()}
+                  disabled={bulkLoading}
+                  className="admin-btn"
+                >
+                  {bulkLoading ? "…" : "Clear lock"}
                 </button>
                 <button
                   type="button"
@@ -426,6 +479,7 @@ other@example.com"
                     <th>User</th>
                     <th>Email</th>
                     <th>Role</th>
+                    <th>Workshop lock</th>
                     <th>Status</th>
                   </tr>
                 </thead>
@@ -444,6 +498,11 @@ other@example.com"
                       <td>{u.displayName ?? u.username ?? u.id}</td>
                       <td style={{ color: "var(--dawn-40)", fontSize: "11px" }}>{u.email ?? "—"}</td>
                       <td style={{ color: "var(--dawn-40)" }}>{u.role}</td>
+                      <td style={{ color: "var(--dawn-40)", fontSize: "11px" }}>
+                        {u.lockedWorkspaceProjectId
+                          ? (journeys.find((j) => j.id === u.lockedWorkspaceProjectId)?.name ?? u.lockedWorkspaceProjectId.slice(0, 8))
+                          : "—"}
+                      </td>
                       <td style={{ color: "var(--dawn-40)", fontSize: "11px" }}>
                         {u.isDisabled ? "Disabled" : "Active"}
                       </td>

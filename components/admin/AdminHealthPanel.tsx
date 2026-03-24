@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 
 type HealthData = {
-  stats: { projects: number; sessions: number; generations: number; outputs: number };
-  env: Record<string, boolean>;
+  stats?: { projects: number; sessions: number; generations: number; outputs: number };
+  env?: Record<string, boolean>;
 };
 
 export function AdminHealthPanel() {
@@ -40,12 +40,14 @@ export function AdminHealthPanel() {
     );
   }
 
+  const statsRows = data.stats ?? { projects: 0, sessions: 0, generations: 0, outputs: 0 };
   const stats = [
-    { label: "Routes", value: data.stats.projects },
-    { label: "Waypoints", value: data.stats.sessions },
-    { label: "Generations", value: data.stats.generations },
-    { label: "Outputs", value: data.stats.outputs },
+    { label: "Routes", value: statsRows.projects },
+    { label: "Waypoints", value: statsRows.sessions },
+    { label: "Generations", value: statsRows.generations },
+    { label: "Outputs", value: statsRows.outputs },
   ];
+  const envEntries = Object.entries(data.env ?? {});
 
   return (
     <div className="grid gap-0 md:grid-cols-2">
@@ -66,22 +68,28 @@ export function AdminHealthPanel() {
       <div className="admin-section">
         <div className="admin-section-title">Provider Readiness</div>
         <div className="admin-section-body" style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
-          {Object.entries(data.env).map(([key, enabled]) => (
-            <div key={key} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-              <span className="admin-stat-label">{key}</span>
-              <span
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "10px",
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                  color: enabled ? "var(--atreides-light)" : "var(--dawn-30)",
-                }}
-              >
-                {enabled ? "ready" : "missing"}
-              </span>
+          {envEntries.length === 0 ? (
+            <div className="admin-stat-label" style={{ color: "var(--dawn-30)" }}>
+              Provider readiness not available for this build.
             </div>
-          ))}
+          ) : (
+            envEntries.map(([key, enabled]) => (
+              <div key={key} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                <span className="admin-stat-label">{key}</span>
+                <span
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "10px",
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    color: enabled ? "var(--atreides-light)" : "var(--dawn-30)",
+                  }}
+                >
+                  {enabled ? "ready" : "missing"}
+                </span>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

@@ -10,6 +10,8 @@ const bulkInviteSchema = z.object({
   emails: z.array(z.string().email()).min(1).max(50),
   workspaceProjectId: z.string().uuid().optional(),
   note: z.string().max(500).optional(),
+  /** When true with workspaceProjectId, set profile workshop lock to that journey. */
+  lockToJourney: z.boolean().optional(),
 });
 
 const bulkRemoveSchema = z.object({
@@ -27,6 +29,12 @@ const bulkAssignSchema = z.object({
   action: z.literal("assign"),
   userIds: z.array(z.string().uuid()).min(1).max(50),
   workspaceProjectId: z.string().uuid(),
+  lockToJourney: z.boolean().optional(),
+});
+
+const bulkUnlockSchema = z.object({
+  action: z.literal("unlock"),
+  userIds: z.array(z.string().uuid()).min(1).max(50),
 });
 
 const bulkSchema = z.discriminatedUnion("action", [
@@ -34,6 +42,7 @@ const bulkSchema = z.discriminatedUnion("action", [
   bulkRemoveSchema,
   bulkDisableSchema,
   bulkAssignSchema,
+  bulkUnlockSchema,
 ]);
 
 export async function POST(request: Request) {
@@ -59,7 +68,31 @@ export async function POST(request: Request) {
     return handleBulkAssign(data);
   }
 
+  if (data.action === "unlock") {
+    return handleBulkUnlock(data);
+  }
+
   return handleBulkDisable(data);
+}
+
+async function setWorkshopLockForUsers(userIds: string[], workspaceProjectId: string) {
+  await prisma.profile.updateMany({
+    where: {
+      id: { in: userIds },
+      role: "user",
+    },
+    data: { lockedWorkspaceProjectId: workspaceProjectId },
+  });
+}
+
+async function clearWorkshopLockForUsers(userIds: string[], workspaceProjectId: string) {
+  await prisma.profile.updateMany({
+    where: {
+      id: { in: userIds },
+      lockedWorkspaceProjectId: workspaceProjectId,
+    },
+    data: { lockedWorkspaceProjectId: null },
+  });
 }
 
 async function handleBulkInvite(
@@ -68,11 +101,12 @@ async function handleBulkInvite(
 ) {
   const supabaseAdmin = createAdminClient();
   const results: Array<{ email: string; status: "created" | "exists" | "error"; userId?: string; error?: string }> = [];
+  const listOnce = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+  const listedUsers = listOnce.data?.users ?? [];
 
   for (const email of data.emails) {
     try {
-      const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-      const existingUser = existingUsers?.users?.find((u) => u.email === email);
+      const existingUser = listedUsers.find((u) => u.email?.toLowerCase() === email);
 
       let userId: string;
 
@@ -121,6 +155,9 @@ async function handleBulkInvite(
           update: {},
           create: { workspaceProjectId: data.workspaceProjectId, userId },
         });
+        if (data.lockToJourney) {
+          await setWorkshopLockForUsers([userId], data.workspaceProjectId);
+        }
       }
     } catch (err) {
       results.push({
@@ -141,6 +178,7 @@ async function handleBulkRemove(data: z.infer<typeof bulkRemoveSchema>) {
     await prisma.workspaceProjectMember.deleteMany({
       where: { workspaceProjectId: data.workspaceProjectId, userId },
     });
+    await clearWorkshopLockForUsers([userId], data.workspaceProjectId);
     removed.push(userId);
   }
 
@@ -164,7 +202,19 @@ async function handleBulkAssign(data: z.infer<typeof bulkAssignSchema>) {
     assigned.push(userId);
   }
 
+  if (data.lockToJourney) {
+    await setWorkshopLockForUsers(data.userIds, data.workspaceProjectId);
+  }
+
   return json({ assigned });
+}
+
+async function handleBulkUnlock(data: z.infer<typeof bulkUnlockSchema>) {
+  await prisma.profile.updateMany({
+    where: { id: { in: data.userIds }, role: "user" },
+    data: { lockedWorkspaceProjectId: null },
+  });
+  return json({ unlocked: data.userIds.length });
 }
 
 async function handleBulkDisable(data: z.infer<typeof bulkDisableSchema>) {

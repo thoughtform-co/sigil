@@ -9,6 +9,7 @@ import {
   defaultBrandedSettings,
   type BrandedJourneySettings,
 } from "@/lib/workshops/types";
+import { JourneyParticipantsPanel } from "@/components/admin/JourneyParticipantsPanel";
 
 type BrandedJourneyHubProps = {
   journeyId: string;
@@ -376,6 +377,8 @@ export function BrandedJourneyHub({
               {saving ? "saving..." : "save settings"}
             </button>
           </div>
+
+          <JourneyParticipantsPanel journeyId={journeyId} journeyName={journeyName} />
         </div>
       )}
     </section>

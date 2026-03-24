@@ -61,15 +61,18 @@ export async function prefetchWorkspaceData(
       },
     } as const;
 
-    const [project, sessionsRaw, generationsRaw] = await Promise.all([
-      prisma.project.findFirst({
-        where: projectWhere,
-        select: {
-          id: true,
-          name: true,
-          workspaceProject: { select: { id: true, name: true } },
-        },
-      }),
+    const project = await prisma.project.findFirst({
+      where: projectWhere,
+      select: {
+        id: true,
+        name: true,
+        workspaceProject: { select: { id: true, name: true } },
+      },
+    });
+
+    if (!project) return null;
+
+    const [sessionsRaw, generationsRaw] = await Promise.all([
       prisma.session.findMany({
         where: { projectId },
         orderBy: { createdAt: "desc" },
@@ -82,8 +85,6 @@ export async function prefetchWorkspaceData(
         select: generationSelect,
       }),
     ]);
-
-    if (!project) return null;
 
     const sessions: SessionItem[] = sessionsRaw.map((s) => ({
       id: s.id,
@@ -187,15 +188,18 @@ export async function prefetchWorkspaceShell(
       },
     } as const;
 
-    const [project, sessionsRaw, generationsRaw] = await Promise.all([
-      prisma.project.findFirst({
-        where: projectWhere,
-        select: {
-          id: true,
-          name: true,
-          workspaceProject: { select: { id: true, name: true } },
-        },
-      }),
+    const project = await prisma.project.findFirst({
+      where: projectWhere,
+      select: {
+        id: true,
+        name: true,
+        workspaceProject: { select: { id: true, name: true } },
+      },
+    });
+
+    if (!project) return null;
+
+    const [sessionsRaw, generationsRaw] = await Promise.all([
       prisma.session.findMany({
         where: { projectId },
         orderBy: { createdAt: "desc" },
@@ -208,8 +212,6 @@ export async function prefetchWorkspaceShell(
         select: generationSelect,
       }),
     ]);
-
-    if (!project) return null;
 
     const sessions: SessionItem[] = sessionsRaw.map((s) => ({
       id: s.id,

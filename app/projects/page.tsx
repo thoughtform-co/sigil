@@ -1,13 +1,12 @@
-import { NavigationFrame } from "@/components/hud/NavigationFrame";
-import { RequireAuth } from "@/components/auth/RequireAuth";
-import { ProjectsView } from "@/components/projects/ProjectsView";
+import { redirect } from "next/navigation";
+import { getAuthedUser } from "@/lib/auth/server";
+import { getLockedJourneyHomeHref } from "@/lib/auth/workshop-redirect";
+import { ProjectsPageClient } from "./ProjectsPageClient";
 
-export default function ProjectsPage() {
-  return (
-    <RequireAuth>
-      <NavigationFrame title="SIGIL" modeLabel="projects">
-        <ProjectsView />
-      </NavigationFrame>
-    </RequireAuth>
-  );
+export default async function ProjectsPage() {
+  const user = await getAuthedUser();
+  if (!user) redirect("/login");
+  const workshopHome = await getLockedJourneyHomeHref(user.id);
+  if (workshopHome) redirect(workshopHome);
+  return <ProjectsPageClient />;
 }

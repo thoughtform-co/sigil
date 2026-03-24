@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { NavigationFrame } from "@/components/hud/NavigationFrame";
 import { getAuthedUser } from "@/lib/auth/server";
+import { getLockedJourneyHomeHref } from "@/lib/auth/workshop-redirect";
 import { prefetchWorkspaceShell } from "@/lib/prefetch/workspace";
 import { WorkspacePrefetchProvider } from "@/components/generation/WorkspacePrefetchProvider";
 import { VideoIterationCountsProvider } from "@/components/generation/VideoIterationCountsContext";
@@ -16,6 +17,10 @@ export default async function RouteLayout({ children, params }: RouteLayoutProps
 
   const { id } = await params;
   const prefetch = await prefetchWorkspaceShell(id);
+  if (!prefetch) {
+    const home = await getLockedJourneyHomeHref(user.id);
+    redirect(home ?? "/journeys");
+  }
 
   return (
     <NavigationFrame

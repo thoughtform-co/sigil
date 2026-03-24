@@ -19,7 +19,7 @@ export async function GET(
   const [profile, journey] = await Promise.all([
     prisma.profile.findUnique({
       where: { id: user.id },
-      select: { role: true },
+      select: { role: true, lockedWorkspaceProjectId: true },
     }),
     prisma.workspaceProject.findUnique({
       where: { id },
@@ -43,6 +43,10 @@ export async function GET(
   }
 
   const isAdmin = profile?.role === "admin";
+
+  if (!isAdmin && profile?.lockedWorkspaceProjectId && id !== profile.lockedWorkspaceProjectId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   if (!isAdmin) {
     const membership = await prisma.workspaceProjectMember.findUnique({

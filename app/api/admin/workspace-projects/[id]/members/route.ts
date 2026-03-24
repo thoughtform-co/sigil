@@ -58,5 +58,10 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     where: { workspaceProjectId_userId: { workspaceProjectId: id, userId: parsed.data.userId } },
   });
 
+  await prisma.profile.updateMany({
+    where: { id: parsed.data.userId, lockedWorkspaceProjectId: id },
+    data: { lockedWorkspaceProjectId: null },
+  });
+
   return json({ removed: true });
 }

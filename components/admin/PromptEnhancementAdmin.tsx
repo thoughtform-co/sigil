@@ -33,10 +33,10 @@ export function PromptEnhancementAdmin() {
     const response = await fetch("/api/admin/prompt-enhancements", { cache: "no-store" });
     const data = await response.json().catch(() => []);
     if (!response.ok) {
-      setMessage(data.error ?? "Failed to load prompts");
+      setMessage((data as { error?: string }).error ?? "Failed to load prompts");
       return;
     }
-    setPrompts(data as PromptItem[]);
+    setPrompts(Array.isArray(data) ? (data as PromptItem[]) : []);
   }
 
   useEffect(() => {

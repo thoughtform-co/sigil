@@ -3,10 +3,14 @@ import { redirect } from "next/navigation";
 import { NavigationFrame } from "@/components/hud/NavigationFrame";
 import { HomeLanding } from "@/components/home/HomeLanding";
 import { getAuthedUser } from "@/lib/auth/server";
+import { getLockedJourneyHomeHref } from "@/lib/auth/workshop-redirect";
 
 async function HomeContent() {
   const user = await getAuthedUser();
   if (!user) redirect("/login");
+
+  const workshopHome = await getLockedJourneyHomeHref(user.id);
+  if (workshopHome) redirect(workshopHome);
 
   return <HomeLanding />;
 }

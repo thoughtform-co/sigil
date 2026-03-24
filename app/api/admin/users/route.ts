@@ -19,6 +19,7 @@ export async function GET() {
         role: true,
         isDisabled: true,
         createdAt: true,
+        lockedWorkspaceProjectId: true,
         workspaceProjectMembers: {
           select: {
             workspaceProject: { select: { id: true, name: true } },

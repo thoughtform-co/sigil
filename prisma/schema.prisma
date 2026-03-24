@@ -20,6 +20,8 @@ model Profile {
   avatarUrl   String?  @map("avatar_url")
   role        UserRole @default(user)
   isDisabled  Boolean  @default(false) @map("is_disabled")
+  /// When set, this user is confined to this journey (workshop participant mode). Ignored for admins.
+  lockedWorkspaceProjectId String? @map("locked_workspace_project_id") @db.Uuid
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
@@ -31,7 +33,9 @@ model Profile {
   projectChatMessages    ProjectChatMessage[]
   workflowExecutions     WorkflowExecution[]
   workspaceProjectMembers WorkspaceProjectMember[]
+  lockedWorkspaceProject WorkspaceProject? @relation("ProfileLockedJourney", fields: [lockedWorkspaceProjectId], references: [id], onDelete: SetNull)
 
+  @@index([lockedWorkspaceProjectId])
   @@map("profiles")
 }
 
@@ -46,6 +50,7 @@ model WorkspaceProject {
 
   members   WorkspaceProjectMember[]
   briefings Project[]
+  profilesLockedToThisJourney Profile[] @relation("ProfileLockedJourney")
 
   @@index([updatedAt(sort: Desc), id(sort: Desc)])
   @@map("workspace_projects")

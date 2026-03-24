@@ -7,6 +7,18 @@ import { prisma } from "@/lib/prisma";
  * Deduplicated per server request via React.cache.
  */
 export const projectAccessFilter = cache(async (userId: string): Promise<Prisma.ProjectWhereInput> => {
+  const profile = await prisma.profile.findUnique({
+    where: { id: userId },
+    select: { role: true, lockedWorkspaceProjectId: true },
+  });
+
+  const lockedId =
+    profile?.role === "admin" ? null : (profile?.lockedWorkspaceProjectId ?? null);
+
+  if (lockedId) {
+    return { workspaceProjectId: lockedId };
+  }
+
   const wpMemberships = await prisma.workspaceProjectMember.findMany({
     where: { userId },
     select: { workspaceProjectId: true },

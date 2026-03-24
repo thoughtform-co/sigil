@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { ensureProfile, getAuthedUser } from "@/lib/auth/server";
+import { projectAccessFilter } from "@/lib/auth/project-access";
 import { withCacheHeaders } from "@/lib/api/cache-headers";
 
 const createProjectSchema = z.object({
@@ -16,20 +17,10 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const wpMemberships = await prisma.workspaceProjectMember.findMany({
-    where: { userId: user.id },
-    select: { workspaceProjectId: true },
-  });
-  const wpIds = wpMemberships.map((m) => m.workspaceProjectId);
+  const accessWhere = await projectAccessFilter(user.id);
 
   const projects = await prisma.project.findMany({
-    where: {
-      OR: [
-        { ownerId: user.id },
-        { members: { some: { userId: user.id } } },
-        ...(wpIds.length > 0 ? [{ workspaceProjectId: { in: wpIds } }] : []),
-      ],
-    },
+    where: accessWhere,
     orderBy: { updatedAt: "desc" },
     take: 200,
     select: {
@@ -56,6 +47,30 @@ export async function POST(request: Request) {
   const parsed = createProjectSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  }
+
+  const profile = await prisma.profile.findUnique({
+    where: { id: user.id },
+    select: { role: true, lockedWorkspaceProjectId: true },
+  });
+  const isAdmin = profile?.role === "admin";
+  const wpId = parsed.data.workspaceProjectId;
+
+  if (!isAdmin && profile?.lockedWorkspaceProjectId) {
+    if (!wpId || wpId !== profile.lockedWorkspaceProjectId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
+
+  if (!isAdmin && wpId) {
+    const membership = await prisma.workspaceProjectMember.findUnique({
+      where: {
+        workspaceProjectId_userId: { workspaceProjectId: wpId, userId: user.id },
+      },
+    });
+    if (!membership) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
   }
 
   const project = await prisma.project.create({

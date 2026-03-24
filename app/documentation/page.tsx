@@ -1,18 +1,12 @@
-import { NavigationFrame } from "@/components/hud/NavigationFrame";
-import { RequireAuth } from "@/components/auth/RequireAuth";
-import { HudPanel, HudPanelHeader, HudEmptyState } from "@/components/ui/hud";
+import { redirect } from "next/navigation";
+import { getAuthedUser } from "@/lib/auth/server";
+import { getLockedJourneyHomeHref } from "@/lib/auth/workshop-redirect";
+import { DocumentationPageClient } from "./DocumentationPageClient";
 
-export default function DocumentationPage() {
-  return (
-    <RequireAuth>
-      <NavigationFrame title="SIGIL" modeLabel="documentation">
-        <section className="w-full animate-fade-in-up" style={{ maxWidth: "var(--layout-content-sm, 960px)", paddingTop: "var(--space-2xl)" }}>
-          <HudPanel>
-            <HudPanelHeader title="Documentation" />
-            <HudEmptyState title="Coming soon" body="Documentation will be available here." />
-          </HudPanel>
-        </section>
-      </NavigationFrame>
-    </RequireAuth>
-  );
+export default async function DocumentationPage() {
+  const user = await getAuthedUser();
+  if (!user) redirect("/login");
+  const workshopHome = await getLockedJourneyHomeHref(user.id);
+  if (workshopHome) redirect(workshopHome);
+  return <DocumentationPageClient />;
 }

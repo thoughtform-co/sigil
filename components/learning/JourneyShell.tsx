@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { JourneyParticipantsPanel } from "@/components/admin/JourneyParticipantsPanel";
 import { RouteCard } from "@/components/journeys/RouteCard";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import type { JourneyContent, Resource } from "@/lib/learning/types";
@@ -215,6 +216,10 @@ export function JourneyShell({
             onCreateRoute={onCreateRoute}
           />
         </div>
+      )}
+
+      {isAdmin && (
+        <JourneyParticipantsPanel journeyId={journeyId} journeyName={journeyName} />
       )}
     </div>
   );
