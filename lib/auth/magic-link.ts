@@ -22,6 +22,7 @@ export async function sendMagicLinkEmail({
     auth: {
       autoRefreshToken: false,
       persistSession: false,
+      flowType: "implicit",
     },
   });
 
