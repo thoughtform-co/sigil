@@ -24,10 +24,10 @@ describe("auth redirect target helpers", () => {
 
   it("builds callback urls with safe next targets only", () => {
     expect(buildAuthCallbackUrl("https://sigil.test", "/journeys/abc")).toBe(
-      "https://sigil.test/auth/callback?next=%2Fjourneys%2Fabc",
+      "https://sigil.test/auth/complete?next=%2Fjourneys%2Fabc",
     );
     expect(buildAuthCallbackUrl("https://sigil.test", "https://evil.example")).toBe(
-      "https://sigil.test/auth/callback",
+      "https://sigil.test/auth/complete",
     );
   });
 });

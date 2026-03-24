@@ -59,6 +59,11 @@ export function JourneyParticipantsPanel({
   const [userPickId, setUserPickId] = useState("");
   const [assignLock, setAssignLock] = useState(true);
   const [adding, setAdding] = useState(false);
+  const [resendingUserId, setResendingUserId] = useState<string | null>(null);
+  const [memberActionNotice, setMemberActionNotice] = useState<{
+    kind: "success" | "error";
+    message: string;
+  } | null>(null);
 
   const loadMembers = useCallback(async () => {
     setError(null);
@@ -101,6 +106,10 @@ export function JourneyParticipantsPanel({
   const addableUsers = useMemo(
     () => allUsers.filter((u) => !memberIds.has(u.id) && u.role !== "admin"),
     [allUsers, memberIds],
+  );
+  const userDirectory = useMemo(
+    () => new Map(allUsers.map((u) => [u.id, u])),
+    [allUsers],
   );
 
   function parseEmails(text: string): string[] {
@@ -196,6 +205,41 @@ export function JourneyParticipantsPanel({
     }
   }
 
+  async function handleResendMagicLink(userId: string) {
+    if (resendingUserId) return;
+    setResendingUserId(userId);
+    setMemberActionNotice(null);
+
+    const res = await fetch("/api/admin/users/bulk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "resend_magic_link",
+        userIds: [userId],
+        workspaceProjectId: journeyId,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setResendingUserId(null);
+
+    const result = Array.isArray((data as { results?: BulkInviteResult[] }).results)
+      ? (data as { results: BulkInviteResult[] }).results[0]
+      : undefined;
+
+    if (!res.ok || !result) {
+      setMemberActionNotice({
+        kind: "error",
+        message: (data as { error?: string }).error ?? "Failed to resend magic link.",
+      });
+      return;
+    }
+
+    setMemberActionNotice({
+      kind: result.status === "error" ? "error" : "success",
+      message: formatInviteResult(result),
+    });
+  }
+
   return (
     <div style={{ marginTop: "var(--space-xl)", paddingTop: "var(--space-lg)", borderTop: "1px solid var(--dawn-08)" }}>
       <SectionHeader label={`PARTICIPANTS — ${journeyName.toUpperCase()}`} />
@@ -280,6 +324,18 @@ export function JourneyParticipantsPanel({
         <div className="sigil-section-label" style={{ fontSize: "9px", marginBottom: "var(--space-sm)" }}>
           Members ({members.length})
         </div>
+        {memberActionNotice && (
+          <p
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "10px",
+              color: memberActionNotice.kind === "error" ? "var(--status-error)" : "var(--dawn-50)",
+              marginBottom: "var(--space-sm)",
+            }}
+          >
+            {memberActionNotice.message}
+          </p>
+        )}
         {loading ? (
           <p style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--dawn-30)" }}>Loading…</p>
         ) : members.length === 0 ? (
@@ -300,18 +356,44 @@ export function JourneyParticipantsPanel({
                   fontSize: "11px",
                 }}
               >
-                <span style={{ color: m.user.isDisabled ? "var(--dawn-30)" : "var(--dawn)" }}>
-                  {m.user.displayName ?? m.user.username ?? m.userId}
-                  {m.user.isDisabled ? " (disabled)" : ""}
-                </span>
-                <button
-                  type="button"
-                  className="sigil-btn-ghost"
-                  style={{ fontSize: "10px" }}
-                  onClick={() => void handleRemove(m.userId)}
-                >
-                  remove
-                </button>
+                <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+                  <span style={{ color: m.user.isDisabled ? "var(--dawn-30)" : "var(--dawn)" }}>
+                    {m.user.displayName ?? m.user.username ?? m.userId}
+                    {m.user.isDisabled ? " (disabled)" : ""}
+                  </span>
+                  {userDirectory.get(m.userId)?.email && (
+                    <span
+                      style={{
+                        color: "var(--dawn-40)",
+                        fontSize: "10px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {userDirectory.get(m.userId)?.email}
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                  <button
+                    type="button"
+                    className="sigil-btn-ghost"
+                    style={{ fontSize: "10px" }}
+                    disabled={!userDirectory.get(m.userId)?.email || m.user.isDisabled || resendingUserId === m.userId}
+                    onClick={() => void handleResendMagicLink(m.userId)}
+                  >
+                    {resendingUserId === m.userId ? "sending..." : "resend link"}
+                  </button>
+                  <button
+                    type="button"
+                    className="sigil-btn-ghost"
+                    style={{ fontSize: "10px" }}
+                    onClick={() => void handleRemove(m.userId)}
+                  >
+                    remove
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

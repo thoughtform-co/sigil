@@ -1,4 +1,5 @@
 export const DEFAULT_AUTH_REDIRECT_PATH = "/projects";
+export const AUTH_COMPLETE_PATH = "/auth/complete";
 
 export function sanitizeAuthRedirectPath(nextPath: string | null | undefined): string | null {
   if (!nextPath) return null;
@@ -17,7 +18,7 @@ export function resolveAuthRedirectPath(
 }
 
 export function buildAuthCallbackUrl(origin: string, nextPath?: string | null): string {
-  const url = new URL("/auth/callback", origin);
+  const url = new URL(AUTH_COMPLETE_PATH, origin);
   const safeNext = sanitizeAuthRedirectPath(nextPath);
   if (safeNext) {
     url.searchParams.set("next", safeNext);

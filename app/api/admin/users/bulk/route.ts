@@ -42,12 +42,19 @@ const bulkUnlockSchema = z.object({
   userIds: z.array(z.string().uuid()).min(1).max(50),
 });
 
+const bulkResendMagicLinkSchema = z.object({
+  action: z.literal("resend_magic_link"),
+  userIds: z.array(z.string().uuid()).min(1).max(50),
+  workspaceProjectId: z.string().uuid().optional(),
+});
+
 const bulkSchema = z.discriminatedUnion("action", [
   bulkInviteSchema,
   bulkRemoveSchema,
   bulkDisableSchema,
   bulkAssignSchema,
   bulkUnlockSchema,
+  bulkResendMagicLinkSchema,
 ]);
 
 export async function POST(request: Request) {
@@ -75,6 +82,10 @@ export async function POST(request: Request) {
 
   if (data.action === "unlock") {
     return handleBulkUnlock(data);
+  }
+
+  if (data.action === "resend_magic_link") {
+    return handleBulkResendMagicLink(data, new URL(request.url).origin);
   }
 
   return handleBulkDisable(data);
@@ -209,6 +220,110 @@ async function handleBulkInvite(
   }
 
   return json({ results }, 201);
+}
+
+async function handleBulkResendMagicLink(
+  data: z.infer<typeof bulkResendMagicLinkSchema>,
+  origin: string,
+) {
+  const supabaseAdmin = createAdminClient();
+  const results: Array<{
+    email: string;
+    status: "created" | "exists" | "error";
+    userId?: string;
+    error?: string;
+    magicLinkSent?: boolean;
+    destination?: string;
+  }> = [];
+  const listOnce = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+  const listedUsers = listOnce.data?.users ?? [];
+  const inviteDestination = getInviteDestinationPath(data.workspaceProjectId);
+  const emailRedirectTo = buildAuthCallbackUrl(origin, inviteDestination);
+
+  for (const userId of data.userIds) {
+    try {
+      const authUser = listedUsers.find((u) => u.id === userId);
+      const email = authUser?.email?.trim().toLowerCase();
+
+      if (!email) {
+        results.push({
+          userId,
+          email: "(unknown)",
+          status: "error",
+          error: "Could not determine the user's auth email address.",
+        });
+        continue;
+      }
+
+      const profile = await prisma.profile.findUnique({
+        where: { id: userId },
+        select: { isDisabled: true },
+      });
+      if (profile?.isDisabled) {
+        results.push({
+          userId,
+          email,
+          status: "error",
+          error: "This user is disabled and cannot receive a magic link.",
+        });
+        continue;
+      }
+
+      if (data.workspaceProjectId) {
+        const membership = await prisma.workspaceProjectMember.findUnique({
+          where: {
+            workspaceProjectId_userId: {
+              workspaceProjectId: data.workspaceProjectId,
+              userId,
+            },
+          },
+          select: { userId: true },
+        });
+
+        if (!membership) {
+          results.push({
+            userId,
+            email,
+            status: "error",
+            error: "User is not assigned to that journey.",
+          });
+          continue;
+        }
+      }
+
+      const { error: magicLinkError } = await sendMagicLinkEmail({
+        email,
+        emailRedirectTo,
+      });
+
+      if (magicLinkError) {
+        results.push({
+          email,
+          status: "error",
+          userId,
+          error: `Magic-link email could not be sent: ${magicLinkError.message}`,
+        });
+        continue;
+      }
+
+      results.push({
+        email,
+        status: "exists",
+        userId,
+        magicLinkSent: true,
+        destination: inviteDestination,
+      });
+    } catch (err) {
+      results.push({
+        userId,
+        email: "(unknown)",
+        status: "error",
+        error: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  }
+
+  return json({ results });
 }
 
 async function handleBulkRemove(data: z.infer<typeof bulkRemoveSchema>) {
