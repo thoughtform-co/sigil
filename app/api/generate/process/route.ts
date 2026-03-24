@@ -34,6 +34,13 @@ async function broadcastUpdatedGeneration(sessionId: string, generationId: strin
         status: true,
         modelId: true,
         createdAt: true,
+        user: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+          },
+        },
         errorMessage: true,
         errorCategory: true,
         errorRetryable: true,
@@ -58,6 +65,13 @@ async function broadcastUpdatedGeneration(sessionId: string, generationId: strin
       sessionId,
       generation: {
         id: gen.id,
+        user: gen.user
+          ? {
+              id: gen.user.id,
+              username: gen.user.username,
+              displayName: gen.user.displayName,
+            }
+          : undefined,
         prompt: gen.prompt,
         negativePrompt: gen.negativePrompt,
         parameters: hydratedParameters,

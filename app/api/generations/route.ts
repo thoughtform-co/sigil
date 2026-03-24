@@ -11,6 +11,13 @@ const MAX_LIMIT = 200;
 const GENERATION_SELECT = {
   id: true,
   sessionId: true,
+  user: {
+    select: {
+      id: true,
+      username: true,
+      displayName: true,
+    },
+  },
   prompt: true,
   negativePrompt: true,
   parameters: true,

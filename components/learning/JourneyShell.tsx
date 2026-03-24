@@ -14,6 +14,7 @@ type RouteItem = {
   id: string;
   name: string;
   description: string | null;
+  creatorName?: string | null;
   updatedAt: string;
   waypointCount: number;
   thumbnailUrl: string | null;

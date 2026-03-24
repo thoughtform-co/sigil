@@ -4,10 +4,12 @@ import { requireAdmin } from "@/lib/auth/require-admin";
 import { json } from "@/lib/api/responses";
 import { notFound, badRequest } from "@/lib/api/errors";
 import { z } from "zod";
+import { normalizeDisplayNameInput } from "@/lib/profile-name";
 
 const updateUserSchema = z.object({
   isDisabled: z.boolean().optional(),
   role: z.enum(["admin", "user"]).optional(),
+  displayName: z.string().max(60).optional(),
 });
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -69,6 +71,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     data: {
       ...(parsed.data.isDisabled !== undefined && { isDisabled: parsed.data.isDisabled }),
       ...(parsed.data.role !== undefined && { role: parsed.data.role }),
+      ...(parsed.data.displayName !== undefined && {
+        displayName: normalizeDisplayNameInput(parsed.data.displayName),
+      }),
     },
   });
 

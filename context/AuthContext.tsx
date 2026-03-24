@@ -3,10 +3,14 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import { getProfileName } from "@/lib/profile-name";
 
 type AuthContextValue = {
   user: User | null;
   session: Session | null;
+  displayName: string | null;
+  username: string | null;
+  profileName: string | null;
   role: "admin" | "user" | null;
   isAdmin: boolean;
   /** Non-null when this user is a workshop participant locked to one journey. */
@@ -14,11 +18,14 @@ type AuthContextValue = {
   isWorkshopLocked: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 };
 
 export type InitialAuthUser = {
   id: string;
   email: string | null;
+  username?: string | null;
+  displayName?: string | null;
   role: "admin" | "user";
   /** Workshop lock: non-admins with this set are confined to this journey id. */
   lockedWorkspaceProjectId?: string | null;
@@ -37,6 +44,8 @@ export function AuthProvider({
     initialUser ? ({ id: initialUser.id, email: initialUser.email } as User) : null,
   );
   const [session, setSession] = useState<Session | null>(null);
+  const [displayName, setDisplayName] = useState<string | null>(initialUser?.displayName ?? null);
+  const [username, setUsername] = useState<string | null>(initialUser?.username ?? null);
   const [role, setRole] = useState<"admin" | "user" | null>(initialUser?.role ?? null);
   const [lockedWorkspaceProjectId, setLockedWorkspaceProjectId] = useState<string | null>(
     initialUser?.role === "admin" ? null : (initialUser?.lockedWorkspaceProjectId ?? null),
@@ -56,22 +65,30 @@ export function AuthProvider({
         user?: { id: string; email: string | null };
         profile?: {
           role?: "admin" | "user";
+          username?: string | null;
+          displayName?: string | null;
           lockedWorkspaceProjectId?: string | null;
         };
       };
       if (data.user) {
         setUser({ id: data.user.id, email: data.user.email } as User);
         setRole(data.profile?.role ?? null);
+        setUsername(data.profile?.username ?? null);
+        setDisplayName(data.profile?.displayName ?? null);
         const r = data.profile?.role;
         setLockedWorkspaceProjectId(
           r === "admin" ? null : (data.profile?.lockedWorkspaceProjectId ?? null),
         );
       } else {
         setRole(null);
+        setUsername(null);
+        setDisplayName(null);
         setLockedWorkspaceProjectId(null);
       }
     } catch {
       setRole(null);
+      setUsername(null);
+      setDisplayName(null);
       setLockedWorkspaceProjectId(null);
     }
   }
@@ -97,6 +114,8 @@ export function AuthProvider({
       setUser(currentSession?.user ?? null);
       if (!currentSession?.user) {
         setRole(null);
+        setUsername(null);
+        setDisplayName(null);
         setLockedWorkspaceProjectId(null);
       }
       setLoading(false);
@@ -111,6 +130,16 @@ export function AuthProvider({
     () => ({
       user,
       session,
+      displayName,
+      username,
+      profileName: user
+        ? getProfileName({
+            displayName,
+            username,
+            email: user.email,
+            id: user.id,
+          })
+        : null,
       role,
       isAdmin: role === "admin",
       lockedWorkspaceProjectId,
@@ -121,11 +150,14 @@ export function AuthProvider({
         await supabase.auth.signOut();
         setUser(null);
         setSession(null);
+        setDisplayName(null);
+        setUsername(null);
         setRole(null);
         setLockedWorkspaceProjectId(null);
       },
+      refreshProfile: hydrateFromMe,
     }),
-    [loading, lockedWorkspaceProjectId, role, session, user],
+    [displayName, loading, lockedWorkspaceProjectId, role, session, user, username],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

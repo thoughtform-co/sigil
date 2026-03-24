@@ -63,6 +63,7 @@ export function ForgeGallery({
   isLoadingOlder,
 }: ForgeGalleryProps) {
   const pathname = usePathname();
+  const isRouteWorkspace = pathname?.startsWith("/routes/") ?? false;
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const feedRef = useRef<HTMLDivElement>(null);
   const lastSeenLastIdRef = useRef<string | null>(null);
@@ -279,7 +280,9 @@ export function ForgeGallery({
   useEffect(() => {
     if (generations.length === 0) {
       if (!isLoading) {
-        resolvedEmptyStateRef.current = true;
+        // Route workspaces should stay visually blank until there is real output.
+        // Keep the initial bottom-lock available for the first actual generation.
+        resolvedEmptyStateRef.current = !isRouteWorkspace;
       }
       lastSeenLastIdRef.current = null;
       lastSeenStatusRef.current = null;
@@ -310,7 +313,7 @@ export function ForgeGallery({
         return;
       }
     }
-  }, [generations, isLoading, runInitialBottomLock]);
+  }, [generations, isLoading, isRouteWorkspace, runInitialBottomLock]);
 
   useEffect(() => {
     if (!onLoadMore || !hasMore) return;
@@ -402,6 +405,8 @@ export function ForgeGallery({
     [onRetry, onReuse, onRerun, onDismiss, onConvertToVideo, onUseAsReference, onApprove, busy],
   );
 
+  const showRouteBlankState = isRouteWorkspace && generations.length === 0;
+
   return (
     <div className={styles.gallery}>
       <div ref={feedRef} className={styles.feed}>
@@ -413,7 +418,9 @@ export function ForgeGallery({
             )}
           </div>
         )}
-        {isLoading && generations.length === 0 ? (
+        {showRouteBlankState ? (
+          <div className={styles.routeBlank} aria-hidden />
+        ) : isLoading && generations.length === 0 ? (
           <>
             {Array.from({ length: 3 }).map((_, i) => (
               <div key={`skel-${i}`} className={styles.skeleton}>

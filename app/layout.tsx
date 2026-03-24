@@ -28,12 +28,19 @@ async function getInitialAuthUser(): Promise<InitialAuthUser | null> {
     if (!user) return null;
     const profile = await prisma.profile.findUnique({
       where: { id: user.id },
-      select: { role: true, lockedWorkspaceProjectId: true },
+      select: {
+        role: true,
+        username: true,
+        displayName: true,
+        lockedWorkspaceProjectId: true,
+      },
     });
     const role = (profile?.role as "admin" | "user") ?? "user";
     return {
       id: user.id,
       email: user.email,
+      username: profile?.username ?? null,
+      displayName: profile?.displayName ?? null,
       role,
       lockedWorkspaceProjectId:
         role === "admin" ? null : (profile?.lockedWorkspaceProjectId ?? null),

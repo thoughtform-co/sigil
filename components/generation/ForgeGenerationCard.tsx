@@ -6,6 +6,7 @@ import Image from "next/image";
 import type { GenerationItem, OutputItem } from "@/components/generation/types";
 import { useVideoIterationCount } from "@/components/generation/VideoIterationCountsContext";
 import { VideoIterationsStackGlow, VideoIterationsBarButton } from "@/components/generation/VideoIterationsStackHint";
+import { getProfileName } from "@/lib/profile-name";
 import { SigilLoadingField } from "./SigilLoadingField";
 import styles from "./ForgeGenerationCard.module.css";
 
@@ -383,6 +384,13 @@ export function ForgeGenerationCard({
   ].filter(Boolean).join(" ");
   const statusLabel = hasBookmarked ? `${generation.status} / bookmarked` : generation.status;
   const idShort = generation.id.slice(0, 8);
+  const authorName = generation.user
+    ? getProfileName({
+        displayName: generation.user.displayName,
+        username: generation.user.username,
+        id: generation.user.id,
+      })
+    : null;
 
   return (
     <div className={cardClass}>
@@ -442,6 +450,12 @@ export function ForgeGenerationCard({
               <span className={styles.readoutLabel}>MODEL</span>
               <span className={styles.readoutValue}>{generation.modelId || "Unknown"}</span>
             </span>
+            {authorName && (
+              <span className={styles.readout}>
+                <span className={styles.readoutLabel}>USER</span>
+                <span className={styles.readoutValue}>{authorName}</span>
+              </span>
+            )}
             <span className={styles.readout}>
               <span className={styles.readoutLabel}>DATE</span>
               <span className={styles.readoutValue}>{createdAt}</span>

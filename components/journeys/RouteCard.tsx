@@ -9,6 +9,7 @@ export type RouteCardItem = {
   id: string;
   name: string;
   description: string | null;
+  creatorName?: string | null;
   updatedAt: string;
   waypointCount: number;
   thumbnailUrl: string | null;
@@ -78,11 +79,28 @@ export function RouteCard({ route }: RouteCardProps) {
             fontSize: "12px",
             lineHeight: "1.6",
             color: "var(--dawn-50)",
-            marginBottom: "16px",
+            marginBottom: route.creatorName ? "10px" : "16px",
           }}
         >
           {route.description ?? "No description"}
         </p>
+
+        {route.creatorName && (
+          <div
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "9px",
+              letterSpacing: "0.08em",
+              color: "var(--dawn-30)",
+              marginBottom: "16px",
+            }}
+          >
+            CREATED BY{" "}
+            <span style={{ color: "var(--dawn-50)", textTransform: "none", letterSpacing: "0.03em" }}>
+              {route.creatorName}
+            </span>
+          </div>
+        )}
 
         <CardDivider marginTop={0} marginBottom={12} />
 

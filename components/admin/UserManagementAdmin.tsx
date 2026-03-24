@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { getProfileName } from "@/lib/profile-name";
 
 type WorkspaceProject = {
   id: string;
@@ -59,6 +60,10 @@ export function UserManagementAdmin() {
   const [removeJourneyId, setRemoveJourneyId] = useState("");
   const [assignLockToJourney, setAssignLockToJourney] = useState(true);
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [editingDisplayName, setEditingDisplayName] = useState("");
+  const [savingUserId, setSavingUserId] = useState<string | null>(null);
+  const [nameEditError, setNameEditError] = useState<string | null>(null);
 
   const loadUsers = useCallback(async () => {
     setUsersLoading(true);
@@ -257,6 +262,32 @@ export function UserManagementAdmin() {
       setSelectedIds(new Set());
       void loadUsers();
     }
+  }
+
+  function startEditingName(user: UserRow) {
+    setEditingUserId(user.id);
+    setEditingDisplayName(user.displayName ?? "");
+    setNameEditError(null);
+  }
+
+  async function saveEditedName(userId: string) {
+    if (savingUserId) return;
+    setSavingUserId(userId);
+    setNameEditError(null);
+    const res = await fetch(`/api/admin/users/${userId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ displayName: editingDisplayName }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSavingUserId(null);
+    if (!res.ok) {
+      setNameEditError((data as { error?: string }).error ?? "Failed to save name.");
+      return;
+    }
+    setEditingUserId(null);
+    setEditingDisplayName("");
+    void loadUsers();
   }
 
   const journeysLoading = wpLoading;
@@ -462,6 +493,9 @@ other@example.com"
           {usersError && (
             <p style={{ color: "var(--status-error)", fontSize: "12px", marginBottom: "var(--space-md)" }}>{usersError}</p>
           )}
+          {nameEditError && (
+            <p style={{ color: "var(--status-error)", fontSize: "12px", marginBottom: "var(--space-md)" }}>{nameEditError}</p>
+          )}
           {usersLoading ? (
             <p style={{ fontFamily: "var(--font-mono)", fontSize: "12px", color: "var(--dawn-30)" }}>Loading users…</p>
           ) : filteredUsers.length === 0 ? (
@@ -519,7 +553,52 @@ other@example.com"
                           aria-label={`Select ${u.displayName ?? u.username ?? u.id}`}
                         />
                       </td>
-                      <td>{u.displayName ?? u.username ?? u.id}</td>
+                      <td>
+                        {editingUserId === u.id ? (
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                            <input
+                              className="admin-input"
+                              value={editingDisplayName}
+                              onChange={(event) => setEditingDisplayName(event.target.value)}
+                              maxLength={60}
+                              style={{ minWidth: 180 }}
+                              placeholder="Set display name"
+                            />
+                            <button
+                              type="button"
+                              className="admin-btn"
+                              onClick={() => void saveEditedName(u.id)}
+                              disabled={savingUserId === u.id}
+                            >
+                              {savingUserId === u.id ? "…" : "Save"}
+                            </button>
+                            <button
+                              type="button"
+                              className="admin-btn"
+                              onClick={() => {
+                                setEditingUserId(null);
+                                setEditingDisplayName("");
+                                setNameEditError(null);
+                              }}
+                              disabled={savingUserId === u.id}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                            <span>{getProfileName(u)}</span>
+                            <button
+                              type="button"
+                              className="admin-btn"
+                              onClick={() => startEditingName(u)}
+                              style={{ padding: "4px 8px", fontSize: "10px" }}
+                            >
+                              Edit
+                            </button>
+                          </div>
+                        )}
+                      </td>
                       <td style={{ color: "var(--dawn-40)", fontSize: "11px" }}>{u.email ?? "—"}</td>
                       <td style={{ color: "var(--dawn-40)" }}>{u.role}</td>
                       <td style={{ color: "var(--dawn-40)", fontSize: "11px" }}>

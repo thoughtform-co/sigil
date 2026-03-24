@@ -37,6 +37,13 @@ export async function prefetchWorkspaceData(
     const generationSelect = {
       id: true,
       sessionId: true,
+      user: {
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+        },
+      },
       prompt: true,
       negativePrompt: true,
       parameters: true,
@@ -100,6 +107,13 @@ export async function prefetchWorkspaceData(
     const generations: GenerationItem[] = items.map((g) => ({
       id: g.id,
       sessionId: g.sessionId,
+      user: g.user
+        ? {
+            id: g.user.id,
+            username: g.user.username,
+            displayName: g.user.displayName,
+          }
+        : undefined,
       prompt: g.prompt,
       negativePrompt: g.negativePrompt,
       parameters: g.parameters as Record<string, unknown>,
@@ -164,6 +178,13 @@ export async function prefetchWorkspaceShell(
     const generationSelect = {
       id: true,
       sessionId: true,
+      user: {
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+        },
+      },
       prompt: true,
       negativePrompt: true,
       parameters: true,
@@ -225,6 +246,13 @@ export async function prefetchWorkspaceShell(
     const generations: GenerationItem[] = generationsRaw.map((g) => ({
       id: g.id,
       sessionId: g.sessionId,
+      user: g.user
+        ? {
+            id: g.user.id,
+            username: g.user.username,
+            displayName: g.user.displayName,
+          }
+        : undefined,
       prompt: g.prompt,
       negativePrompt: g.negativePrompt,
       parameters: g.parameters as Record<string, unknown>,

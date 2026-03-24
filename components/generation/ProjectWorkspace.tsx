@@ -11,6 +11,7 @@ import { ForgeGallery } from "@/components/generation/ForgeGallery";
 import { ForgePromptBar } from "@/components/generation/ForgePromptBar";
 import { WaypointBranch } from "@/components/hud/WaypointBranch";
 import { useClipboardImage } from "@/hooks/useClipboardImage";
+import { useAuth } from "@/context/AuthContext";
 
 const DEFAULT_ASPECT_RATIOS = ["1:1", "16:9", "9:16", "4:3", "3:4"];
 
@@ -80,6 +81,7 @@ export function ProjectWorkspace({
   mode: GenerationType;
   prefetchedData?: PrefetchedWorkspaceData;
 }) {
+  const { user, displayName, username } = useAuth();
   const mountedRef = useRef(false);
   if (!mountedRef.current) {
     mountedRef.current = true;
@@ -393,6 +395,17 @@ export function ProjectWorkspace({
   const activeSession = useMemo(
     () => sessions.find((s) => s.id === selectedSessionId) ?? null,
     [selectedSessionId, sessions],
+  );
+  const currentGenerationUser = useMemo(
+    () =>
+      user
+        ? {
+            id: user.id,
+            displayName,
+            username,
+          }
+        : undefined,
+    [displayName, user, username],
   );
 
   const generationsVisible = useMemo(() => {
@@ -780,6 +793,7 @@ export function ProjectWorkspace({
         const tempGen: GenerationItem = {
           id: data.generation.id,
           sessionId: sessionId!,
+          user: currentGenerationUser,
           prompt: prompt.trim(),
           status: "processing",
           modelId,
@@ -979,6 +993,7 @@ export function ProjectWorkspace({
         const tempGen: GenerationItem = {
           id: data.generation.id,
           sessionId: source?.sessionId ?? selectedSessionId ?? undefined,
+          user: source?.user ?? currentGenerationUser,
           prompt: source?.prompt ?? "",
           negativePrompt: source?.negativePrompt ?? null,
           status: "processing",

@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { NavSpineProvider, useNavSpine } from "@/context/NavSpineContext";
 import { ContextAnchor } from "@/components/ui/ContextAnchor";
+import { UserIdentityEditor } from "@/components/hud/UserIdentityEditor";
 import { HudFrame } from "./HudFrame";
 import { JOURNEY_LEFT_RAIL_INSET, NAV_SPINE_CARD_WIDTH } from "./grid-constants";
 
@@ -559,6 +560,7 @@ function NavigationFrameInner({
             height: "var(--hud-nav-height)",
           }}
         >
+        <UserIdentityEditor />
         <button
           type="button"
           onClick={toggleTheme}

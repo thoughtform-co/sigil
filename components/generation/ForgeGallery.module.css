@@ -31,7 +31,14 @@
   gap: 0;
   width: 100%;
   max-width: var(--layout-content-md, 1200px);
+  min-height: 100%;
   padding: calc(var(--hud-padding, 40px) + 16px) 16px calc(var(--prompt-bar-height, 200px) + clamp(24px, 4vw, 48px) + 24px);
+}
+
+.routeBlank {
+  flex: 1 1 auto;
+  align-self: stretch;
+  min-height: 0;
 }
 
 .feed::-webkit-scrollbar {

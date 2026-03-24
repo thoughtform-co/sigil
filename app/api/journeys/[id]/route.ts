@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { getAuthedUser } from "@/lib/auth/server";
 import { withCacheHeaders } from "@/lib/api/cache-headers";
+import { getProfileName } from "@/lib/profile-name";
 
 export async function GET(
   _req: Request,
@@ -29,6 +30,13 @@ export async function GET(
             id: true,
             name: true,
             description: true,
+            owner: {
+              select: {
+                id: true,
+                displayName: true,
+                username: true,
+              },
+            },
             updatedAt: true,
             _count: { select: { sessions: true } },
           },
@@ -91,6 +99,7 @@ export async function GET(
     id: b.id,
     name: b.name,
     description: b.description,
+    creatorName: getProfileName(b.owner),
     updatedAt: b.updatedAt,
     waypointCount: b._count.sessions,
     thumbnailUrl: thumbnailByProjectId.get(b.id) ?? null,

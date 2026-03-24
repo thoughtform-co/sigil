@@ -46,6 +46,14 @@ export async function POST(request: Request) {
     const hydratedParameters = await hydrateReferenceParameters(workingParameters);
 
     const accessFilter = await projectAccessFilter(user.id);
+    const profile = await prisma.profile.findUnique({
+      where: { id: user.id },
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+      },
+    });
     const session = await prisma.session.findFirst({
       where: { id: sessionId, project: accessFilter },
       select: { id: true, type: true },
@@ -82,6 +90,13 @@ export async function POST(request: Request) {
       sessionId,
       generation: {
         id: generation.id,
+        user: profile
+          ? {
+              id: profile.id,
+              username: profile.username,
+              displayName: profile.displayName,
+            }
+          : undefined,
         prompt,
         negativePrompt: negativePrompt ?? null,
         parameters: hydratedParameters,

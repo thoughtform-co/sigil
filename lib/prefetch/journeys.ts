@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
+import { getProfileName } from "@/lib/profile-name";
 
 const THUMBS_PER_JOURNEY = 6;
 
@@ -173,6 +174,7 @@ export type JourneyDetailData = {
       id: string;
       name: string;
       description: string | null;
+      creatorName?: string | null;
       updatedAt: string;
       waypointCount: number;
       thumbnailUrl: string | null;
@@ -198,6 +200,13 @@ export async function prefetchJourneyDetail(
               id: true,
               name: true,
               description: true,
+              owner: {
+                select: {
+                  id: true,
+                  displayName: true,
+                  username: true,
+                },
+              },
               updatedAt: true,
               _count: { select: { sessions: true } },
             },
@@ -259,6 +268,7 @@ export async function prefetchJourneyDetail(
       id: b.id,
       name: b.name,
       description: b.description,
+      creatorName: getProfileName(b.owner),
       updatedAt: b.updatedAt.toISOString(),
       waypointCount: b._count.sessions,
       thumbnailUrl: thumbnailByProjectId.get(b.id) ?? null,

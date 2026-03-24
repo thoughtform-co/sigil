@@ -7,6 +7,11 @@ import type { GenerationItem } from "@/components/generation/types";
 
 function mapPayloadToItem(payload: {
   id: string;
+  user?: {
+    id: string;
+    username?: string | null;
+    displayName?: string | null;
+  };
   prompt: string;
   negativePrompt?: string | null;
   parameters?: Record<string, unknown>;
@@ -30,6 +35,7 @@ function mapPayloadToItem(payload: {
 }): GenerationItem {
   return {
     id: payload.id,
+    user: payload.user,
     prompt: payload.prompt,
     negativePrompt: payload.negativePrompt ?? null,
     parameters: payload.parameters ?? undefined,
