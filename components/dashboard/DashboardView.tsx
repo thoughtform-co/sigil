@@ -216,8 +216,8 @@ export function DashboardView({
       title={isOverview ? "Show focused workspace" : "Show all journeys"}
       style={{
         position: "fixed",
-        bottom: "var(--hud-padding)",
-        left: "calc(var(--hud-padding) + 28px)",
+        bottom: "var(--hud-margin)",
+        left: "calc(var(--hud-margin) + var(--hud-rail-guide-inset))",
         zIndex: 45,
         background: "transparent",
         border: "none",
@@ -258,34 +258,10 @@ export function DashboardView({
           minHeight: 0,
           position: "relative",
           display: "grid",
-          gridTemplateColumns: isOverview ? "1fr" : "360px 1fr 280px",
-          gap: "var(--space-xl)",
+          gridTemplateColumns: isOverview ? "1fr" : "minmax(0, 2fr) minmax(0, 7fr) minmax(0, 2fr)",
+          gap: "var(--hud-dashboard-col-gap, var(--space-xl))",
         }}
       >
-
-      {!isOverview && (
-        <svg
-          aria-hidden
-          width="60"
-          height="1"
-          viewBox="0 0 60 1"
-          fill="none"
-          style={{
-            position: "absolute",
-            left: 344,
-            top: 38,
-            pointerEvents: "none",
-          }}
-        >
-          <path
-            d="M0 0H60"
-            stroke="var(--dawn-15)"
-            strokeWidth="1"
-            strokeLinecap="square"
-            vectorEffect="non-scaling-stroke"
-          />
-        </svg>
-      )}
 
       <div style={{ minHeight: 0, overflow: isOverview ? "auto" : "hidden", display: "flex", flexDirection: "column" }}>
         {isOverview ? (

@@ -84,7 +84,13 @@ The journey detail page renders the appropriate experience based on the `type` f
 
 Sigil uses the Thoughtform Navigation UI Grammar. Zero border-radius everywhere, corner brackets and chamfers for shape. Gold (`--gold`) for navigation and active states. Dawn opacity scale for text hierarchy. Diamonds (45-degree rotated squares) replace circles. Monospace for HUD labels and data readouts. 8px grid spacing system. Dark/light mode via `.light` class on `<html>`.
 
-Tokens and component specs live in the Thoughtform design skills. The Figma plugin in `packages/figma-plugin/` generates design system artifacts from the same token definitions.
+Design system documentation is split across two Cursor skills:
+
+- **thoughtform-brand-architect**: Owns canonical measurements, brand identity, HUD frame anatomy, and spatial system tokens. See `references/spatial-system.md` for the Hartstikke Phase 2 V1 HUD grid spec (viewport-relative margin formula, outward ticks, bottom-left anchor, chapter/pagination labels).
+
+- **thoughtform-design**: Owns Navigation UI Grammar primitives, component implementation patterns, and code-level guidance. Cross-links to brand-architect for canonical numbers.
+
+The Figma plugin in `packages/figma-plugin/` generates design system artifacts from the same token definitions.
 
 ## Reliability
 
