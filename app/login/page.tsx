@@ -4,6 +4,10 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { RunicRain } from "@/components/ui/RunicRain";
+import {
+  buildAuthCallbackUrl,
+  sanitizeAuthRedirectPath,
+} from "@/lib/auth/redirect-target";
 
 type ViewState = "form" | "sent" | "error";
 
@@ -27,6 +31,12 @@ export default function LoginPage() {
     requestAnimationFrame(() => setMounted(true));
   }, []);
 
+  function getNextPath() {
+    if (typeof window === "undefined") return null;
+    const params = new URLSearchParams(window.location.search);
+    return sanitizeAuthRedirectPath(params.get("next"));
+  }
+
   const handleMagicLink = async () => {
     const checkRes = await fetch("/api/auth/check-email", {
       method: "POST",
@@ -41,10 +51,11 @@ export default function LoginPage() {
     }
 
     const supabase = createClient();
+    const nextPath = getNextPath();
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: buildAuthCallbackUrl(window.location.origin, nextPath),
       },
     });
 
@@ -58,6 +69,7 @@ export default function LoginPage() {
 
   const handlePassword = async () => {
     const supabase = createClient();
+    const nextPath = getNextPath();
     const { error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
@@ -67,7 +79,7 @@ export default function LoginPage() {
       setErrorMsg(error.message);
       setView("error");
     } else {
-      router.replace("/journeys");
+      router.replace(nextPath ?? "/journeys");
       router.refresh();
     }
   };

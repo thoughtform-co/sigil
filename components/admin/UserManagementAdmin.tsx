@@ -27,7 +27,14 @@ type UserRow = {
   _count?: { generations: number; projects: number };
 };
 
-type BulkInviteResult = { email: string; status: "created" | "exists" | "error"; userId?: string; error?: string };
+type BulkInviteResult = {
+  email: string;
+  status: "created" | "exists" | "error";
+  userId?: string;
+  error?: string;
+  magicLinkSent?: boolean;
+  destination?: string;
+};
 
 export function UserManagementAdmin() {
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -133,6 +140,20 @@ export function UserManagementAdmin() {
       .split(/[\n,]+/)
       .map((e) => e.trim().toLowerCase())
       .filter(Boolean);
+  }
+
+  function formatInviteResult(result: BulkInviteResult): string {
+    if (result.status === "error") {
+      return `${result.email}: ${result.error ?? "Invite failed"}`;
+    }
+
+    const provisionedLabel =
+      result.status === "created" ? "account created" : "existing account";
+    const destinationLabel = result.destination
+      ? ` -> ${result.destination}`
+      : "";
+
+    return `${result.email}: ${provisionedLabel}, magic link sent${destinationLabel}`;
   }
 
   async function handleBulkInvite(e: React.FormEvent) {
@@ -250,6 +271,9 @@ export function UserManagementAdmin() {
           <h3 style={{ fontSize: "12px", marginBottom: "var(--space-md)", color: "var(--dawn-50)" }}>
             Bulk Invite
           </h3>
+          <p style={{ marginBottom: "var(--space-md)", fontSize: "12px", color: "var(--dawn-50)", maxWidth: 560 }}>
+            Inviting provisions access immediately and emails a Supabase magic link. If a journey is selected, the email lands them directly in that journey.
+          </p>
           <form onSubmit={handleBulkInvite} style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)", maxWidth: 520 }}>
             <div>
               <label htmlFor="invite-emails" className="admin-label">Emails (one per line or comma-separated)</label>
@@ -307,14 +331,14 @@ other@example.com"
               disabled={inviting || parseEmails(inviteEmails).length === 0}
               className="admin-btn admin-btn--gold"
             >
-              {inviting ? "Inviting…" : "Invite"}
+              {inviting ? "Inviting…" : "Invite & email"}
             </button>
           </form>
           {inviteResults && (
             <div style={{ marginTop: "var(--space-md)", fontFamily: "var(--font-mono)", fontSize: "11px" }}>
               {inviteResults.map((r, i) => (
                 <div key={i} style={{ color: r.status === "error" ? "var(--status-error)" : "var(--dawn-60)" }}>
-                  {r.email}: {r.status}{r.error ? ` — ${r.error}` : ""}
+                  {formatInviteResult(r)}
                 </div>
               ))}
             </div>

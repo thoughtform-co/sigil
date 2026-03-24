@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { resolveAuthRedirectPath } from "@/lib/auth/redirect-target";
 
 /**
  * Supabase magic-link callback.
@@ -10,6 +11,7 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type");
+  const destination = new URL(resolveAuthRedirectPath(searchParams.get("next")), origin);
 
   const supabase = await createClient();
 
@@ -17,7 +19,7 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      return NextResponse.redirect(`${origin}/projects`);
+      return NextResponse.redirect(destination);
     }
 
     console.error("[auth/callback] Code exchange failed:", error.message);
@@ -30,7 +32,7 @@ export async function GET(request: Request) {
     });
 
     if (!error) {
-      return NextResponse.redirect(`${origin}/projects`);
+      return NextResponse.redirect(destination);
     }
 
     console.error("[auth/callback] Token verification failed:", error.message);

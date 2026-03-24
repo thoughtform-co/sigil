@@ -4,6 +4,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { json } from "@/lib/api/responses";
 import { badRequest } from "@/lib/api/errors";
+import { sendMagicLinkEmail } from "@/lib/auth/magic-link";
+import {
+  buildAuthCallbackUrl,
+  getInviteDestinationPath,
+} from "@/lib/auth/redirect-target";
 
 const bulkInviteSchema = z.object({
   action: z.literal("invite"),
@@ -57,7 +62,7 @@ export async function POST(request: Request) {
   const data = parsed.data;
 
   if (data.action === "invite") {
-    return handleBulkInvite(data, adminUser.id);
+    return handleBulkInvite(data, adminUser.id, new URL(request.url).origin);
   }
 
   if (data.action === "remove") {
@@ -98,21 +103,33 @@ async function clearWorkshopLockForUsers(userIds: string[], workspaceProjectId: 
 async function handleBulkInvite(
   data: z.infer<typeof bulkInviteSchema>,
   adminId: string,
+  origin: string,
 ) {
   const supabaseAdmin = createAdminClient();
-  const results: Array<{ email: string; status: "created" | "exists" | "error"; userId?: string; error?: string }> = [];
+  const results: Array<{
+    email: string;
+    status: "created" | "exists" | "error";
+    userId?: string;
+    error?: string;
+    magicLinkSent?: boolean;
+    destination?: string;
+  }> = [];
   const listOnce = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
   const listedUsers = listOnce.data?.users ?? [];
+  const inviteDestination = getInviteDestinationPath(data.workspaceProjectId);
+  const emailRedirectTo = buildAuthCallbackUrl(origin, inviteDestination);
 
-  for (const email of data.emails) {
+  for (const rawEmail of data.emails) {
+    const email = rawEmail.trim().toLowerCase();
     try {
       const existingUser = listedUsers.find((u) => u.email?.toLowerCase() === email);
 
       let userId: string;
+      let status: "created" | "exists";
 
       if (existingUser) {
         userId = existingUser.id;
-        results.push({ email, status: "exists", userId });
+        status = "exists";
       } else {
         const tempPassword = crypto.randomUUID();
         const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
@@ -125,7 +142,7 @@ async function handleBulkInvite(
           continue;
         }
         userId = created.user.id;
-        results.push({ email, status: "created", userId });
+        status = "created";
       }
 
       await prisma.profile.upsert({
@@ -159,6 +176,29 @@ async function handleBulkInvite(
           await setWorkshopLockForUsers([userId], data.workspaceProjectId);
         }
       }
+
+      const { error: magicLinkError } = await sendMagicLinkEmail({
+        email,
+        emailRedirectTo,
+      });
+
+      if (magicLinkError) {
+        results.push({
+          email,
+          status: "error",
+          userId,
+          error: `Access was provisioned, but the magic-link email could not be sent: ${magicLinkError.message}`,
+        });
+        continue;
+      }
+
+      results.push({
+        email,
+        status,
+        userId,
+        magicLinkSent: true,
+        destination: inviteDestination,
+      });
     } catch (err) {
       results.push({
         email,

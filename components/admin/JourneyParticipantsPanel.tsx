@@ -35,6 +35,8 @@ type BulkInviteResult = {
   status: "created" | "exists" | "error";
   userId?: string;
   error?: string;
+  magicLinkSent?: boolean;
+  destination?: string;
 };
 
 export function JourneyParticipantsPanel({
@@ -106,6 +108,20 @@ export function JourneyParticipantsPanel({
       .split(/[\n,]+/)
       .map((e) => e.trim().toLowerCase())
       .filter(Boolean);
+  }
+
+  function formatInviteResult(result: BulkInviteResult): string {
+    if (result.status === "error") {
+      return `${result.email}: ${result.error ?? "Invite failed"}`;
+    }
+
+    const provisionedLabel =
+      result.status === "created" ? "account created" : "existing account";
+    const destinationLabel = result.destination
+      ? ` -> ${result.destination}`
+      : "";
+
+    return `${result.email}: ${provisionedLabel}, magic link sent${destinationLabel}`;
   }
 
   async function handleInvite(e: React.FormEvent) {
@@ -193,7 +209,7 @@ export function JourneyParticipantsPanel({
           letterSpacing: "0.06em",
         }}
       >
-        Invite by email, add existing users, or remove members. Optional workshop lock confines users to this journey only.
+        Invite by email, add existing users, or remove members. Invited users receive a magic-link email and can land directly in this journey. Optional workshop lock confines users to this journey only.
       </p>
 
       {error && (
@@ -219,7 +235,7 @@ export function JourneyParticipantsPanel({
             Lock to this journey (workshop mode)
           </label>
           <button type="submit" className="sigil-btn-secondary" disabled={inviting || parseEmails(inviteEmails).length === 0}>
-            {inviting ? "Sending…" : "Invite & assign"}
+            {inviting ? "Sending…" : "Invite, email & assign"}
           </button>
         </form>
 
@@ -227,8 +243,7 @@ export function JourneyParticipantsPanel({
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", color: "var(--dawn-50)" }}>
             {inviteResults.map((r, i) => (
               <div key={i} style={{ color: r.status === "error" ? "var(--status-error)" : undefined }}>
-                {r.email}: {r.status}
-                {r.error ? ` — ${r.error}` : ""}
+                {formatInviteResult(r)}
               </div>
             ))}
           </div>

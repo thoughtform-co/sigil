@@ -24,6 +24,9 @@ export const RAIL_GUIDE_INSET = 9;
 export const NAV_SPINE_GAP = 8;
 export const NAV_SPINE_CARD_WIDTH = 280;
 
+/** Pushes journey spine + main inset farther from the left rail guide (px). */
+export const JOURNEY_LEFT_RAIL_INSET = 20;
+
 /**
  * Horizontal tick marks positioned within the guide zone (between corner stubs).
  * yPct = percentage of the GUIDE zone height (not the full rail height).

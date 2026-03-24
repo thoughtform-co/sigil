@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { NavSpineProvider, useNavSpine } from "@/context/NavSpineContext";
 import { ContextAnchor } from "@/components/ui/ContextAnchor";
 import { HudFrame } from "./HudFrame";
-import { NAV_SPINE_CARD_WIDTH } from "./grid-constants";
+import { JOURNEY_LEFT_RAIL_INSET, NAV_SPINE_CARD_WIDTH } from "./grid-constants";
 
 const THEME_KEY = "sigil-theme";
 const GRID = 3;
@@ -398,11 +398,10 @@ function NavigationFrameInner({
 
   // Determine chapter label from context
   const chapterLabel = useMemo(() => {
+    // Journey / route workspace passes `journeyName` — suppress decorative chapter label there.
     if (journeyName) {
-      // Use journey name as chapter identifier
-      return `CHAPTER ${journeyName.toUpperCase().slice(0, 8)}`;
+      return undefined;
     }
-    // Fallback to section name from pathname
     const parts = pathname.split("/").filter(Boolean);
     if (parts.length > 0) {
       const section = parts[0].toUpperCase();
@@ -593,8 +592,13 @@ function NavigationFrameInner({
             aria-label="Breadcrumb"
             className="nav-spine fixed z-40 pointer-events-auto animate-fade-in-up"
             style={{
-              top: "var(--hud-rail-top)",
-              left: "calc(var(--hud-margin) + var(--hud-rail-guide-inset) + var(--hud-content-rail-gap))",
+              // Nudge below rail top so spine "JOURNEY" bearing clears the top-left corner bracket.
+              top: journeyName
+                ? "calc(var(--hud-rail-top) + 10px)"
+                : "var(--hud-rail-top)",
+              left: journeyName
+                ? `calc(var(--hud-margin) + var(--hud-rail-guide-inset) + var(--hud-content-rail-gap) + ${JOURNEY_LEFT_RAIL_INSET}px)`
+                : "calc(var(--hud-margin) + var(--hud-rail-guide-inset) + var(--hud-content-rail-gap))",
             }}
           >
           {journeyName ? (
@@ -633,7 +637,7 @@ function NavigationFrameInner({
           style={
             journeyName
               ? ({
-                  "--hud-inner-offset": `calc(24px + var(--hud-content-rail-gap) + ${NAV_SPINE_CARD_WIDTH + 16}px)`,
+                  "--hud-inner-offset": `calc(24px + var(--hud-content-rail-gap) + ${NAV_SPINE_CARD_WIDTH + 16 + JOURNEY_LEFT_RAIL_INSET}px)`,
                 } as React.CSSProperties)
               : undefined
           }
