@@ -167,7 +167,7 @@ export async function POST(request: Request) {
     data: { status: "processing_locked", lastHeartbeatAt: new Date() },
   });
 
-  if (lock.count === 0 && generation.status !== "processing_locked") {
+  if (lock.count === 0) {
     return NextResponse.json({ message: "Generation already claimed", id: generation.id });
   }
 

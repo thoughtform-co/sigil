@@ -246,11 +246,12 @@ export function ForgePromptBar({
     if (!t) return;
     t.style.height = "auto";
     const natural = Math.max(t.scrollHeight, PROMPT_MIN_HEIGHT);
-    if (natural > inputHeight) {
+    if (natural > currentHeightRef.current) {
       const h = Math.min(natural, PROMPT_MAX_HEIGHT);
+      currentHeightRef.current = h;
       setInputHeight(h);
     }
-  }, [prompt, isResizing, inputHeight]);
+  }, [prompt]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {

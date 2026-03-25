@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { GenerationItem } from "@/components/generation/types";
 import { ForgeGenerationCard } from "@/components/generation/ForgeGenerationCard";
@@ -377,14 +377,38 @@ export function ForgeGallery({
   }, [generations.length, updateScrollBeam]);
 
   const useVirtual = generations.length >= VIRTUAL_THRESHOLD;
+  const virtualMeasurementSignature = useMemo(
+    () =>
+      generations
+        .map(
+          (generation) =>
+            `${generation.id}:${generation.status}:${generation.outputs.length}:${generation.outputs
+              .map((output) => output.id)
+              .join(",")}`,
+        )
+        .join("|"),
+    [generations],
+  );
 
   const rowVirtualizer = useVirtualizer({
     count: generations.length,
     getScrollElement: () => feedRef.current,
+    getItemKey: (index: number) => generations[index]?.id ?? index,
     estimateSize: (index: number) => (index === 0 ? 400 : 464),
     overscan: 3,
     gap: 0,
   });
+
+  useLayoutEffect(() => {
+    if (!useVirtual) return;
+    rowVirtualizer.measure();
+    updateScrollBeam();
+    const rafId = requestAnimationFrame(() => {
+      rowVirtualizer.measure();
+      updateScrollBeam();
+    });
+    return () => cancelAnimationFrame(rafId);
+  }, [useVirtual, rowVirtualizer, updateScrollBeam, virtualMeasurementSignature]);
 
   const renderCard = useCallback(
     (generation: GenerationItem) => (

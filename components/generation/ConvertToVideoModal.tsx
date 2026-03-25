@@ -421,21 +421,38 @@ export function ConvertToVideoModal({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+        e.preventDefault();
+        if (!endFrameBrowseOpen && !busy && prompt.trim() && modelId) {
+          void handleSubmit();
+        }
+      }
     },
-    [onClose]
+    [busy, endFrameBrowseOpen, handleSubmit, modelId, onClose, prompt]
   );
 
   useEffect(() => {
     const fn = (e: KeyboardEvent) => {
-      if (open && e.key === "Escape") {
+      if (!open) return;
+      if (e.key === "Escape") {
         e.preventDefault();
         onClose();
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+        e.preventDefault();
+        if (!endFrameBrowseOpen && !busy && prompt.trim() && modelId) {
+          void handleSubmit();
+        }
       }
     };
     document.addEventListener("keydown", fn);
     return () => document.removeEventListener("keydown", fn);
-  }, [open, onClose]);
+  }, [busy, endFrameBrowseOpen, handleSubmit, modelId, onClose, open, prompt]);
 
   if (!open || typeof document === "undefined") return null;
 
