@@ -7,6 +7,8 @@ import { ImageBrowseModal } from "@/components/generation/ImageBrowseModal";
 import styles from "./ForgePromptBar.module.css";
 
 const DEFAULT_ASPECT_RATIOS = ["1:1", "16:9", "9:16", "4:3", "3:4"];
+const PROMPT_MIN_HEIGHT = 52;
+const PROMPT_MAX_HEIGHT = 300;
 
 /** Matches [`app/api/upload/reference-image/route.ts`](app/api/upload/reference-image/route.ts) MAX_FILE_SIZE */
 const MAX_END_FRAME_FILE_BYTES = 25 * 1024 * 1024;
@@ -164,11 +166,11 @@ export function ForgePromptBar({
     [onEndFrameUploadingChange],
   );
 
-  const [inputHeight, setInputHeight] = useState(52);
+  const [inputHeight, setInputHeight] = useState(PROMPT_MIN_HEIGHT);
   const [isResizing, setIsResizing] = useState(false);
   const resizeStartY = useRef(0);
-  const resizeStartHeight = useRef(52);
-  const currentHeightRef = useRef(52);
+  const resizeStartHeight = useRef(PROMPT_MIN_HEIGHT);
+  const currentHeightRef = useRef(PROMPT_MIN_HEIGHT);
   const rafId = useRef<number | null>(null);
 
   useEffect(() => { currentHeightRef.current = inputHeight; }, [inputHeight]);
@@ -184,7 +186,10 @@ export function ForgePromptBar({
   const handleResizeMove = useCallback((e: MouseEvent | TouchEvent) => {
     const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
     const delta = resizeStartY.current - clientY;
-    const newHeight = Math.min(Math.max(resizeStartHeight.current + delta, 48), 320);
+    const newHeight = Math.min(
+      Math.max(resizeStartHeight.current + delta, PROMPT_MIN_HEIGHT),
+      PROMPT_MAX_HEIGHT,
+    );
     if (rafId.current) cancelAnimationFrame(rafId.current);
     rafId.current = requestAnimationFrame(() => {
       currentHeightRef.current = newHeight;
@@ -199,15 +204,19 @@ export function ForgePromptBar({
 
   useEffect(() => {
     if (!isResizing) return;
-    window.addEventListener("mousemove", handleResizeMove);
-    window.addEventListener("mouseup", handleResizeEnd);
-    window.addEventListener("touchmove", handleResizeMove);
-    window.addEventListener("touchend", handleResizeEnd);
+    document.addEventListener("mousemove", handleResizeMove);
+    document.addEventListener("mouseup", handleResizeEnd);
+    document.addEventListener("touchmove", handleResizeMove, { passive: false });
+    document.addEventListener("touchend", handleResizeEnd);
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "ns-resize";
     return () => {
-      window.removeEventListener("mousemove", handleResizeMove);
-      window.removeEventListener("mouseup", handleResizeEnd);
-      window.removeEventListener("touchmove", handleResizeMove);
-      window.removeEventListener("touchend", handleResizeEnd);
+      document.removeEventListener("mousemove", handleResizeMove);
+      document.removeEventListener("mouseup", handleResizeEnd);
+      document.removeEventListener("touchmove", handleResizeMove);
+      document.removeEventListener("touchend", handleResizeEnd);
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
     };
   }, [isResizing, handleResizeMove, handleResizeEnd]);
 
@@ -236,9 +245,9 @@ export function ForgePromptBar({
     const t = textareaRef.current;
     if (!t) return;
     t.style.height = "auto";
-    const natural = Math.max(t.scrollHeight, 48);
+    const natural = Math.max(t.scrollHeight, PROMPT_MIN_HEIGHT);
     if (natural > inputHeight) {
-      const h = Math.min(natural, 320);
+      const h = Math.min(natural, PROMPT_MAX_HEIGHT);
       setInputHeight(h);
     }
   }, [prompt, isResizing, inputHeight]);
@@ -515,11 +524,16 @@ export function ForgePromptBar({
             className={styles.resizeHandle}
             onMouseDown={handleResizeStart}
             onTouchStart={handleResizeStart}
+            role="separator"
+            aria-orientation="horizontal"
+            aria-label="Resize prompt bar"
+            title="Drag upward to expand the prompt bar"
           >
             <div className={`${styles.resizeGrip} ${isResizing ? styles.resizeGripActive : ""}`}>
-              <svg width="16" height="4" viewBox="0 0 16 4" fill="currentColor">
-                <rect x="0" y="0" width="16" height="1" rx="0.5" opacity="0.6" />
-                <rect x="0" y="3" width="16" height="1" rx="0.5" opacity="0.4" />
+              <svg width="20" height="6" viewBox="0 0 20 6" fill="currentColor" aria-hidden="true">
+                <rect x="0" y="0" width="20" height="1" opacity="0.8" />
+                <rect x="0" y="3" width="20" height="1" opacity="0.55" />
+                <rect x="0" y="5" width="20" height="1" opacity="0.35" />
               </svg>
             </div>
           </div>

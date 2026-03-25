@@ -314,13 +314,14 @@ export function ForgeGenerationCard({
       ? generation.parameters.endFrameImageUrl.trim()
       : "";
   const displayReferenceEntries = (() => {
-    const entries: Array<{ url: string; label: string; key: string }> = [];
+    const entries: Array<{ url: string; label: string; key: string; showLabel: boolean }> = [];
     if (generation.modelId.includes("kling") || generation.modelId.includes("veo")) {
       if (referenceImageUrls[0]) {
         entries.push({
           url: referenceImageUrls[0],
           label: "Start",
           key: `start-${referenceImageUrls[0]}`,
+          showLabel: true,
         });
       }
       referenceImageUrls.slice(1).forEach((url, index) => {
@@ -328,6 +329,7 @@ export function ForgeGenerationCard({
           url,
           label: `Ref ${index + 1}`,
           key: `reference-${index}-${url}`,
+          showLabel: false,
         });
       });
       if (endFrameImageUrl) {
@@ -335,6 +337,7 @@ export function ForgeGenerationCard({
           url: endFrameImageUrl,
           label: "End",
           key: `end-${endFrameImageUrl}`,
+          showLabel: true,
         });
       }
       return entries;
@@ -343,6 +346,7 @@ export function ForgeGenerationCard({
       url,
       label: referenceImageUrls.length === 1 ? "Reference" : `Reference ${index + 1}`,
       key: `reference-${index}-${url}`,
+      showLabel: false,
     }));
   })();
   const referenceRowCount =
@@ -419,7 +423,9 @@ export function ForgeGenerationCard({
               <div className={styles.refThumbGrid} style={referenceGridStyle}>
                 {displayReferenceEntries.map((entry, index) => (
                   <div key={entry.key} className={styles.refThumbItem}>
-                    <span className={styles.refThumbLabel}>{entry.label}</span>
+                    {entry.showLabel ? (
+                      <span className={styles.refThumbLabel}>{entry.label}</span>
+                    ) : null}
                     <button
                       type="button"
                       className={styles.refThumb}
@@ -432,7 +438,11 @@ export function ForgeGenerationCard({
                       }}
                       title={onLightboxOpen ? `Open ${entry.label.toLowerCase()} image` : `View ${entry.label.toLowerCase()} image`}
                     >
-                      <img src={entry.url} alt={`${entry.label} ${index + 1}`} className={styles.refThumbImg} />
+                      <img
+                        src={entry.url}
+                        alt={entry.showLabel ? `${entry.label} image` : `Reference ${index + 1}`}
+                        className={styles.refThumbImg}
+                      />
                     </button>
                   </div>
                 ))}
