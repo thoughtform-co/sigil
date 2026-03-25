@@ -139,10 +139,10 @@
   --hud-content-end-gap: 20px;
   /* Content clearance = corner arm (24px) + gap — spine card added per-page on <main> */
   --hud-inner-offset: calc(24px + var(--hud-content-rail-gap));
-  /* 11-column metaphor: 2 + 7 + 2 for journeys workspace */
+  /* 11-column metaphor: widened side rails vs center (journeys + activity get more room) */
   --hud-dashboard-col-gap: var(--space-xl);
   /* Dashboard focused mode: overridden per breakpoint (see below) */
-  --dashboard-grid-cols-focused: minmax(0, 2fr) minmax(0, 7fr) minmax(0, 2fr);
+  --dashboard-grid-cols-focused: minmax(0, 2.45fr) minmax(0, 6.1fr) minmax(0, 2.45fr);
   /* Route cards column — tighter on laptops */
   --route-cards-gap: var(--space-xl);
   --route-cards-pad-x: var(--space-xl);
@@ -500,24 +500,24 @@ body {
   }
 }
 
-/* Laptop / mid-width: favor center column, trim gutters before dropping activity */
+/* Laptop / mid-width: wider journeys/activity rails vs center routes */
 @media (max-width: 1680px) {
   :root {
-    --dashboard-grid-cols-focused: minmax(0, 1.85fr) minmax(0, 7.3fr) minmax(0, 1.85fr);
+    --dashboard-grid-cols-focused: minmax(0, 2.05fr) minmax(0, 6.9fr) minmax(0, 2.05fr);
     --hud-dashboard-col-gap: var(--space-lg);
   }
 }
 
 @media (max-width: 1480px) {
   :root {
-    --dashboard-grid-cols-focused: minmax(0, 1.65fr) minmax(0, 7.7fr) minmax(0, 1.65fr);
+    --dashboard-grid-cols-focused: minmax(0, 1.9fr) minmax(0, 7.2fr) minmax(0, 1.9fr);
   }
 }
 
 /* Two-column laptop layout: flexible left rail + fluid center (replaces fixed 360px @ 1200px) */
 @media (max-width: 1320px) {
   :root {
-    --dashboard-grid-cols-focused: minmax(240px, 32%) minmax(0, 1fr);
+    --dashboard-grid-cols-focused: minmax(272px, 38%) minmax(0, 1fr);
     --hud-dashboard-col-gap: var(--space-md);
     --route-cards-gap: var(--space-md);
     --route-cards-pad-x: var(--space-sm);
@@ -526,6 +526,13 @@ body {
 
   .dashboard-activity-col {
     display: none !important;
+  }
+
+  /* Single column of route cards — avoids two-up packing on 11–13" laptop widths */
+  .route-cards-inner-grid {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
   }
 }
 

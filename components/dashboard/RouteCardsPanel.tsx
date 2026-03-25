@@ -1,11 +1,28 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog } from "@/components/ui/Dialog";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { RouteCard } from "./RouteCard";
 import type { DashboardRouteItem } from "./DashboardView";
+
+const ROUTE_CARDS_STACK_MQ = "(max-width: 1320px)";
+
+function useRouteCardsStackVertically() {
+  return useSyncExternalStore(
+    (onStoreChange) => {
+      const mq = window.matchMedia(ROUTE_CARDS_STACK_MQ);
+      const listener = () => {
+        onStoreChange();
+      };
+      mq.addEventListener("change", listener);
+      return () => mq.removeEventListener("change", listener);
+    },
+    () => window.matchMedia(ROUTE_CARDS_STACK_MQ).matches,
+    () => false,
+  );
+}
 
 type RouteCardsPanelProps = {
   routes: DashboardRouteItem[];
@@ -19,6 +36,7 @@ type RouteCardsPanelProps = {
 
 export function RouteCardsPanel({ routes, journeyId, selectedRouteId: controlledRouteId, onSelectRoute, onRouteCreated, onRouteDeleted, onRouteRenamed }: RouteCardsPanelProps) {
   const router = useRouter();
+  const stackVertically = useRouteCardsStackVertically();
   const [internalFocusId, setInternalFocusId] = useState<string | null>(null);
   const isControlled = controlledRouteId !== undefined;
   const focusedRouteId = isControlled ? controlledRouteId : internalFocusId;
@@ -251,6 +269,7 @@ export function RouteCardsPanel({ routes, journeyId, selectedRouteId: controlled
                   key={route.id}
                   route={route}
                   isActive={focusedRouteId === route.id}
+                  stackVertically={stackVertically}
                   onSelect={() => setFocusedRouteId(route.id)}
                   onNavigate={() => router.push(`/routes/${route.id}/image`)}
                   onRename={() => openRenameDialog(route.id)}

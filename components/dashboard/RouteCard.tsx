@@ -12,6 +12,8 @@ type RouteCardProps = {
   onNavigate: () => void;
   onRename?: () => void;
   onDelete?: () => void;
+  /** When true (e.g. ≤1320px dashboard), cards fill the routes column up to a max width */
+  stackVertically?: boolean;
 };
 
 const CHAMFER = 14;
@@ -43,15 +45,17 @@ function TrashIcon() {
   );
 }
 
-export function RouteCard({ route, isActive, onSelect, onNavigate, onRename, onDelete }: RouteCardProps) {
+export function RouteCard({ route, isActive, onSelect, onNavigate, onRename, onDelete, stackVertically = false }: RouteCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [hovered, setHovered] = useState(false);
   const [topHovered, setTopHovered] = useState(false);
 
   const thumb = route.thumbnails[0];
   const isVideo = thumb?.fileType?.startsWith("video");
-  const cardWidthPx = isActive ? 400 : 280;
-  const cardWidth = isActive ? "min(100%, 400px)" : "min(100%, 280px)";
+  const cardWidthPx = stackVertically ? (isActive ? 400 : 340) : (isActive ? 400 : 280);
+  const cardMaxWidth = stackVertically
+    ? (isActive ? "min(100%, 400px)" : "min(100%, 340px)")
+    : (isActive ? "min(100%, 400px)" : "min(100%, 280px)");
 
   useEffect(() => {
     const v = videoRef.current;
@@ -85,8 +89,8 @@ export function RouteCard({ route, isActive, onSelect, onNavigate, onRename, onD
     <article
       style={{
         position: "relative",
-        width: cardWidth,
-        maxWidth: "100%",
+        width: stackVertically ? "100%" : cardMaxWidth,
+        maxWidth: stackVertically ? cardMaxWidth : "100%",
         flexShrink: 0,
         cursor: "pointer",
         transition: "all 400ms cubic-bezier(0.19, 1, 0.22, 1)",
