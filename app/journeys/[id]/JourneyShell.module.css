@@ -1,6 +1,6 @@
 .shell {
   width: 100%;
-  max-width: 1200px;
+  max-width: var(--layout-content-md, 1200px);
   padding-top: var(--space-xl);
   animation: fadeInUp 0.5s var(--ease-out) both;
 }
@@ -113,7 +113,8 @@
   grid-template-columns: 1fr;
 }
 
-@media (max-width: 860px) {
+/* Align with dashboard workspace single-column breakpoint */
+@media (max-width: 900px) {
   .content {
     grid-template-columns: 1fr;
   }
@@ -172,7 +173,7 @@
   padding-left: var(--space-lg);
 }
 
-@media (max-width: 860px) {
+@media (max-width: 900px) {
   .curriculumRail {
     border-left: none;
     padding-left: 0;

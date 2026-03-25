@@ -7,7 +7,9 @@ import { SectionHeader } from "@/components/ui/SectionHeader";
 import { RouteCard } from "./RouteCard";
 import type { DashboardRouteItem } from "./DashboardView";
 
-const ROUTE_CARDS_STACK_MQ = "(max-width: 1320px)";
+/** Matches `globals.css` — stack routes before the middle column feels oversized */
+const ROUTE_CARDS_STACK_MQ = "(max-width: 1480px)";
+const ROUTE_CARDS_FULL_WIDTH_MQ = "(max-width: 900px)";
 
 function useRouteCardsStackVertically() {
   return useSyncExternalStore(
@@ -20,6 +22,21 @@ function useRouteCardsStackVertically() {
       return () => mq.removeEventListener("change", listener);
     },
     () => window.matchMedia(ROUTE_CARDS_STACK_MQ).matches,
+    () => false,
+  );
+}
+
+function useRouteCardsFullWidthColumn() {
+  return useSyncExternalStore(
+    (onStoreChange) => {
+      const mq = window.matchMedia(ROUTE_CARDS_FULL_WIDTH_MQ);
+      const listener = () => {
+        onStoreChange();
+      };
+      mq.addEventListener("change", listener);
+      return () => mq.removeEventListener("change", listener);
+    },
+    () => window.matchMedia(ROUTE_CARDS_FULL_WIDTH_MQ).matches,
     () => false,
   );
 }
@@ -37,6 +54,7 @@ type RouteCardsPanelProps = {
 export function RouteCardsPanel({ routes, journeyId, selectedRouteId: controlledRouteId, onSelectRoute, onRouteCreated, onRouteDeleted, onRouteRenamed }: RouteCardsPanelProps) {
   const router = useRouter();
   const stackVertically = useRouteCardsStackVertically();
+  const fullWidthColumn = useRouteCardsFullWidthColumn();
   const [internalFocusId, setInternalFocusId] = useState<string | null>(null);
   const isControlled = controlledRouteId !== undefined;
   const focusedRouteId = isControlled ? controlledRouteId : internalFocusId;
@@ -270,6 +288,7 @@ export function RouteCardsPanel({ routes, journeyId, selectedRouteId: controlled
                   route={route}
                   isActive={focusedRouteId === route.id}
                   stackVertically={stackVertically}
+                  fullWidthColumn={fullWidthColumn}
                   onSelect={() => setFocusedRouteId(route.id)}
                   onNavigate={() => router.push(`/routes/${route.id}/image`)}
                   onRename={() => openRenameDialog(route.id)}

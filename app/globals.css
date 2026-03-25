@@ -139,10 +139,10 @@
   --hud-content-end-gap: 20px;
   /* Content clearance = corner arm (24px) + gap — spine card added per-page on <main> */
   --hud-inner-offset: calc(24px + var(--hud-content-rail-gap));
-  /* 11-column metaphor: widened side rails vs center (journeys + activity get more room) */
+  /* 11-column metaphor: balanced sides vs center — center track kept ≤ ~56% fr share at default */
   --hud-dashboard-col-gap: var(--space-xl);
   /* Dashboard focused mode: overridden per breakpoint (see below) */
-  --dashboard-grid-cols-focused: minmax(0, 2.45fr) minmax(0, 6.1fr) minmax(0, 2.45fr);
+  --dashboard-grid-cols-focused: minmax(0, 2.5fr) minmax(0, 5.5fr) minmax(0, 2.5fr);
   /* Route cards column — tighter on laptops */
   --route-cards-gap: var(--space-xl);
   --route-cards-pad-x: var(--space-xl);
@@ -479,6 +479,8 @@ body {
   padding-top: var(--hud-shell-pad-top);
   /* Bottom padding so content ends above the bottom HUD corners (24px); match corner inset so content bottom = corner top */
   padding-bottom: calc(var(--hud-margin) + 24px);
+  /* Use full HUD content rail on wide screens instead of capping only to --layout-content-lg */
+  --dashboard-content-max: min(100%, calc(100vw - 2 * (var(--hud-margin) + var(--hud-inner-offset))));
 }
 
 /* Dashboard two-panel fills workspace height and must not overflow past the shell */
@@ -500,31 +502,21 @@ body {
   }
 }
 
-/* Laptop / mid-width: wider journeys/activity rails vs center routes */
+/* Laptop / mid-width: keep sides from shrinking faster than center (avoid “fat middle” feel) */
 @media (max-width: 1680px) {
   :root {
-    --dashboard-grid-cols-focused: minmax(0, 2.05fr) minmax(0, 6.9fr) minmax(0, 2.05fr);
+    --dashboard-grid-cols-focused: minmax(0, 2.35fr) minmax(0, 5.8fr) minmax(0, 2.35fr);
     --hud-dashboard-col-gap: var(--space-lg);
   }
 }
 
 @media (max-width: 1480px) {
   :root {
-    --dashboard-grid-cols-focused: minmax(0, 1.9fr) minmax(0, 7.2fr) minmax(0, 1.9fr);
-  }
-}
-
-/* Compact laptop layout: keep all three columns but narrow the sides */
-@media (max-width: 1320px) {
-  :root {
-    --dashboard-grid-cols-focused: minmax(180px, 1.6fr) minmax(0, 6.8fr) minmax(0, 1.6fr);
+    --dashboard-grid-cols-focused: minmax(0, 2.2fr) minmax(0, 5.6fr) minmax(0, 2.2fr);
     --hud-dashboard-col-gap: var(--space-md);
-    --route-cards-gap: var(--space-md);
-    --route-cards-pad-x: var(--space-sm);
-    --route-cards-pad-bottom: var(--space-md);
   }
 
-  /* Single column of route cards — avoids two-up packing on 11–13" laptop widths */
+  /* Stack route cards earlier so the middle column does not read as a wide gallery */
   .route-cards-inner-grid {
     flex-direction: column;
     flex-wrap: nowrap;
@@ -532,10 +524,21 @@ body {
   }
 }
 
-/* Very narrow: compress further but keep all three columns */
+/* Compact laptop: enforce minimum side rails, still trim center */
+@media (max-width: 1320px) {
+  :root {
+    --dashboard-grid-cols-focused: minmax(200px, 2.1fr) minmax(0, 5.7fr) minmax(200px, 2.1fr);
+    --hud-dashboard-col-gap: var(--space-md);
+    --route-cards-gap: var(--space-md);
+    --route-cards-pad-x: var(--space-sm);
+    --route-cards-pad-bottom: var(--space-md);
+  }
+}
+
+/* Narrow: compress gaps; center stays ≤ ~58% of fr total (5.6 / 9.6) */
 @media (max-width: 1024px) {
   :root {
-    --dashboard-grid-cols-focused: minmax(140px, 1.4fr) minmax(0, 7.2fr) minmax(0, 1.4fr);
+    --dashboard-grid-cols-focused: minmax(160px, 2fr) minmax(0, 5.6fr) minmax(160px, 2fr);
     --hud-dashboard-col-gap: var(--space-sm);
   }
 }
@@ -543,8 +546,9 @@ body {
 @media (max-width: 900px) {
   :root {
     --dashboard-grid-cols-focused: 1fr;
-    --route-cards-gap: var(--space-md);
+    --route-cards-gap: var(--space-sm);
     --route-cards-pad-x: var(--space-sm);
+    --route-cards-pad-bottom: var(--space-md);
   }
 
   .dashboard-activity-col {
