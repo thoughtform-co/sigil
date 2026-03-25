@@ -141,6 +141,12 @@
   --hud-inner-offset: calc(24px + var(--hud-content-rail-gap));
   /* 11-column metaphor: 2 + 7 + 2 for journeys workspace */
   --hud-dashboard-col-gap: var(--space-xl);
+  /* Dashboard focused mode: overridden per breakpoint (see below) */
+  --dashboard-grid-cols-focused: minmax(0, 2fr) minmax(0, 7fr) minmax(0, 2fr);
+  /* Route cards column — tighter on laptops */
+  --route-cards-gap: var(--space-xl);
+  --route-cards-pad-x: var(--space-xl);
+  --route-cards-pad-bottom: var(--space-xl);
 
   /* Overlay (token-only; no hardcoded color) */
   --overlay-bg: rgba(19, 17, 15, 0.76);
@@ -487,18 +493,58 @@ body {
   grid-column: 1 / -1;
 }
 
-@media (max-width: 1200px) {
-  .dashboard-two-panel {
-    grid-template-columns: 360px 1fr !important;
+/* Dashboard uses full content rail width on laptop (inline max-width reads this token) */
+@media (max-width: 1536px) {
+  :root {
+    --dashboard-content-max: 100%;
   }
+}
+
+/* Laptop / mid-width: favor center column, trim gutters before dropping activity */
+@media (max-width: 1680px) {
+  :root {
+    --dashboard-grid-cols-focused: minmax(0, 1.85fr) minmax(0, 7.3fr) minmax(0, 1.85fr);
+    --hud-dashboard-col-gap: var(--space-lg);
+  }
+}
+
+@media (max-width: 1480px) {
+  :root {
+    --dashboard-grid-cols-focused: minmax(0, 1.65fr) minmax(0, 7.7fr) minmax(0, 1.65fr);
+  }
+}
+
+/* Two-column laptop layout: flexible left rail + fluid center (replaces fixed 360px @ 1200px) */
+@media (max-width: 1320px) {
+  :root {
+    --dashboard-grid-cols-focused: minmax(240px, 32%) minmax(0, 1fr);
+    --hud-dashboard-col-gap: var(--space-md);
+    --route-cards-gap: var(--space-md);
+    --route-cards-pad-x: var(--space-sm);
+    --route-cards-pad-bottom: var(--space-md);
+  }
+
   .dashboard-activity-col {
     display: none !important;
   }
 }
 
 @media (max-width: 900px) {
-  .dashboard-two-panel {
-    grid-template-columns: 1fr !important;
+  :root {
+    --dashboard-grid-cols-focused: 1fr;
+    --route-cards-gap: var(--space-md);
+    --route-cards-pad-x: var(--space-sm);
+  }
+}
+
+/* Journey rail: trim low-priority footer telemetry on laptop widths */
+@media (max-width: 1440px) {
+  .journey-panel-carousel-index {
+    display: none !important;
+  }
+
+  .journey-panel-footer {
+    display: none !important;
   }
 }
 

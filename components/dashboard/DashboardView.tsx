@@ -252,13 +252,15 @@ export function DashboardView({
         style={{
           alignSelf: "flex-start",
           width: "100%",
-          maxWidth: "var(--layout-content-lg, 1400px)",
+          maxWidth: "var(--dashboard-content-max, var(--layout-content-lg, 1400px))",
           margin: 0,
           height: "100%",
           minHeight: 0,
           position: "relative",
           display: "grid",
-          gridTemplateColumns: isOverview ? "1fr" : "minmax(0, 2fr) minmax(0, 7fr) minmax(0, 2fr)",
+          gridTemplateColumns: isOverview
+            ? "1fr"
+            : "var(--dashboard-grid-cols-focused, minmax(0, 2fr) minmax(0, 7fr) minmax(0, 2fr))",
           gap: "var(--hud-dashboard-col-gap, var(--space-xl))",
         }}
       >

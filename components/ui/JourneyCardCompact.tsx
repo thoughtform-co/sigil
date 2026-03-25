@@ -65,7 +65,8 @@ export function JourneyCardCompact({
           fontSize="12px"
           color={isSelected ? "var(--gold)" : "var(--dawn)"}
           action={action}
-          style={{ marginBottom: 0 }}
+          actionPlacement={action ? "end" : "inline"}
+          style={{ marginBottom: 0, minWidth: 0, width: action ? "100%" : undefined }}
         >
           {name}
         </CardTitle>

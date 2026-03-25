@@ -135,8 +135,8 @@ export function RouteCardsPanel({ routes, journeyId, selectedRouteId: controlled
         height: "100%",
         minHeight: 0,
         overflow: "hidden",
-        paddingLeft: "var(--space-sm)",
-        paddingRight: "var(--space-md)",
+        paddingLeft: "clamp(4px, 1vw, var(--space-sm))",
+        paddingRight: "clamp(var(--space-sm), 1.5vw, var(--space-md))",
       }}
     >
       <div
@@ -234,13 +234,15 @@ export function RouteCardsPanel({ routes, journeyId, selectedRouteId: controlled
               <path d="M0 0V11H19" stroke="var(--dawn-15)" strokeWidth="1" strokeLinecap="square" strokeLinejoin="miter" vectorEffect="non-scaling-stroke" />
             </svg>
             <div
+              className="route-cards-inner-grid"
               style={{
                 display: "flex",
                 flexWrap: "wrap",
                 alignItems: "flex-start",
                 alignContent: "flex-start",
-                gap: "var(--space-xl)",
-                padding: "0 var(--space-xl) var(--space-xl)",
+                gap: "var(--route-cards-gap, var(--space-xl))",
+                padding:
+                  "0 var(--route-cards-pad-x, var(--space-xl)) var(--route-cards-pad-bottom, var(--space-xl))",
                 minWidth: 0,
               }}
             >

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { getProfileName } from "@/lib/profile-name";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 
 type MemberRow = {
@@ -39,6 +40,25 @@ type BulkInviteResult = {
   destination?: string;
 };
 
+function PencilIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 113 3L7 19l-4 1 1-4 12.5-12.5z" />
+    </svg>
+  );
+}
+
 export function JourneyParticipantsPanel({
   journeyId,
   journeyName,
@@ -60,6 +80,10 @@ export function JourneyParticipantsPanel({
   const [assignLock, setAssignLock] = useState(true);
   const [adding, setAdding] = useState(false);
   const [resendingUserId, setResendingUserId] = useState<string | null>(null);
+  const [hoveredMemberId, setHoveredMemberId] = useState<string | null>(null);
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
+  const [editingDisplayName, setEditingDisplayName] = useState("");
+  const [savingMemberId, setSavingMemberId] = useState<string | null>(null);
   const [memberActionNotice, setMemberActionNotice] = useState<{
     kind: "success" | "error";
     message: string;
@@ -240,6 +264,43 @@ export function JourneyParticipantsPanel({
     });
   }
 
+  function startEditingMemberName(member: MemberRow) {
+    setEditingMemberId(member.userId);
+    setEditingDisplayName(member.user.displayName ?? "");
+    setMemberActionNotice(null);
+  }
+
+  async function handleSaveMemberName(userId: string) {
+    if (savingMemberId) return;
+    setSavingMemberId(userId);
+    setMemberActionNotice(null);
+
+    const res = await fetch(`/api/admin/users/${userId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ displayName: editingDisplayName }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSavingMemberId(null);
+
+    if (!res.ok) {
+      setMemberActionNotice({
+        kind: "error",
+        message: (data as { error?: string }).error ?? "Failed to save member name.",
+      });
+      return;
+    }
+
+    setEditingMemberId(null);
+    setEditingDisplayName("");
+    setMemberActionNotice({
+      kind: "success",
+      message: "Member name updated.",
+    });
+    void loadMembers();
+    void loadUserDirectory();
+  }
+
   return (
     <div style={{ marginTop: "var(--space-xl)", paddingTop: "var(--space-lg)", borderTop: "1px solid var(--dawn-08)" }}>
       <SectionHeader label={`PARTICIPANTS — ${journeyName.toUpperCase()}`} />
@@ -345,6 +406,10 @@ export function JourneyParticipantsPanel({
             {members.map((m) => (
               <li
                 key={m.userId}
+                onMouseEnter={() => setHoveredMemberId(m.userId)}
+                onMouseLeave={() =>
+                  setHoveredMemberId((prev) => (prev === m.userId ? null : prev))
+                }
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -356,11 +421,81 @@ export function JourneyParticipantsPanel({
                   fontSize: "11px",
                 }}
               >
-                <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
-                  <span style={{ color: m.user.isDisabled ? "var(--dawn-30)" : "var(--dawn)" }}>
-                    {m.user.displayName ?? m.user.username ?? m.userId}
-                    {m.user.isDisabled ? " (disabled)" : ""}
-                  </span>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0, flex: 1 }}>
+                  {editingMemberId === m.userId ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <input
+                        className="sigil-input"
+                        value={editingDisplayName}
+                        onChange={(e) => setEditingDisplayName(e.target.value)}
+                        maxLength={60}
+                        placeholder="Set member name"
+                        style={{ minWidth: 180, maxWidth: 260 }}
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        className="sigil-btn-ghost"
+                        style={{ fontSize: "10px" }}
+                        disabled={savingMemberId === m.userId}
+                        onClick={() => void handleSaveMemberName(m.userId)}
+                      >
+                        {savingMemberId === m.userId ? "saving..." : "save"}
+                      </button>
+                      <button
+                        type="button"
+                        className="sigil-btn-ghost"
+                        style={{ fontSize: "10px" }}
+                        disabled={savingMemberId === m.userId}
+                        onClick={() => {
+                          setEditingMemberId(null);
+                          setEditingDisplayName("");
+                          setMemberActionNotice(null);
+                        }}
+                      >
+                        cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                      <span
+                        style={{
+                          color: m.user.isDisabled ? "var(--dawn-30)" : "var(--dawn)",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {getProfileName({
+                          displayName: m.user.displayName,
+                          username: m.user.username,
+                          email: userDirectory.get(m.userId)?.email ?? null,
+                          id: m.userId,
+                        })}
+                        {m.user.isDisabled ? " (disabled)" : ""}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => startEditingMemberName(m)}
+                        title="Edit member name"
+                        aria-label="Edit member name"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          background: "none",
+                          border: "none",
+                          padding: 0,
+                          color: "var(--gold)",
+                          cursor: "pointer",
+                          opacity: hoveredMemberId === m.userId ? 0.8 : 0,
+                          transition: "opacity var(--duration-fast)",
+                        }}
+                      >
+                        <PencilIcon />
+                      </button>
+                    </div>
+                  )}
                   {userDirectory.get(m.userId)?.email && (
                     <span
                       style={{

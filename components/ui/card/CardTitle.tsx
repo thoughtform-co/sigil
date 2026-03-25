@@ -47,6 +47,9 @@ export function CardTitle({
           textOverflow: "ellipsis",
           margin: 0,
           transition: "color 100ms",
+          ...(actionPlacement === "end" && action
+            ? { flex: 1, minWidth: 0 }
+            : {}),
         }}
       >
         {children}

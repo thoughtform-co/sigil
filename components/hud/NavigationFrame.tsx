@@ -414,6 +414,10 @@ function NavigationFrameInner({
   // Determine pagination from pathname depth
   const paginationLabel = useMemo(() => {
     const parts = pathname.split("/").filter(Boolean);
+    // Journey overview is a hub surface, not a paginated document.
+    if (parts[0] === "journeys" && parts.length === 2) {
+      return undefined;
+    }
     if (parts.length > 0) {
       return String(parts.length).padStart(2, "0");
     }

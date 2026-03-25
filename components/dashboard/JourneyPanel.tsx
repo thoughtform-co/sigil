@@ -90,7 +90,6 @@ export function JourneyPanel({
   const [journeyType, setJourneyType] = useState<"learn" | "create" | "branded">("create");
   const [creating, setCreating] = useState(false);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [actionHoverId, setActionHoverId] = useState<string | null>(null);
   const [renameId, setRenameId] = useState<string | null>(null);
   const [renameName, setRenameName] = useState("");
   const [renaming, setRenaming] = useState(false);
@@ -224,13 +223,14 @@ export function JourneyPanel({
 
   return (
     <div
+      className="dashboard-journey-panel"
       style={{
         display: "flex",
         flexDirection: "column",
         height: "100%",
         minHeight: 0,
         overflow: "hidden",
-        paddingRight: "var(--space-md)",
+        paddingRight: "clamp(var(--space-sm), 2vw, var(--space-md))",
       }}
     >
       <SectionHeader
@@ -312,7 +312,7 @@ export function JourneyPanel({
                 const dist = actualIdx - safeIdx;
                 const isSelected = dist === 0;
                 const isHovered = hoveredId === journey.id;
-                const showActions = isAdmin && actionHoverId === journey.id;
+                const showActions = isAdmin && hoveredId === journey.id;
                 const dimming = isSelected ? 1 : Math.max(0.35, 1 - Math.abs(dist) * 0.2);
                 const isExpanded = expandedJourneyId === journey.id && isSelected;
 
@@ -330,15 +330,8 @@ export function JourneyPanel({
                       transition: "opacity 350ms ease",
                     }}
                     onMouseEnter={() => setHoveredId(journey.id)}
-                    onMouseMove={(e) => {
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      const y = e.clientY - rect.top;
-                      if (y <= 34) setActionHoverId(journey.id);
-                      else if (actionHoverId === journey.id) setActionHoverId(null);
-                    }}
                     onMouseLeave={() => {
                       setHoveredId(null);
-                      if (actionHoverId === journey.id) setActionHoverId(null);
                     }}
                   >
                     <JourneyCardCompact
@@ -349,13 +342,88 @@ export function JourneyPanel({
                       state={isSelected ? "selected" : "default"}
                       style={isHovered && !isSelected ? { background: "var(--dawn-04)" } : undefined}
                       action={
-                        <CardArrowAction
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/journeys/${journey.id}`);
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 4,
+                            flexShrink: 0,
                           }}
-                          active={isHovered || isSelected}
-                        />
+                        >
+                          {showActions ? (
+                            <>
+                              <button
+                                type="button"
+                                title="Rename journey"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openRenameDialog(journey.id);
+                                }}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  width: 22,
+                                  height: 22,
+                                  padding: 0,
+                                  background: "transparent",
+                                  border: "none",
+                                  color: "var(--dawn-30)",
+                                  cursor: "pointer",
+                                  transition: "color 80ms ease, background 80ms ease",
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.color = "var(--dawn)";
+                                  e.currentTarget.style.background = "var(--dawn-08)";
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.color = "var(--dawn-30)";
+                                  e.currentTarget.style.background = "transparent";
+                                }}
+                              >
+                                <PencilIcon />
+                              </button>
+                              <button
+                                type="button"
+                                title="Delete journey"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openDeleteDialog(journey.id);
+                                }}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  width: 22,
+                                  height: 22,
+                                  padding: 0,
+                                  background: "transparent",
+                                  border: "none",
+                                  color: "var(--dawn-30)",
+                                  cursor: "pointer",
+                                  transition: "color 80ms ease, background 80ms ease",
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.color = "var(--status-error, #c17f59)";
+                                  e.currentTarget.style.background = "var(--dawn-08)";
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.color = "var(--dawn-30)";
+                                  e.currentTarget.style.background = "transparent";
+                                }}
+                              >
+                                <TrashIcon />
+                              </button>
+                            </>
+                          ) : null}
+                          <CardArrowAction
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/journeys/${journey.id}`);
+                            }}
+                            active={isHovered || isSelected}
+                          />
+                        </div>
                       }
                       routeTree={
                         isExpanded && journey.routes.length > 0 ? (
@@ -461,83 +529,6 @@ export function JourneyPanel({
                         ) : undefined
                       }
                     />
-
-                    {showActions && (
-                      <div
-                        style={{
-                          position: "absolute",
-                          top: 8,
-                          right: 8,
-                          display: "flex",
-                          gap: 2,
-                        }}
-                        onMouseEnter={() => setActionHoverId(journey.id)}
-                        onMouseLeave={() => setActionHoverId(null)}
-                      >
-                        <button
-                          type="button"
-                          title="Rename journey"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openRenameDialog(journey.id);
-                          }}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            width: 22,
-                            height: 22,
-                            padding: 0,
-                            background: "transparent",
-                            border: "none",
-                            color: "var(--dawn-30)",
-                            cursor: "pointer",
-                            transition: "color 80ms ease, background 80ms ease",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.color = "var(--dawn)";
-                            e.currentTarget.style.background = "var(--dawn-08)";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.color = "var(--dawn-30)";
-                            e.currentTarget.style.background = "transparent";
-                          }}
-                        >
-                          <PencilIcon />
-                        </button>
-                        <button
-                          type="button"
-                          title="Delete journey"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openDeleteDialog(journey.id);
-                          }}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            width: 22,
-                            height: 22,
-                            padding: 0,
-                            background: "transparent",
-                            border: "none",
-                            color: "var(--dawn-30)",
-                            cursor: "pointer",
-                            transition: "color 80ms ease, background 80ms ease",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.color = "var(--status-error, #c17f59)";
-                            e.currentTarget.style.background = "var(--dawn-08)";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.color = "var(--dawn-30)";
-                            e.currentTarget.style.background = "transparent";
-                          }}
-                        >
-                          <TrashIcon />
-                        </button>
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -545,6 +536,7 @@ export function JourneyPanel({
 
             {journeys.length > 1 && (
               <div
+                className="journey-panel-carousel-index"
                 style={{
                   position: "absolute",
                   bottom: 4,
@@ -565,6 +557,7 @@ export function JourneyPanel({
       </div>
 
       <div
+        className="journey-panel-footer"
         style={{
           flexShrink: 0,
           borderTop: "1px solid var(--dawn-08)",
