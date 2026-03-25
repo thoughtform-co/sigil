@@ -562,13 +562,9 @@ body {
   }
 }
 
-/* Journey rail: trim low-priority footer telemetry on laptop widths */
+/* Journey rail: trim low-priority carousel telemetry on laptop widths */
 @media (max-width: 1440px) {
   .journey-panel-carousel-index {
-    display: none !important;
-  }
-
-  .journey-panel-footer {
     display: none !important;
   }
 }

@@ -101,7 +101,7 @@ export function HudFrame({
                     style={{
                       height: 1,
                       width: w,
-                      background: tick.major ? "var(--dawn-30)" : "var(--dawn-15)",
+                      background: "var(--dawn-30)",
                       position: "absolute",
                       left: `calc(var(--hud-rail-guide-inset) - ${w}px)`,
                     }}
@@ -153,7 +153,7 @@ export function HudFrame({
                     style={{
                       height: 1,
                       width: w,
-                      background: isMajor ? "var(--dawn-30)" : "var(--dawn-15)",
+                      background: "var(--dawn-30)",
                       position: "absolute",
                       right: `calc(var(--hud-rail-guide-inset) - ${w}px)`,
                       opacity: isMajor ? 0 : 1,

@@ -42,12 +42,6 @@ export type DashboardJourneyItem = {
   routes: DashboardRouteItem[];
 };
 
-type AdminStatRow = {
-  displayName: string;
-  imageCount: number;
-  videoCount: number;
-};
-
 export type DashboardData = {
   journeys: DashboardJourneyItem[];
 };
@@ -59,12 +53,6 @@ async function dashboardFetcher(url: string): Promise<DashboardData> {
     throw new Error((body as { error?: string }).error ?? "Failed to load dashboard");
   }
   return res.json() as Promise<DashboardData>;
-}
-
-async function adminStatsFetcher(url: string): Promise<{ adminStats: AdminStatRow[] }> {
-  const res = await fetch(url);
-  if (!res.ok) return { adminStats: [] };
-  return res.json();
 }
 
 export function DashboardView({
@@ -89,11 +77,6 @@ export function DashboardView({
     dedupingInterval: 60_000,
     revalidateOnMount: !initialData || !initialDataIncludesThumbnails,
   });
-  const { data: adminStatsData } = useSWR(
-    isAdmin ? "/api/admin/dashboard-stats" : null,
-    adminStatsFetcher,
-    { revalidateOnFocus: false, dedupingInterval: 30_000 }
-  );
   const [selectedJourneyId, setSelectedJourneyId] = useState<string | null>(null);
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"focused" | "overview">("focused");
@@ -369,7 +352,6 @@ export function DashboardView({
             onJourneyCreated={() => void mutate()}
             onJourneyDeleted={handleJourneyDeleted}
             onJourneyRenamed={handleJourneyRenamed}
-            adminStats={adminStatsData?.adminStats ?? undefined}
             isAdmin={isAdmin}
           />
         )}

@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { AdminStatsPanel } from "@/components/dashboard/AdminStatsPanel";
 import { Dialog } from "@/components/ui/Dialog";
 import { JourneyCardCompact } from "@/components/ui/JourneyCardCompact";
 import { SectionHeader } from "@/components/ui/SectionHeader";
@@ -28,12 +27,6 @@ export type JourneyPanelItem = {
   routes: JourneyPanelRoute[];
 };
 
-type AdminStatRow = {
-  displayName: string;
-  imageCount: number;
-  videoCount: number;
-};
-
 type JourneyPanelProps = {
   journeys: JourneyPanelItem[];
   selectedJourneyId: string | null;
@@ -42,7 +35,6 @@ type JourneyPanelProps = {
   onJourneyCreated?: () => void;
   onJourneyDeleted?: (id: string) => void;
   onJourneyRenamed?: (id: string, name: string) => void;
-  adminStats?: AdminStatRow[] | null;
   isAdmin?: boolean;
   action?: React.ReactNode;
 };
@@ -78,12 +70,10 @@ export function JourneyPanel({
   onJourneyCreated,
   onJourneyDeleted,
   onJourneyRenamed,
-  adminStats,
   isAdmin,
   action: externalAction,
 }: JourneyPanelProps) {
   const router = useRouter();
-  const totalGenerations = journeys.reduce((sum, j) => sum + j.generationCount, 0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -553,35 +543,6 @@ export function JourneyPanel({
               </div>
             )}
           </>
-        )}
-      </div>
-
-      <div
-        className="journey-panel-footer"
-        style={{
-          flexShrink: 0,
-          borderTop: "1px solid var(--dawn-08)",
-          paddingTop: "var(--space-sm)",
-          paddingLeft: "var(--space-md)",
-          paddingRight: "var(--space-md)",
-          paddingBottom: "var(--space-md)",
-          fontFamily: "var(--font-mono)",
-          fontSize: "10px",
-          letterSpacing: "0.06em",
-          color: "var(--dawn-50)",
-          display: "flex",
-          flexDirection: "column",
-          gap: "var(--space-sm)",
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span>{journeys.length} journeys</span>
-          <span style={{ fontVariantNumeric: "tabular-nums" }}>{totalGenerations} generations</span>
-        </div>
-        {isAdmin && adminStats && adminStats.length > 0 && (
-          <div style={{ marginTop: "var(--space-xs)" }}>
-            <AdminStatsPanel stats={adminStats} />
-          </div>
         )}
       </div>
 
