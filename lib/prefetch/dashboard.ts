@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
-import type { DashboardData } from "@/components/dashboard/DashboardView";
+import type { DashboardData } from "@/lib/types/dashboard";
 
 const THUMBS_PER_ROUTE = 8;
 

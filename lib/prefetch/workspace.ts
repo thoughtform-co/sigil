@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getAuthedUser } from "@/lib/auth/server";
 import { projectAccessFilter } from "@/lib/auth/project-access";
-import type { SessionItem, GenerationItem } from "@/components/generation/types";
+import type { SessionItem, GenerationItem } from "@/lib/types/generation";
 
 const PREFETCH_LIMIT = 20;
 

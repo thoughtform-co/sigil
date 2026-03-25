@@ -7,9 +7,15 @@ vi.mock("@/lib/auth/server", () => ({
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
+    profile: { findUnique: vi.fn() },
     session: { findFirst: vi.fn() },
     generation: { create: vi.fn() },
   },
+}));
+
+vi.mock("@/lib/reference-images", () => ({
+  hydrateReferenceParameters: vi.fn().mockImplementation(async (p: Record<string, unknown>) => p),
+  persistReferenceImage: vi.fn(),
 }));
 
 vi.mock("@/lib/models/registry", () => ({
@@ -45,6 +51,12 @@ describe("POST /api/generate contract", () => {
   beforeEach(() => {
     vi.mocked(getAuthedUser).mockReset();
     vi.mocked(getModelConfig).mockReset();
+    vi.mocked(prisma.profile.findUnique).mockReset();
+    vi.mocked(prisma.profile.findUnique).mockResolvedValue({
+      id: "user-1",
+      username: "u",
+      displayName: "User",
+    } as never);
     vi.mocked(prisma.session.findFirst).mockReset();
     vi.mocked(prisma.generation.create).mockReset();
   });

@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Sans, PT_Mono } from "next/font/google";
 import "./globals.css";
-import { AuthProvider, type InitialAuthUser } from "@/context/AuthContext";
-import { getAuthedUser } from "@/lib/auth/server";
-import { prisma } from "@/lib/prisma";
+import { AuthProvider } from "@/context/AuthContext";
+import { getInitialAuthUser } from "@/lib/auth/get-initial-auth-user";
 
 const ibmPlexSans = IBM_Plex_Sans({
   variable: "--font-sans",
@@ -21,34 +20,6 @@ export const metadata: Metadata = {
   title: "Sigil",
   description: "Thoughtform Atlas-branded image and video generation platform",
 };
-
-async function getInitialAuthUser(): Promise<InitialAuthUser | null> {
-  try {
-    const user = await getAuthedUser();
-    if (!user) return null;
-    const profile = await prisma.profile.findUnique({
-      where: { id: user.id },
-      select: {
-        role: true,
-        username: true,
-        displayName: true,
-        lockedWorkspaceProjectId: true,
-      },
-    });
-    const role = (profile?.role as "admin" | "user") ?? "user";
-    return {
-      id: user.id,
-      email: user.email,
-      username: profile?.username ?? null,
-      displayName: profile?.displayName ?? null,
-      role,
-      lockedWorkspaceProjectId:
-        role === "admin" ? null : (profile?.lockedWorkspaceProjectId ?? null),
-    };
-  } catch {
-    return null;
-  }
-}
 
 export default async function RootLayout({
   children,

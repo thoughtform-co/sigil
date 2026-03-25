@@ -5,6 +5,11 @@ import { getSafeFetchUrl } from "@/lib/security/url-safety";
  * Storage: outputs (generated media) + references (uploaded reference images).
  * - outputs: {userId}/{generationId}/output-{index}.{ext}
  * - references: references/{userId}/{refId}.{ext} — Vesper parity for stable reference URLs.
+ *
+ * **Outputs bucket is public** by design: URLs are embeddable in the app/CDN without per-request
+ * signing. Paths include user + generation ids (not secret). If you need confidentiality for
+ * generated media, switch to a private bucket + short-lived signed URLs and update `next/image`
+ * remote patterns accordingly.
  */
 
 export const REFERENCES_BUCKET = "references";

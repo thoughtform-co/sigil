@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from "react";
 import { CardTitle, CardArrowAction } from "@/components/ui/card";
+import { SectionLabel } from "@/components/ui/SectionLabel";
 
 type ContextAnchorInlineProps = {
   mode: "inline";
@@ -30,17 +31,9 @@ export function ContextAnchor(props: ContextAnchorProps) {
   if (props.mode === "inline") {
     const { label, bearing, className, style } = props;
     return (
-      <span
-        className={`sigil-section-label ${className ?? ""}`}
-        style={style}
-      >
-        {bearing && (
-          <span style={{ color: "var(--dawn-50)", marginRight: "var(--space-xs)" }}>
-            {bearing}
-          </span>
-        )}
+      <SectionLabel bearing={bearing} className={className} style={style}>
         {label}
-      </span>
+      </SectionLabel>
     );
   }
 

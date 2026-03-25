@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Dialog } from "@/components/ui/Dialog";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { RouteCard } from "./RouteCard";
-import type { DashboardRouteItem } from "./DashboardView";
+import type { DashboardRouteItem } from "@/lib/types/dashboard";
 
 /** Matches `globals.css` — stack routes before the middle column feels oversized */
 const ROUTE_CARDS_STACK_MQ = "(max-width: 1480px)";

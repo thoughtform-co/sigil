@@ -32,3 +32,10 @@ The app uses a remote Supabase-hosted PostgreSQL database. `DATABASE_URL` and `D
 - ESLint exits with code 1 due to pre-existing lint errors (mostly unused vars and React effect warnings). This is expected and not caused by agent changes.
 - The Figma plugin in `packages/figma-plugin/` has its own `package.json` and is excluded from the root TypeScript config. It does not need to be built for the main app to work.
 - All AI provider API keys (Gemini, Replicate, Anthropic, Kling, FAL) are optional — the app gracefully degrades when they are absent.
+
+### Architecture and new work
+
+- **Layers**: `lib/**` must not import `components/**`. Shared DTOs live in `lib/types/` (generation, dashboard, auth snapshots). Prefetch and server code import from there only.
+- **API auth**: `middleware.ts` does **not** protect `/api/*`. Each `app/api/**/route.ts` must call `getAuthedUser()` or `requireAdmin()`, or be an intentional public endpoint. Public routes must be allowlisted in `tests/contracts/api-route-auth-coverage.test.ts` with a brief comment in the handler.
+- **Production env**: `instrumentation.ts` runs `assertServerEnv()` when `NODE_ENV === "production"` so missing `DATABASE_URL` / Supabase URL keys fail fast.
+- **Cursor skill**: For component and API conventions when adding UI, use the project skill at `.cursor/skills/sigil-component-guardrails/SKILL.md` (defaults + allowed exceptions).

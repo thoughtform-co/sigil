@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createHash } from "crypto";
 import { REFERENCES_BUCKET, uploadBase64ToStorage } from "@/lib/supabase/storage";
+import { validateImageDataUrl } from "@/lib/security/image-validation";
 
 const REFERENCE_SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 30;
 
@@ -47,6 +48,7 @@ export async function persistReferenceImage(
   userId: string,
   referenceImageId?: string
 ): Promise<ReferenceImagePointer> {
+  validateImageDataUrl(base64DataUrl);
   const { mimeType, base64Payload } = parseBase64DataUrl(base64DataUrl);
   const extension = mimeType.includes("png") ? "png" : "jpg";
   const checksum = createHash("sha256").update(base64Payload).digest("hex");

@@ -6,6 +6,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { JourneyCardCompact } from "@/components/ui/JourneyCardCompact";
 import { SectionHeader } from "@/components/ui/SectionHeader";
+import type { DashboardData } from "@/lib/types/dashboard";
 
 const JourneyPanel = dynamic(
   () => import("@/components/dashboard/JourneyPanel").then((m) => m.JourneyPanel),
@@ -21,30 +22,6 @@ const RouteActivityPanel = dynamic(
   () => import("@/components/dashboard/RouteActivityPanel").then((m) => m.RouteActivityPanel),
   { ssr: false },
 );
-
-export type DashboardRouteItem = {
-  id: string;
-  name: string;
-  description: string | null;
-  updatedAt: string;
-  waypointCount: number;
-  generationCount: number;
-  thumbnails: { id: string; fileUrl: string; fileType: string; width: number | null; height: number | null; sessionId?: string }[];
-};
-
-export type DashboardJourneyItem = {
-  id: string;
-  name: string;
-  description: string | null;
-  type?: string;
-  routeCount: number;
-  generationCount: number;
-  routes: DashboardRouteItem[];
-};
-
-export type DashboardData = {
-  journeys: DashboardJourneyItem[];
-};
 
 async function dashboardFetcher(url: string): Promise<DashboardData> {
   const res = await fetch(url);

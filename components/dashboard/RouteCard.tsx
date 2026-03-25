@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import { useRef, useEffect, useState } from "react";
-import type { DashboardRouteItem } from "./DashboardView";
+import type { DashboardRouteItem } from "@/lib/types/dashboard";
 import { ParticleIcon } from "@/components/ui/ParticleIcon";
+import { PencilIcon, TrashIcon } from "@/components/ui/icons/AdminActionIcons";
 
 type RouteCardProps = {
   route: DashboardRouteItem;
@@ -30,24 +31,19 @@ function formatDate(iso: string): string {
 
 const NOISE_SVG = `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
 
-function PencilIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-      <path d="M8.5 1.5L10.5 3.5L4 10H2V8L8.5 1.5Z" stroke="currentColor" strokeWidth="1" strokeLinejoin="round" />
-      <path d="M7 3L9 5" stroke="currentColor" strokeWidth="1" />
-    </svg>
-  );
-}
-
-function TrashIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-      <path d="M2 3H10M4.5 3V2C4.5 1.45 4.95 1 5.5 1H6.5C7.05 1 7.5 1.45 7.5 2V3M3 3L3.5 10C3.5 10.55 3.95 11 4.5 11H7.5C8.05 11 8.5 10.55 8.5 10L9 3" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-export function RouteCard({ route, isActive, onSelect, onNavigate, onRename, onDelete, stackVertically = false, fullWidthColumn = false }: RouteCardProps) {
+/**
+ * Dashboard route rail preview (media + telemetry). Not the same as journeys list `RouteCard`.
+ */
+export function RouteCard({
+  route,
+  isActive,
+  onSelect,
+  onNavigate,
+  onRename,
+  onDelete,
+  stackVertically = false,
+  fullWidthColumn = false,
+}: RouteCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [hovered, setHovered] = useState(false);
   const [topHovered, setTopHovered] = useState(false);

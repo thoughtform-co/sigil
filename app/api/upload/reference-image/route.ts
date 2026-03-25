@@ -57,6 +57,12 @@ export async function POST(request: NextRequest) {
     const base64 = buffer.toString("base64");
     const mime = file.type || "image/png";
     dataUrl = `data:${mime};base64,${base64}`;
+    try {
+      validateImageDataUrl(dataUrl);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Invalid image";
+      return NextResponse.json({ error: msg }, { status: 400 });
+    }
   } else if (contentType.includes("application/json")) {
     const body = await request.json().catch(() => null);
     const raw = body?.dataUrl ?? body?.referenceImageUrl;

@@ -148,7 +148,7 @@ export function ProjectsView() {
                   id={project.id}
                   name={project.name}
                   description={project.description ?? "No description"}
-                  updatedAt={new Date(project.updatedAt).toLocaleDateString()}
+                  updatedAt={project.updatedAt}
                 />
               </div>
             ))}
