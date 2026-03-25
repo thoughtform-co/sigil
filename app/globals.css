@@ -514,18 +514,14 @@ body {
   }
 }
 
-/* Two-column laptop layout: flexible left rail + fluid center (replaces fixed 360px @ 1200px) */
+/* Compact laptop layout: keep all three columns but narrow the sides */
 @media (max-width: 1320px) {
   :root {
-    --dashboard-grid-cols-focused: minmax(272px, 38%) minmax(0, 1fr);
+    --dashboard-grid-cols-focused: minmax(180px, 1.6fr) minmax(0, 6.8fr) minmax(0, 1.6fr);
     --hud-dashboard-col-gap: var(--space-md);
     --route-cards-gap: var(--space-md);
     --route-cards-pad-x: var(--space-sm);
     --route-cards-pad-bottom: var(--space-md);
-  }
-
-  .dashboard-activity-col {
-    display: none !important;
   }
 
   /* Single column of route cards — avoids two-up packing on 11–13" laptop widths */
@@ -533,6 +529,17 @@ body {
     flex-direction: column;
     flex-wrap: nowrap;
     align-items: stretch;
+  }
+}
+
+/* Very narrow: drop to two columns when activity truly can't fit */
+@media (max-width: 1024px) {
+  :root {
+    --dashboard-grid-cols-focused: minmax(180px, 30%) minmax(0, 1fr);
+  }
+
+  .dashboard-activity-col {
+    display: none !important;
   }
 }
 

@@ -399,11 +399,10 @@ function NavigationFrameInner({
 
   // Determine chapter label from context
   const chapterLabel = useMemo(() => {
-    // Journey / route workspace passes `journeyName` — suppress decorative chapter label there.
-    if (journeyName) {
-      return undefined;
-    }
+    if (journeyName) return undefined;
     const parts = pathname.split("/").filter(Boolean);
+    // Journeys dashboard is a workspace hub, not a chapter-style page.
+    if (parts[0] === "journeys" && parts.length <= 1) return undefined;
     if (parts.length > 0) {
       const section = parts[0].toUpperCase();
       return `CHAPTER ${section}`;
