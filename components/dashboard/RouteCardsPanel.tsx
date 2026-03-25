@@ -171,8 +171,8 @@ export function RouteCardsPanel({ routes, journeyId, selectedRouteId: controlled
         height: "100%",
         minHeight: 0,
         overflow: "hidden",
-        paddingLeft: "clamp(4px, 1vw, var(--space-sm))",
-        paddingRight: "clamp(var(--space-sm), 1.5vw, var(--space-md))",
+        paddingLeft: "clamp(var(--space-sm), 1.5vw, var(--space-md))",
+        paddingRight: "clamp(4px, 0.8vw, var(--space-sm))",
       }}
     >
       <div
@@ -254,7 +254,7 @@ export function RouteCardsPanel({ routes, journeyId, selectedRouteId: controlled
               height: "100%",
               overflowY: "auto",
               overflowX: "hidden",
-              paddingLeft: 22,
+                paddingLeft: 18,
               scrollbarWidth: "none",
               msOverflowStyle: "none",
             }}
@@ -274,11 +274,12 @@ export function RouteCardsPanel({ routes, journeyId, selectedRouteId: controlled
               style={{
                 display: "flex",
                 flexWrap: "wrap",
-                alignItems: "flex-start",
+                justifyContent: stackVertically ? "flex-start" : "center",
+                alignItems: stackVertically ? "center" : "flex-start",
                 alignContent: "flex-start",
                 gap: "var(--route-cards-gap, var(--space-xl))",
                 padding:
-                  "0 var(--route-cards-pad-x, var(--space-xl)) var(--route-cards-pad-bottom, var(--space-xl))",
+                  "0 var(--route-cards-pad-right, var(--space-sm)) var(--route-cards-pad-bottom, var(--space-xl)) var(--route-cards-pad-left, var(--space-xl))",
                 minWidth: 0,
               }}
             >

@@ -55,12 +55,12 @@ export function RouteCard({ route, isActive, onSelect, onNavigate, onRename, onD
   const thumb = route.thumbnails[0];
   const isVideo = thumb?.fileType?.startsWith("video");
   const cardWidthPx = fullWidthColumn
-    ? 520
+    ? 560
     : stackVertically
       ? (isActive ? 400 : 340)
       : (isActive ? 400 : 280);
   const cardMaxWidth = fullWidthColumn
-    ? "100%"
+    ? "min(100%, 560px)"
     : stackVertically
       ? (isActive ? "min(100%, 400px)" : "min(100%, 340px)")
       : (isActive ? "min(100%, 400px)" : "min(100%, 280px)");

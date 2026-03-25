@@ -139,13 +139,14 @@
   --hud-content-end-gap: 20px;
   /* Content clearance = corner arm (24px) + gap — spine card added per-page on <main> */
   --hud-inner-offset: calc(24px + var(--hud-content-rail-gap));
-  /* 11-column metaphor: balanced sides vs center — center track kept ≤ ~56% fr share at default */
+  /* 11-column metaphor: balanced sides vs center — keep the routes rail visually central */
   --hud-dashboard-col-gap: var(--space-xl);
   /* Dashboard focused mode: overridden per breakpoint (see below) */
-  --dashboard-grid-cols-focused: minmax(0, 2.5fr) minmax(0, 5.5fr) minmax(0, 2.5fr);
-  /* Route cards column — tighter on laptops */
-  --route-cards-gap: var(--space-xl);
-  --route-cards-pad-x: var(--space-xl);
+  --dashboard-grid-cols-focused: minmax(220px, 2.65fr) minmax(0, 5.1fr) minmax(220px, 2.65fr);
+  /* Route cards column — bias the rail slightly right so journeys get more breathing room */
+  --route-cards-gap: var(--space-lg);
+  --route-cards-pad-left: var(--space-xl);
+  --route-cards-pad-right: var(--space-sm);
   --route-cards-pad-bottom: var(--space-xl);
 
   /* Overlay (token-only; no hardcoded color) */
@@ -505,15 +506,18 @@ body {
 /* Laptop / mid-width: keep sides from shrinking faster than center (avoid “fat middle” feel) */
 @media (max-width: 1680px) {
   :root {
-    --dashboard-grid-cols-focused: minmax(0, 2.35fr) minmax(0, 5.8fr) minmax(0, 2.35fr);
+    --dashboard-grid-cols-focused: minmax(215px, 2.65fr) minmax(0, 4.9fr) minmax(220px, 2.7fr);
     --hud-dashboard-col-gap: var(--space-lg);
   }
 }
 
 @media (max-width: 1480px) {
   :root {
-    --dashboard-grid-cols-focused: minmax(0, 2.2fr) minmax(0, 5.6fr) minmax(0, 2.2fr);
+    --dashboard-grid-cols-focused: minmax(205px, 2.5fr) minmax(0, 4.4fr) minmax(215px, 2.65fr);
     --hud-dashboard-col-gap: var(--space-md);
+    --route-cards-gap: var(--space-md);
+    --route-cards-pad-left: var(--space-lg);
+    --route-cards-pad-right: 6px;
   }
 
   /* Stack route cards earlier so the middle column does not read as a wide gallery */
@@ -527,10 +531,11 @@ body {
 /* Compact laptop: enforce minimum side rails, still trim center */
 @media (max-width: 1320px) {
   :root {
-    --dashboard-grid-cols-focused: minmax(200px, 2.1fr) minmax(0, 5.7fr) minmax(200px, 2.1fr);
+    --dashboard-grid-cols-focused: minmax(195px, 2.3fr) minmax(0, 4.05fr) minmax(200px, 2.4fr);
     --hud-dashboard-col-gap: var(--space-md);
     --route-cards-gap: var(--space-md);
-    --route-cards-pad-x: var(--space-sm);
+    --route-cards-pad-left: var(--space-md);
+    --route-cards-pad-right: 4px;
     --route-cards-pad-bottom: var(--space-md);
   }
 }
@@ -538,7 +543,7 @@ body {
 /* Narrow: compress gaps; center stays ≤ ~58% of fr total (5.6 / 9.6) */
 @media (max-width: 1024px) {
   :root {
-    --dashboard-grid-cols-focused: minmax(160px, 2fr) minmax(0, 5.6fr) minmax(160px, 2fr);
+    --dashboard-grid-cols-focused: minmax(155px, 1.95fr) minmax(0, 3.7fr) minmax(165px, 2.05fr);
     --hud-dashboard-col-gap: var(--space-sm);
   }
 }
@@ -547,7 +552,8 @@ body {
   :root {
     --dashboard-grid-cols-focused: 1fr;
     --route-cards-gap: var(--space-sm);
-    --route-cards-pad-x: var(--space-sm);
+    --route-cards-pad-left: var(--space-sm);
+    --route-cards-pad-right: var(--space-sm);
     --route-cards-pad-bottom: var(--space-md);
   }
 
