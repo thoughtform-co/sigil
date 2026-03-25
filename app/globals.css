@@ -532,14 +532,11 @@ body {
   }
 }
 
-/* Very narrow: drop to two columns when activity truly can't fit */
+/* Very narrow: compress further but keep all three columns */
 @media (max-width: 1024px) {
   :root {
-    --dashboard-grid-cols-focused: minmax(180px, 30%) minmax(0, 1fr);
-  }
-
-  .dashboard-activity-col {
-    display: none !important;
+    --dashboard-grid-cols-focused: minmax(140px, 1.4fr) minmax(0, 7.2fr) minmax(0, 1.4fr);
+    --hud-dashboard-col-gap: var(--space-sm);
   }
 }
 
@@ -548,6 +545,10 @@ body {
     --dashboard-grid-cols-focused: 1fr;
     --route-cards-gap: var(--space-md);
     --route-cards-pad-x: var(--space-sm);
+  }
+
+  .dashboard-activity-col {
+    display: none !important;
   }
 }
 
