@@ -11,10 +11,13 @@ import {
 
 type ViewState = "form" | "sent" | "error";
 
+type LoginTab = "magic-link" | "password";
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loginTab, setLoginTab] = useState<LoginTab>("magic-link");
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
   const [view, setView] = useState<ViewState>("form");
   const [loading, setLoading] = useState(false);
@@ -123,7 +126,12 @@ export default function LoginPage() {
     setErrorMsg("");
 
     try {
-      if (resolvedPassword) {
+      if (loginTab === "password") {
+        if (!resolvedPassword) {
+          setErrorMsg("Enter your password.");
+          setView("error");
+          return;
+        }
         await handlePassword(resolvedEmail, resolvedPassword);
       } else {
         await handleMagicLink(resolvedEmail);
@@ -229,79 +237,132 @@ export default function LoginPage() {
 
             {(view === "form" || view === "error") && (
               <form onSubmit={handleSubmit}>
-                <div style={{ marginBottom: "24px" }}>
-                  <label
-                    htmlFor="email"
-                    style={{
-                      display: "block",
-                      color: "var(--dawn-50)",
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "10px",
-                      fontWeight: 500,
-                      letterSpacing: "0.1em",
-                      textTransform: "uppercase",
-                      marginBottom: "8px",
-                    }}
-                  >
-                    Email
-                  </label>
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    required
-                    autoFocus
-                    autoComplete="email"
-                    placeholder="you@company.com"
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      if (view === "error") setView("form");
-                    }}
-                    className="sigil-input py-3 px-4 text-sm"
-                  />
+                <div
+                  role="tablist"
+                  aria-label="Sign in method"
+                  className="flex gap-0"
+                  style={{
+                    marginBottom: "24px",
+                    borderBottom: "1px solid var(--dawn-15)",
+                  }}
+                >
+                  {(
+                    [
+                      { id: "magic-link" as const, label: "Magic link" },
+                      { id: "password" as const, label: "Password" },
+                    ] as const
+                  ).map((tab) => {
+                    const selected = loginTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        role="tab"
+                        id={`login-tab-${tab.id}`}
+                        aria-selected={selected}
+                        aria-controls={`login-panel-${tab.id}`}
+                        onClick={() => {
+                          setLoginTab(tab.id);
+                          if (tab.id === "magic-link") setPassword("");
+                          if (view === "error") {
+                            setView("form");
+                            setErrorMsg("");
+                          }
+                        }}
+                        className="flex-1 py-2.5 text-center transition-colors"
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          fontSize: "11px",
+                          fontWeight: selected ? 600 : 500,
+                          letterSpacing: "0.08em",
+                          textTransform: "uppercase",
+                          color: selected ? "var(--gold)" : "var(--dawn-40)",
+                          background: "transparent",
+                          border: "none",
+                          cursor: "pointer",
+                          boxShadow: selected
+                            ? "inset 0 -2px 0 0 var(--gold)"
+                            : "none",
+                        }}
+                      >
+                        {tab.label}
+                      </button>
+                    );
+                  })}
                 </div>
 
-                <div style={{ marginBottom: "24px" }}>
-                  <label
-                    htmlFor="password"
-                    style={{
-                      display: "block",
-                      color: "var(--dawn-50)",
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "10px",
-                      fontWeight: 500,
-                      letterSpacing: "0.1em",
-                      textTransform: "uppercase",
-                      marginBottom: "8px",
-                    }}
-                  >
-                    Password
-                    <span
+                <div
+                  role="tabpanel"
+                  id={`login-panel-${loginTab}`}
+                  aria-labelledby={`login-tab-${loginTab}`}
+                >
+                  <div style={{ marginBottom: "24px" }}>
+                    <label
+                      htmlFor="email"
                       style={{
-                        marginLeft: "8px",
-                        color: "var(--dawn-40)",
-                        fontSize: "9px",
-                        textTransform: "none",
-                        letterSpacing: "normal",
+                        display: "block",
+                        color: "var(--dawn-50)",
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "10px",
+                        fontWeight: 500,
+                        letterSpacing: "0.1em",
+                        textTransform: "uppercase",
+                        marginBottom: "8px",
                       }}
                     >
-                      optional — leave blank for magic link
-                    </span>
-                  </label>
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    autoComplete="current-password"
-                    placeholder="enter password to sign in manually"
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      if (view === "error") setView("form");
-                    }}
-                    className="sigil-input py-3 px-4 text-sm"
-                  />
+                      Email
+                    </label>
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
+                      required
+                      autoFocus={loginTab === "magic-link"}
+                      autoComplete="email"
+                      placeholder="you@company.com"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        if (view === "error") setView("form");
+                      }}
+                      className="sigil-input py-3 px-4 text-sm"
+                    />
+                  </div>
+
+                  {loginTab === "password" && (
+                    <div style={{ marginBottom: "24px" }}>
+                      <label
+                        htmlFor="password"
+                        style={{
+                          display: "block",
+                          color: "var(--dawn-50)",
+                          fontFamily: "var(--font-mono)",
+                          fontSize: "10px",
+                          fontWeight: 500,
+                          letterSpacing: "0.1em",
+                          textTransform: "uppercase",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        Password
+                      </label>
+                      <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        required
+                        autoComplete="current-password"
+                        autoFocus
+                        placeholder="Your password"
+                        value={password}
+                        onChange={(e) => {
+                          setPassword(e.target.value);
+                          if (view === "error") setView("form");
+                        }}
+                        className="sigil-input py-3 px-4 text-sm"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {view === "error" && errorMsg && (
@@ -344,10 +405,12 @@ export default function LoginPage() {
                           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                         />
                       </svg>
-                      {password ? "Signing in..." : "Sending..."}
+                      {loginTab === "password" ? "Signing in..." : "Sending..."}
                     </span>
+                  ) : loginTab === "password" ? (
+                    "Log In"
                   ) : (
-                    password ? "Sign In" : "Send Magic Link"
+                    "Send Magic Link"
                   )}
                 </button>
               </form>
@@ -421,6 +484,8 @@ export default function LoginPage() {
                     setView("form");
                     setSubmittedEmail(null);
                     setEmail("");
+                    setPassword("");
+                    setLoginTab("magic-link");
                   }}
                   style={{
                     color: "var(--dawn-40)",
