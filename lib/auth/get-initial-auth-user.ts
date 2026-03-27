@@ -2,6 +2,15 @@ import type { InitialAuthUser } from "@/lib/types/auth";
 import { getAuthedUser } from "@/lib/auth/server";
 import { prisma } from "@/lib/prisma";
 
+function isNextDynamicServerUsageError(error: unknown): boolean {
+  if (error === null || typeof error !== "object") return false;
+  const digest = (error as { digest?: string }).digest;
+  if (digest === "DYNAMIC_SERVER_USAGE") return true;
+  const desc = (error as { description?: string }).description;
+  if (typeof desc === "string" && desc.includes("Dynamic server usage")) return true;
+  return error instanceof Error && error.message.includes("Dynamic server usage");
+}
+
 /**
  * Loads profile for AuthProvider initial state. Called from root layout only.
  */
@@ -28,7 +37,10 @@ export async function getInitialAuthUser(): Promise<InitialAuthUser | null> {
       lockedWorkspaceProjectId:
         role === "admin" ? null : (profile?.lockedWorkspaceProjectId ?? null),
     };
-  } catch {
+  } catch (error) {
+    if (!isNextDynamicServerUsageError(error)) {
+      console.error("[SIGIL] getInitialAuthUser failed (layout bootstrap):", error);
+    }
     return null;
   }
 }

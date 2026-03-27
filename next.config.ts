@@ -1,14 +1,16 @@
 import type { NextConfig } from "next";
 
-/** CSP hash for inline theme boot script in `app/layout.tsx` (localStorage → `.light` on `<html>`). */
-const THEME_BOOT_SCRIPT_HASH =
-  "'sha256-Bv0sY6v9QAxBMmxXws2lBHP8fO34f7uroh70wy1rr3Y='";
-
+/**
+ * Next.js App Router emits inline flight/hydration scripts (`self.__next_f.push(...)`).
+ * A hash-only script-src blocks those and breaks client interactivity in production.
+ * `unsafe-inline` is required until we adopt nonce-based CSP via middleware.
+ * @see https://nextjs.org/docs/app/building-your-application/configuring/content-security-policy
+ */
 function contentSecurityPolicy(): string | undefined {
   if (process.env.NODE_ENV !== "production") return undefined;
   return [
     "default-src 'self'",
-    `script-src 'self' ${THEME_BOOT_SCRIPT_HASH}`,
+    "script-src 'self' 'unsafe-inline'",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' https://fonts.gstatic.com",

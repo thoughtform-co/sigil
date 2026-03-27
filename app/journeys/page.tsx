@@ -13,13 +13,15 @@ async function JourneysWorkspaceContent() {
   const workshopHome = await getLockedJourneyHomeHref(user.id);
   if (workshopHome) redirect(workshopHome);
 
-  const result = await prefetchDashboard(user.id, { includeThumbnails: false });
+  // Include thumbnails on the server so the client does not immediately re-fetch
+  // `/api/dashboard` (heavier query + extra latency on Vercel).
+  const result = await prefetchDashboard(user.id, { includeThumbnails: true });
 
   return (
     <DashboardView
       initialData={result?.data}
       initialIsAdmin={result?.isAdmin}
-      initialDataIncludesThumbnails={false}
+      initialDataIncludesThumbnails={true}
     />
   );
 }

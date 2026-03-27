@@ -18,9 +18,11 @@ All standard dev commands are in `package.json` scripts:
 | `npm run build` | Production build |
 | `npx prisma db push` | Sync Prisma schema to database |
 
-### Auth bypass
+### Auth bypass (local development only)
 
-`SIGIL_AUTH_BYPASS=true` and `SIGIL_PUBLIC_DEMO=true` are set in the environment. This skips Supabase auth and auto-creates a local admin profile (`Sigil Local`). No login is needed — the app redirects directly to `/dashboard`.
+`SIGIL_AUTH_BYPASS=true` and `SIGIL_PUBLIC_DEMO=true` are honored **only when** `NODE_ENV === "development"` (see `middleware.ts` and `lib/auth/server.ts`). In that mode, Supabase auth is skipped and a local profile is upserted for the bypass user.
+
+**Vercel production** always uses real Supabase sessions; those flags in the project env do not change production behavior. Match prod locally with `npm run build` + `npm start` or by unsetting bypass in dev.
 
 ### Database
 

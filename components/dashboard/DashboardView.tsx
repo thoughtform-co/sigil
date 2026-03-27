@@ -52,6 +52,8 @@ export function DashboardView({
     fallbackData: initialData,
     revalidateOnFocus: false,
     dedupingInterval: 60_000,
+    // When server passed full data (e.g. /journeys with thumbnails), skip mount revalidation
+    // to avoid a duplicate heavy `/api/dashboard` round-trip on cold Vercel loads.
     revalidateOnMount: !initialData || !initialDataIncludesThumbnails,
   });
   const [selectedJourneyId, setSelectedJourneyId] = useState<string | null>(null);

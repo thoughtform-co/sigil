@@ -145,7 +145,8 @@ export async function prefetchDashboard(
       })),
     }));
     return { data: { journeys }, isAdmin };
-  } catch {
+  } catch (error) {
+    console.error("[SIGIL] prefetchDashboard failed:", error);
     return null;
   }
 }
