@@ -683,6 +683,25 @@ body {
   outline-offset: 2px;
 }
 
+/* Chromium autofill: keep token foreground/background so text never “disappears” */
+.sigil-input:-webkit-autofill,
+.sigil-input:-webkit-autofill:hover,
+.sigil-input:-webkit-autofill:focus,
+.sigil-input:-webkit-autofill:active,
+.admin-input:-webkit-autofill,
+.admin-input:-webkit-autofill:hover,
+.admin-input:-webkit-autofill:focus,
+.admin-input:-webkit-autofill:active,
+.sigil-textarea:-webkit-autofill,
+.sigil-textarea:-webkit-autofill:hover,
+.sigil-textarea:-webkit-autofill:focus,
+.sigil-textarea:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--dawn);
+  caret-color: var(--dawn);
+  box-shadow: 0 0 0 1000px var(--dawn-04) inset;
+  transition: background-color 99999s ease-out;
+}
+
 .sigil-dialog-backdrop {
   position: fixed;
   inset: 0;

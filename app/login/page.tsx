@@ -20,7 +20,6 @@ export default function LoginPage() {
   const [view, setView] = useState<ViewState>("form");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -28,7 +27,6 @@ export default function LoginPage() {
       setErrorMsg("Authentication failed. Please try again.");
       setView("error");
     }
-    requestAnimationFrame(() => setMounted(true));
   }, []);
 
   function getNextPath() {
@@ -137,9 +135,7 @@ export default function LoginPage() {
       />
 
       <div
-        className={`relative z-10 flex items-center justify-center min-h-screen transition-all duration-700 ${
-          mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
-        }`}
+        className="relative z-10 flex min-h-screen items-center justify-center"
         style={{ padding: "clamp(16px, 4vw, 32px)" }}
       >
         <div style={{ width: "100%", maxWidth: "420px" }}>
@@ -228,16 +224,7 @@ export default function LoginPage() {
                       setEmail(e.target.value);
                       if (view === "error") setView("form");
                     }}
-                    className="w-full outline-none transition-colors"
-                    style={{
-                      color: "var(--dawn)",
-                      background: "var(--dawn-08)",
-                      border: "1px solid var(--dawn-12)",
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "14px",
-                      padding: "12px 16px",
-                      borderRadius: 0,
-                    }}
+                    className="sigil-input py-3 px-4 text-sm"
                   />
                 </div>
 
@@ -279,16 +266,7 @@ export default function LoginPage() {
                         setPassword(e.target.value);
                         if (view === "error") setView("form");
                       }}
-                      className="w-full outline-none transition-colors"
-                      style={{
-                        color: "var(--dawn)",
-                        background: "var(--dawn-08)",
-                        border: "1px solid var(--dawn-12)",
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "14px",
-                        padding: "12px 16px",
-                        borderRadius: 0,
-                      }}
+                      className="sigil-input py-3 px-4 text-sm"
                     />
                   </div>
                 )}
@@ -310,19 +288,7 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={loading || !email.trim()}
-                  className="w-full transition-all disabled:opacity-40 disabled:cursor-not-allowed outline-none"
-                  style={{
-                    color: "var(--void)",
-                    background: "var(--gold)",
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "13px",
-                    fontWeight: 500,
-                    letterSpacing: "0.04em",
-                    padding: "14px 16px",
-                    borderRadius: 0,
-                    border: "none",
-                    cursor: loading || !email.trim() ? "not-allowed" : "pointer",
-                  }}
+                  className="sigil-btn-primary w-full py-3.5 text-[13px] font-medium tracking-wide normal-case disabled:cursor-not-allowed"
                 >
                   {loading ? (
                     <span className="inline-flex items-center gap-2">
