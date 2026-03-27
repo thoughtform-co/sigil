@@ -17,6 +17,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
   const [view, setView] = useState<ViewState>("form");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -42,7 +43,26 @@ export default function LoginPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: trimmed }),
     });
-    const checkData = (await checkRes.json()) as { allowed?: boolean };
+
+    let checkData: { allowed?: boolean; error?: string };
+    try {
+      checkData = (await checkRes.json()) as { allowed?: boolean; error?: string };
+    } catch {
+      setErrorMsg("Could not verify email. Please try again.");
+      setView("error");
+      return;
+    }
+
+    if (!checkRes.ok) {
+      setErrorMsg(
+        checkRes.status === 429
+          ? "Too many attempts from this network. Wait a minute and try again."
+          : (checkData.error ?? "Could not verify email. Please try again."),
+      );
+      setView("error");
+      return;
+    }
+
     if (!checkData.allowed) {
       setErrorMsg("This email is not on the access list. Contact an admin for access.");
       setView("error");
@@ -62,6 +82,7 @@ export default function LoginPage() {
       setErrorMsg(error.message);
       setView("error");
     } else {
+      setSubmittedEmail(trimmed);
       setView("sent");
     }
   };
@@ -99,6 +120,7 @@ export default function LoginPage() {
 
     setEmail(resolvedEmail);
     if (IS_DEV && fromFormPassword) setPassword(fromFormPassword);
+    setSubmittedEmail(null);
 
     setLoading(true);
     setErrorMsg("");
@@ -382,13 +404,27 @@ export default function LoginPage() {
                 >
                   We sent a magic link to{" "}
                   <span style={{ color: "var(--dawn-70)", fontWeight: 500 }}>
-                    {email}
+                    {submittedEmail ?? email}
                   </span>
+                </p>
+                <p
+                  style={{
+                    color: "var(--dawn-30)",
+                    fontFamily: "var(--font-sans)",
+                    fontSize: "12px",
+                    marginTop: "12px",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  If nothing arrives within a few minutes, check spam or promotions.
+                  Magic links are sent from your Supabase project; confirm Auth email
+                  is enabled and redirect URLs allow this site.
                 </p>
                 <button
                   type="button"
                   onClick={() => {
                     setView("form");
+                    setSubmittedEmail(null);
                     setEmail("");
                   }}
                   style={{
