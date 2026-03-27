@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import type { GenerationItem, OutputItem } from "@/components/generation/types";
 import { useVideoIterationCount } from "@/components/generation/VideoIterationCountsContext";
@@ -58,7 +58,6 @@ type ForgeGenerationCardProps = {
   onApprove: (outputId: string, isApproved: boolean) => void;
   onLightboxOpen?: (url: string) => void;
   busy: boolean;
-  onSizeChange?: () => void;
 };
 
 const STUCK_THRESHOLD_MS = 10 * 60 * 1000;
@@ -304,11 +303,9 @@ export function ForgeGenerationCard({
   onApprove,
   onLightboxOpen,
   busy,
-  onSizeChange,
 }: ForgeGenerationCardProps) {
   const [copied, setCopied] = useState(false);
   const [refPopupUrl, setRefPopupUrl] = useState<string | null>(null);
-  const cardRef = useRef<HTMLDivElement>(null);
   const processing = isProcessing(generation.status);
   const stuck = isLikelyStuck(generation);
   const failed = isFailed(generation.status);
@@ -422,33 +419,8 @@ export function ForgeGenerationCard({
       })
     : null;
 
-  useEffect(() => {
-    if (!onSizeChange) return;
-    const node = cardRef.current;
-    if (!node || typeof ResizeObserver === "undefined") return;
-
-    let rafId = 0;
-    const notifySizeChange = () => {
-      if (rafId) cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => {
-        rafId = 0;
-        onSizeChange();
-      });
-    };
-
-    // Virtual rows need a second measurement pass once media and controls settle.
-    notifySizeChange();
-    const observer = new ResizeObserver(() => notifySizeChange());
-    observer.observe(node);
-
-    return () => {
-      if (rafId) cancelAnimationFrame(rafId);
-      observer.disconnect();
-    };
-  }, [generation.id, generation.outputs.length, generation.status, onSizeChange]);
-
   return (
-    <div ref={cardRef} className={cardClass}>
+    <div className={cardClass}>
       <aside className={styles.promptPanel}>
         <span className={styles.sectionTitle}>Prompt</span>
         <button

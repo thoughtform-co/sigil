@@ -79,7 +79,6 @@ export function ForgeGallery({
   const initialAnchorStableFramesRef = useRef(0);
   const hasSeenScrollableContentRef = useRef(false);
   const resolvedEmptyStateRef = useRef(false);
-  const measureFrameRef = useRef(0);
   const prependAnchorRef = useRef<{
     prevScrollTop: number;
     prevScrollHeight: number;
@@ -400,30 +399,6 @@ export function ForgeGallery({
     gap: 0,
   });
 
-  const scheduleVirtualMeasure = useCallback(() => {
-    if (!useVirtual) return;
-    if (measureFrameRef.current) return;
-    measureFrameRef.current = requestAnimationFrame(() => {
-      measureFrameRef.current = 0;
-      rowVirtualizer.measure();
-      updateScrollBeam();
-      requestAnimationFrame(() => {
-        rowVirtualizer.measure();
-        updateScrollBeam();
-      });
-    });
-  }, [useVirtual, rowVirtualizer, updateScrollBeam]);
-
-  useEffect(
-    () => () => {
-      if (measureFrameRef.current) {
-        cancelAnimationFrame(measureFrameRef.current);
-        measureFrameRef.current = 0;
-      }
-    },
-    [],
-  );
-
   useLayoutEffect(() => {
     if (!useVirtual) return;
     rowVirtualizer.measure();
@@ -432,7 +407,13 @@ export function ForgeGallery({
       rowVirtualizer.measure();
       updateScrollBeam();
     });
-    return () => cancelAnimationFrame(rafId);
+    const t1 = setTimeout(() => { rowVirtualizer.measure(); updateScrollBeam(); }, 250);
+    const t2 = setTimeout(() => { rowVirtualizer.measure(); updateScrollBeam(); }, 800);
+    return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, [useVirtual, rowVirtualizer, updateScrollBeam, virtualMeasurementSignature]);
 
   const renderCard = useCallback(
@@ -449,20 +430,9 @@ export function ForgeGallery({
         onApprove={onApprove}
         onLightboxOpen={setLightboxUrl}
         busy={busy}
-        onSizeChange={scheduleVirtualMeasure}
       />
     ),
-    [
-      onRetry,
-      onReuse,
-      onRerun,
-      onDismiss,
-      onConvertToVideo,
-      onUseAsReference,
-      onApprove,
-      busy,
-      scheduleVirtualMeasure,
-    ],
+    [onRetry, onReuse, onRerun, onDismiss, onConvertToVideo, onUseAsReference, onApprove, busy],
   );
 
   const showRouteBlankState = isRouteWorkspace && generations.length === 0;
