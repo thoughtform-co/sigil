@@ -1,10 +1,10 @@
 import { z } from "zod";
 
 const allowedParameterValue = z.union([
-  z.string().max(10000),
+  z.string().max(10_000_000),
   z.number(),
   z.boolean(),
-  z.array(z.string().max(5000)).max(20),
+  z.array(z.string().max(10_000_000)).max(20),
 ]);
 
 export const generateRequestSchema = z.object({
