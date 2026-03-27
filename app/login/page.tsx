@@ -13,10 +13,21 @@ type ViewState = "form" | "sent" | "error";
 
 const IS_DEV = process.env.NODE_ENV === "development";
 
+function readEmailFromForm(form: HTMLFormElement): string {
+  const el = form.elements.namedItem("email");
+  return el instanceof HTMLInputElement ? el.value.trim() : "";
+}
+
+function readPasswordFromForm(form: HTMLFormElement): string {
+  const el = form.elements.namedItem("password");
+  return el instanceof HTMLInputElement ? el.value.trim() : "";
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
   const [view, setView] = useState<ViewState>("form");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -42,9 +53,38 @@ export default function LoginPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: trimmed }),
     });
-    const checkData = (await checkRes.json()) as { allowed?: boolean };
-    if (!checkData.allowed) {
-      setErrorMsg("This email is not on the access list. Contact an admin for access.");
+
+    let checkBody: { allowed?: boolean; error?: string; code?: string };
+    try {
+      checkBody = (await checkRes.json()) as {
+        allowed?: boolean;
+        error?: string;
+        code?: string;
+      };
+    } catch {
+      setErrorMsg("Could not verify email. Please try again.");
+      setView("error");
+      return;
+    }
+
+    if (!checkRes.ok) {
+      if (checkRes.status === 429) {
+        setErrorMsg(
+          "Too many attempts from this network. Wait a minute and try again.",
+        );
+      } else {
+        setErrorMsg(
+          checkBody.error ?? "Could not verify email. Please try again.",
+        );
+      }
+      setView("error");
+      return;
+    }
+
+    if (!checkBody.allowed) {
+      setErrorMsg(
+        "This email is not on the access list. Contact an admin for access.",
+      );
       setView("error");
       return;
     }
@@ -62,6 +102,7 @@ export default function LoginPage() {
       setErrorMsg(error.message);
       setView("error");
     } else {
+      setSubmittedEmail(trimmed);
       setView("sent");
     }
   };
@@ -88,17 +129,15 @@ export default function LoginPage() {
     if (loading) return;
 
     const form = e.currentTarget;
-    const fd = new FormData(form);
-    const fromFormEmail = ((fd.get("email") as string | null) ?? "").trim();
-    const resolvedEmail = fromFormEmail || email.trim();
+    const resolvedEmail = readEmailFromForm(form) || email.trim();
     if (!resolvedEmail) return;
 
-    const fromFormPassword =
-      IS_DEV ? ((fd.get("password") as string | null) ?? "").trim() : "";
-    const resolvedPassword = fromFormPassword || password;
+    const resolvedPassword = IS_DEV
+      ? readPasswordFromForm(form) || password
+      : "";
 
     setEmail(resolvedEmail);
-    if (IS_DEV && fromFormPassword) setPassword(fromFormPassword);
+    if (IS_DEV && resolvedPassword) setPassword(resolvedPassword);
 
     setLoading(true);
     setErrorMsg("");
@@ -382,13 +421,28 @@ export default function LoginPage() {
                 >
                   We sent a magic link to{" "}
                   <span style={{ color: "var(--dawn-70)", fontWeight: 500 }}>
-                    {email}
+                    {submittedEmail ?? email}
                   </span>
+                </p>
+                <p
+                  style={{
+                    color: "var(--dawn-30)",
+                    fontFamily: "var(--font-sans)",
+                    fontSize: "12px",
+                    marginTop: "12px",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  If nothing arrives within a few minutes, check spam or promotions.
+                  Magic links are sent from your Supabase project; confirm Auth email
+                  is enabled and redirect URLs allow this site (including the auth
+                  completion route).
                 </p>
                 <button
                   type="button"
                   onClick={() => {
                     setView("form");
+                    setSubmittedEmail(null);
                     setEmail("");
                   }}
                   style={{
