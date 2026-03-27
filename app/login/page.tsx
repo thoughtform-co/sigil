@@ -11,8 +11,6 @@ import {
 
 type ViewState = "form" | "sent" | "error";
 
-const IS_DEV = process.env.NODE_ENV === "development";
-
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -114,19 +112,18 @@ export default function LoginPage() {
     const resolvedEmail = fromFormEmail || email.trim();
     if (!resolvedEmail) return;
 
-    const fromFormPassword =
-      IS_DEV ? ((fd.get("password") as string | null) ?? "").trim() : "";
+    const fromFormPassword = ((fd.get("password") as string | null) ?? "").trim();
     const resolvedPassword = fromFormPassword || password;
 
     setEmail(resolvedEmail);
-    if (IS_DEV && fromFormPassword) setPassword(fromFormPassword);
+    if (fromFormPassword) setPassword(fromFormPassword);
     setSubmittedEmail(null);
 
     setLoading(true);
     setErrorMsg("");
 
     try {
-      if (IS_DEV && resolvedPassword) {
+      if (resolvedPassword) {
         await handlePassword(resolvedEmail, resolvedPassword);
       } else {
         await handleMagicLink(resolvedEmail);
@@ -265,49 +262,47 @@ export default function LoginPage() {
                   />
                 </div>
 
-                {IS_DEV && (
-                  <div style={{ marginBottom: "24px" }}>
-                    <label
-                      htmlFor="password"
+                <div style={{ marginBottom: "24px" }}>
+                  <label
+                    htmlFor="password"
+                    style={{
+                      display: "block",
+                      color: "var(--dawn-50)",
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "10px",
+                      fontWeight: 500,
+                      letterSpacing: "0.1em",
+                      textTransform: "uppercase",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Password
+                    <span
                       style={{
-                        display: "block",
-                        color: "var(--dawn-50)",
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "10px",
-                        fontWeight: 500,
-                        letterSpacing: "0.1em",
-                        textTransform: "uppercase",
-                        marginBottom: "8px",
+                        marginLeft: "8px",
+                        color: "var(--dawn-40)",
+                        fontSize: "9px",
+                        textTransform: "none",
+                        letterSpacing: "normal",
                       }}
                     >
-                      Password
-                      <span
-                        style={{
-                          marginLeft: "8px",
-                          color: "var(--dawn-40)",
-                          fontSize: "9px",
-                          textTransform: "none",
-                          letterSpacing: "normal",
-                        }}
-                      >
-                        dev only — leave empty for magic link
-                      </span>
-                    </label>
-                    <input
-                      id="password"
-                      name="password"
-                      type="password"
-                      autoComplete="current-password"
-                      placeholder="optional in dev"
-                      value={password}
-                      onChange={(e) => {
-                        setPassword(e.target.value);
-                        if (view === "error") setView("form");
-                      }}
-                      className="sigil-input py-3 px-4 text-sm"
-                    />
-                  </div>
-                )}
+                      optional — leave blank for magic link
+                    </span>
+                  </label>
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    autoComplete="current-password"
+                    placeholder="enter password to sign in manually"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (view === "error") setView("form");
+                    }}
+                    className="sigil-input py-3 px-4 text-sm"
+                  />
+                </div>
 
                 {view === "error" && errorMsg && (
                   <p
@@ -349,10 +344,10 @@ export default function LoginPage() {
                           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                         />
                       </svg>
-                      {IS_DEV && password ? "Signing in..." : "Sending..."}
+                      {password ? "Signing in..." : "Sending..."}
                     </span>
                   ) : (
-                    IS_DEV && password ? "Sign In" : "Send Magic Link"
+                    password ? "Sign In" : "Send Magic Link"
                   )}
                 </button>
               </form>
