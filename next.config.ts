@@ -13,6 +13,7 @@ function contentSecurityPolicy(): string | undefined {
     "script-src 'self' 'unsafe-inline'",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
+    "media-src 'self' data: blob: https:",
     "font-src 'self' https://fonts.gstatic.com",
     [
       "connect-src 'self'",

@@ -253,8 +253,11 @@ export async function POST(request: Request) {
             fetchHeaders,
           });
           return { ...output, url: platformUrl };
-        } catch {
-          console.warn(`[generate/process] Storage upload failed for output ${index}, keeping provider URL`);
+        } catch (error) {
+          const reason = error instanceof Error ? error.message : String(error);
+          console.warn(
+            `[generate/process] Storage upload failed for output ${index}, keeping provider URL: ${reason}`,
+          );
           return output;
         }
       }),

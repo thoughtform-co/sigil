@@ -12,6 +12,13 @@ const ALLOWED_HOSTS = new Set([
   "api.anthropic.com",
 ]);
 
+const ALLOWED_HOST_SUFFIXES = [
+  ".supabase.co",
+  ".replicate.delivery",
+  ".fal.media",
+  ".klingai.com",
+];
+
 const PRIVATE_IPV4_PREFIXES = [
   /^10\./, // 10.0.0.0/8
   /^172\.(1[6-9]|2[0-9]|3[0-1])\./, // 172.16.0.0/12
@@ -39,6 +46,10 @@ function isPrivateIPv4(host: string): boolean {
 
 function isIPv6Local(host: string): boolean {
   return host === "::1" || host.startsWith("::ffff:127.") || host.startsWith("fe80:");
+}
+
+function hasAllowedSuffix(host: string): boolean {
+  return ALLOWED_HOST_SUFFIXES.some((suffix) => host === suffix.slice(1) || host.endsWith(suffix));
 }
 
 /**
@@ -78,7 +89,7 @@ export function getSafeFetchUrl(
   if (LOCALHOST_HOSTS.has(host)) return null;
   if (isPrivateIPv4(host)) return null;
   if (isIPv6Local(host)) return null;
-  if (!ALLOWED_HOSTS.has(host) && !host.endsWith(".supabase.co")) return null;
+  if (!ALLOWED_HOSTS.has(host) && !hasAllowedSuffix(host)) return null;
 
   return url.toString();
 }

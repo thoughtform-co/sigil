@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { CSSProperties } from "react";
-import Image from "next/image";
 import type { GenerationItem, OutputItem } from "@/components/generation/types";
 import { useVideoIterationCount } from "@/components/generation/VideoIterationCountsContext";
 import { VideoIterationsStackGlow, VideoIterationsBarButton } from "@/components/generation/VideoIterationsStackHint";
@@ -144,11 +143,23 @@ function OutputCard({
   onLightboxOpen?: (url: string) => void;
   busy: boolean;
 }) {
-  const [loaded, setLoaded] = useState(false);
+  const [mediaState, setMediaState] = useState<"loading" | "loaded" | "error">("loading");
   const showVideoIterations = output.fileType !== "video" && Boolean(onConvertToVideo);
   const { count: iterCount, hasProcessing: iterProcessing } = useVideoIterationCount(
     showVideoIterations ? output.id : null,
   );
+
+  useEffect(() => {
+    setMediaState("loading");
+  }, [output.id, output.fileUrl]);
+
+  const handleMediaLoaded = useCallback(() => {
+    setMediaState("loaded");
+  }, []);
+
+  const handleMediaError = useCallback(() => {
+    setMediaState("error");
+  }, []);
 
   const frameStyle = {
     aspectRatio: getAspectRatioStyle(output, generation),
@@ -165,14 +176,26 @@ function OutputCard({
         )}
         <div className={styles.mediaInset}>
           <div className={styles.mediaViewport}>
-            {output.fileType === "video" ? (
+            {mediaState === "error" ? (
+              <div className={styles.mediaState}>
+                <div className={styles.mediaStateCornerMarks} />
+                <div className={styles.mediaStateCornerMarksSecondary} />
+                <div className={styles.mediaStateContent}>
+                  <div className={styles.failedTitle}>Media Unavailable</div>
+                  <div className={styles.errorMessage}>
+                    This file could not be loaded inline. Use open or download to access it directly.
+                  </div>
+                </div>
+              </div>
+            ) : output.fileType === "video" ? (
               <video
                 className={styles.media}
                 controls
                 src={output.fileUrl}
                 preload="metadata"
                 playsInline
-                onLoadedData={() => setLoaded(true)}
+                onLoadedData={handleMediaLoaded}
+                onError={handleMediaError}
               />
             ) : onLightboxOpen ? (
               <button
@@ -181,25 +204,25 @@ function OutputCard({
                 onClick={() => onLightboxOpen(output.fileUrl)}
                 title="Open image"
               >
-                <Image
-                  fill
+                <img
                   className={styles.media}
                   src={output.fileUrl}
                   alt="Generated output"
-                  quality={85}
-                  sizes="(max-width: 980px) 90vw, min(900px, 60vw)"
-                  onLoad={() => setLoaded(true)}
+                  loading="lazy"
+                  decoding="async"
+                  onLoad={handleMediaLoaded}
+                  onError={handleMediaError}
                 />
               </button>
             ) : (
-              <Image
-                fill
+              <img
                 className={styles.media}
                 src={output.fileUrl}
                 alt="Generated output"
-                quality={85}
-                sizes="(max-width: 980px) 90vw, min(900px, 60vw)"
-                onLoad={() => setLoaded(true)}
+                loading="lazy"
+                decoding="async"
+                onLoad={handleMediaLoaded}
+                onError={handleMediaError}
               />
             )}
           </div>
@@ -207,7 +230,7 @@ function OutputCard({
           {/* Reveal overlay: noise + scanlines that dissolve when media loads */}
           <div
             className={styles.revealOverlay}
-            style={{ opacity: loaded ? 0 : 1 }}
+            style={{ opacity: mediaState === "loading" ? 1 : 0 }}
             aria-hidden
           >
             <div
