@@ -35,11 +35,12 @@ export default function LoginPage() {
     return sanitizeAuthRedirectPath(params.get("next"));
   }
 
-  const handleMagicLink = async () => {
+  const handleMagicLink = async (emailForOtp: string) => {
+    const trimmed = emailForOtp.trim();
     const checkRes = await fetch("/api/auth/check-email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: email.trim() }),
+      body: JSON.stringify({ email: trimmed }),
     });
     const checkData = (await checkRes.json()) as { allowed?: boolean };
     if (!checkData.allowed) {
@@ -51,7 +52,7 @@ export default function LoginPage() {
     const supabase = createClient();
     const nextPath = getNextPath();
     const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
+      email: trimmed,
       options: {
         emailRedirectTo: buildAuthCallbackUrl(window.location.origin, nextPath),
       },
@@ -65,12 +66,12 @@ export default function LoginPage() {
     }
   };
 
-  const handlePassword = async () => {
+  const handlePassword = async (emailForPwd: string, pwd: string) => {
     const supabase = createClient();
     const nextPath = getNextPath();
     const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
+      email: emailForPwd.trim(),
+      password: pwd,
     });
 
     if (error) {
@@ -82,18 +83,31 @@ export default function LoginPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!email.trim() || loading) return;
+    if (loading) return;
+
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+    const fromFormEmail = ((fd.get("email") as string | null) ?? "").trim();
+    const resolvedEmail = fromFormEmail || email.trim();
+    if (!resolvedEmail) return;
+
+    const fromFormPassword =
+      IS_DEV ? ((fd.get("password") as string | null) ?? "").trim() : "";
+    const resolvedPassword = fromFormPassword || password;
+
+    setEmail(resolvedEmail);
+    if (IS_DEV && fromFormPassword) setPassword(fromFormPassword);
 
     setLoading(true);
     setErrorMsg("");
 
     try {
-      if (IS_DEV && password) {
-        await handlePassword();
+      if (IS_DEV && resolvedPassword) {
+        await handlePassword(resolvedEmail, resolvedPassword);
       } else {
-        await handleMagicLink();
+        await handleMagicLink(resolvedEmail);
       }
     } catch {
       setErrorMsg("Something went wrong. Please try again.");
@@ -214,6 +228,7 @@ export default function LoginPage() {
                   </label>
                   <input
                     id="email"
+                    name="email"
                     type="email"
                     required
                     autoFocus
@@ -258,6 +273,7 @@ export default function LoginPage() {
                     </label>
                     <input
                       id="password"
+                      name="password"
                       type="password"
                       autoComplete="current-password"
                       placeholder="optional in dev"
@@ -287,7 +303,7 @@ export default function LoginPage() {
 
                 <button
                   type="submit"
-                  disabled={loading || !email.trim()}
+                  disabled={loading}
                   className="sigil-btn-primary w-full py-3.5 text-[13px] font-medium tracking-wide normal-case disabled:cursor-not-allowed"
                 >
                   {loading ? (
