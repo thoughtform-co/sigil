@@ -36,6 +36,25 @@ function detectClosestAspectRatio(
   return closest ?? null;
 }
 
+/** Map ConvertToVideoModal / provider labels to Forge video tab resolution strings (pixel long side). */
+function normalizeReusedResolution(value: unknown): string | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  if (typeof value !== "string") return undefined;
+  const s = value.trim().toLowerCase();
+  const preset: Record<string, string> = {
+    "720p": "1280",
+    "1080p": "2048",
+    "4k": "4096",
+  };
+  if (preset[s]) return preset[s];
+  const n = Number(s);
+  if (Number.isFinite(n)) return String(n);
+  return undefined;
+}
+
 import dynamic from "next/dynamic";
 import { CanvasSidebar } from "@/components/canvas/CanvasSidebar";
 
@@ -1064,8 +1083,10 @@ export function ProjectWorkspace({
     setModelId(generation.modelId);
     const params = generation.parameters ?? {};
     if (typeof params.aspectRatio === "string") setAspectRatio(params.aspectRatio);
-    if (typeof params.resolution === "number" || typeof params.resolution === "string")
-      setResolution(String(params.resolution));
+    if (typeof params.resolution === "number" || typeof params.resolution === "string") {
+      const normalized = normalizeReusedResolution(params.resolution);
+      if (normalized !== undefined) setResolution(normalized);
+    }
     if (typeof params.numOutputs === "number" || typeof params.numOutputs === "string")
       setNumOutputs(String(params.numOutputs));
     if (typeof params.duration === "number" || typeof params.duration === "string")
@@ -1085,10 +1106,17 @@ export function ProjectWorkspace({
       setReferenceImages([]);
     }
     if (typeof params.endFrameImageUrl === "string") {
-      setEndFrameUrl(params.endFrameImageUrl);
-      setEndFramePath(
-        typeof params.endFrameImagePath === "string" ? params.endFrameImagePath.trim() : "",
-      );
+      const u = params.endFrameImageUrl.trim();
+      // data:/blob: URLs cannot be reused from the video tab (must be re-uploaded).
+      if (u.startsWith("http")) {
+        setEndFrameUrl(u);
+        setEndFramePath(
+          typeof params.endFrameImagePath === "string" ? params.endFrameImagePath.trim() : "",
+        );
+      } else {
+        setEndFrameUrl("");
+        setEndFramePath("");
+      }
     } else {
       setEndFrameUrl("");
       setEndFramePath("");

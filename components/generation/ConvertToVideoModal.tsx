@@ -77,6 +77,23 @@ type ConvertToVideoModalProps = {
 
 const ITERATION_STUCK_THRESHOLD_MS = 15 * 60 * 1000;
 
+async function uploadReferenceImageFile(file: File, projectId: string): Promise<string> {
+  const formData = new FormData();
+  formData.append("file", file);
+  if (projectId) formData.append("projectId", projectId);
+  const res = await fetch("/api/upload/reference-image", {
+    method: "POST",
+    body: formData,
+  });
+  const data = (await res.json()) as { referenceImageUrl?: string; url?: string; error?: string };
+  if (!res.ok) throw new Error(data.error ?? "Upload failed");
+  const stableUrl = data.referenceImageUrl ?? data.url;
+  if (!stableUrl?.startsWith("http")) {
+    throw new Error("Upload did not return a stored image URL.");
+  }
+  return stableUrl;
+}
+
 function iterationStatusLabel(status: string): string {
   switch (status) {
     case "processing":
@@ -286,7 +303,7 @@ export function ConvertToVideoModal({
           setEndFrameFile(null);
         }
       } catch {
-        setMessage("End frame upload failed; will send as data when generating.");
+        setMessage("End frame upload failed. Fix the upload or remove the end frame before generating.");
       }
       if (e.target) e.target.value = "";
     },
@@ -370,16 +387,21 @@ export function ConvertToVideoModal({
         referenceImageId: outputId,
       };
 
-      if (endFrameUrl && endFrameUrl.startsWith("http")) {
-        parameters.endFrameImageUrl = endFrameUrl;
-      } else if (endFrameFile) {
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = () => reject(new Error("Failed to read end frame"));
-          reader.readAsDataURL(endFrameFile);
-        });
-        parameters.endFrameImageUrl = dataUrl;
+      if (spec.supportsEndFrame && (endFrameUrl || endFrameFile)) {
+        let storedEndFrame: string;
+        if (endFrameUrl?.startsWith("http")) {
+          storedEndFrame = endFrameUrl;
+        } else if (endFrameFile) {
+          storedEndFrame = await uploadReferenceImageFile(endFrameFile, projectId);
+        } else if (endFrameUrl?.startsWith("blob:")) {
+          const blobRes = await fetch(endFrameUrl);
+          const blob = await blobRes.blob();
+          const file = new File([blob], "end-frame.png", { type: blob.type || "image/png" });
+          storedEndFrame = await uploadReferenceImageFile(file, projectId);
+        } else {
+          throw new Error("End frame must be uploaded or use a stored image URL.");
+        }
+        parameters.endFrameImageUrl = storedEndFrame;
       }
 
       const res = await fetch("/api/generate", {
@@ -417,6 +439,7 @@ export function ConvertToVideoModal({
     endFrameUrl,
     endFrameFile,
     refetch,
+    spec.supportsEndFrame,
   ]);
 
   const handleKeyDown = useCallback(

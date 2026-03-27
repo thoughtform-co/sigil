@@ -126,10 +126,22 @@ export function ImageGenNode({ id, data: rawData, selected }: ImageGenProps) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ dataUrl: resolvedRef, projectId }),
         });
-        if (uploadRes.ok) {
-          const uploadData = (await uploadRes.json()) as { referenceImageUrl?: string };
-          resolvedRef = uploadData.referenceImageUrl ?? resolvedRef;
+        const uploadData = (await uploadRes.json().catch(() => ({}))) as {
+          referenceImageUrl?: string;
+          url?: string;
+          error?: string;
+        };
+        if (!uploadRes.ok) {
+          throw new Error(
+            uploadData.error ??
+              "Reference image upload failed. Use an https image URL or try again.",
+          );
         }
+        const nextUrl = uploadData.referenceImageUrl ?? uploadData.url;
+        if (!nextUrl?.startsWith("http")) {
+          throw new Error("Reference image upload did not return a stored URL.");
+        }
+        resolvedRef = nextUrl;
       }
 
       const genRes = await fetch("/api/generate", {
