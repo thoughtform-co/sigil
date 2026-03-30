@@ -8,7 +8,13 @@
   width: 100%;
   max-width: calc(var(--layout-content-md, 1200px) - 80px);
   background: transparent;
-  overflow: visible;
+  /* contain: layout isolates each card's layout so the virtualizer can measure
+     it without interference from sibling rows. overflow: clip prevents
+     decorative overflow from painting into adjacent rows; unlike overflow:hidden
+     it does not create a scroll container, so position:fixed descendants
+     (e.g. the reference-image popup) still escape to the viewport. */
+  contain: layout;
+  overflow: clip;
 }
 
 .cardProcessing {}
@@ -240,8 +246,13 @@
 .mediaFrame {
   position: relative;
   width: 100%;
+  /* min-height guards the frame when no aspect-ratio is resolved yet.
+     Once aspect-ratio is applied via inline style the frame height is
+     fully width-derived and stable. */
   min-height: 120px;
   background: transparent;
+  /* Keep overflow visible so the VideoIterationsStackGlow can bleed
+     decoratively within the outputCard; the parent .card clips at its edge. */
   overflow: visible;
 }
 
@@ -249,6 +260,8 @@
   position: absolute;
   inset: 0;
   z-index: 0;
+  /* Prevent the absolute child from influencing the frame's own size. */
+  min-height: 0;
 }
 
 .mediaViewport {

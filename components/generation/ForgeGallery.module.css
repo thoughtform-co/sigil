@@ -22,6 +22,9 @@
   width: 100%;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  /* Matches the feedInner padding-bottom so browser-native scroll targets
+     (keyboard focus, scrollIntoView) land above the fixed prompt bar. */
+  scroll-padding-bottom: calc(var(--prompt-bar-height, 280px) + clamp(24px, 4vw, 48px) + 48px);
 }
 
 .feedInner {

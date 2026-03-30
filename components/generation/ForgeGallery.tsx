@@ -64,6 +64,7 @@ export function ForgeGallery({
 }: ForgeGalleryProps) {
   const pathname = usePathname();
   const isRouteWorkspace = pathname?.startsWith("/routes/") ?? false;
+  const isVideoWorkspace = pathname?.endsWith("/video") ?? false;
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const feedRef = useRef<HTMLDivElement>(null);
   const lastSeenLastIdRef = useRef<string | null>(null);
@@ -84,6 +85,9 @@ export function ForgeGallery({
     prevScrollHeight: number;
     expectedMinCount: number;
   } | null>(null);
+  // Tracks the feed container's pixel width so estimateSize can derive
+  // aspect-ratio-aware row heights before the virtualizer measures each row.
+  const feedWidthRef = useRef<number>(0);
 
   const perfMarked = useRef(false);
   useEffect(() => {
@@ -376,7 +380,9 @@ export function ForgeGallery({
     if (olderCount <= 0) return;
   }, [generations.length, updateScrollBeam]);
 
-  const useVirtual = generations.length >= VIRTUAL_THRESHOLD;
+  // Native video players have shown unstable row sizing inside transformed
+  // virtual rows in production, which can collapse/overlap the latest cards.
+  const useVirtual = !isVideoWorkspace && generations.length >= VIRTUAL_THRESHOLD;
   const virtualMeasurementSignature = useMemo(
     () =>
       generations
@@ -394,7 +400,33 @@ export function ForgeGallery({
     count: generations.length,
     getScrollElement: () => feedRef.current,
     getItemKey: (index: number) => generations[index]?.id ?? index,
-    estimateSize: (index: number) => (index === 0 ? 400 : 464),
+    estimateSize: (index: number) => {
+      const gen = generations[index];
+      const feedWidth = feedWidthRef.current;
+
+      if (gen && feedWidth > 0) {
+        const rawAspect = gen.parameters?.aspectRatio;
+        if (typeof rawAspect === "string" && rawAspect.includes(":")) {
+          const parts = rawAspect.split(":");
+          const aw = Number(parts[0]);
+          const ah = Number(parts[1]);
+          if (aw > 0 && ah > 0) {
+            // Left prompt column (max 300px) + card gap (16px)
+            const mediaColWidth = Math.max(0, feedWidth - 316);
+            // Media frame height + action bar (~38px)
+            const mediaFrameH = mediaColWidth * (ah / aw) + 38;
+            // Card row height = taller of prompt panel (380px fixed) and media
+            const cardH = Math.max(380, mediaFrameH);
+            // Separator between rows (64px) — not added before the first row
+            const sepH = index > 0 ? 64 : 0;
+            return Math.ceil(cardH + sepH);
+          }
+        }
+      }
+
+      // Fallback: lean toward over-estimating (gaps > overlaps)
+      return index === 0 ? 450 : 520;
+    },
     overscan: 3,
     gap: 0,
   });
@@ -415,6 +447,28 @@ export function ForgeGallery({
       clearTimeout(t2);
     };
   }, [useVirtual, rowVirtualizer, updateScrollBeam, virtualMeasurementSignature]);
+
+  // When the feed container changes width (sidebar opens, window resizes, device
+  // rotates), all virtual row heights that were derived from aspect-ratio become
+  // stale. Reset every cached measurement so TanStack Virtual re-derives sizes
+  // from the updated estimateSize on the next render pass. The existing per-row
+  // measureElement ResizeObservers then re-measure visible rows automatically.
+  useEffect(() => {
+    const feed = feedRef.current;
+    if (!feed) return;
+    // Seed the current width so estimateSize has a value on first render.
+    feedWidthRef.current = feed.clientWidth;
+    if (!useVirtual) return;
+    const ro = new ResizeObserver(() => {
+      const w = feed.clientWidth;
+      if (Math.abs(w - feedWidthRef.current) > 1) {
+        feedWidthRef.current = w;
+        rowVirtualizer.measure();
+      }
+    });
+    ro.observe(feed);
+    return () => ro.disconnect();
+  }, [useVirtual, rowVirtualizer]);
 
   const renderCard = useCallback(
     (generation: GenerationItem) => (

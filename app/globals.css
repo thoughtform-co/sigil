@@ -472,9 +472,15 @@ body {
 }
 
 /* Workspace pages own scrolling internally (gallery feed), so lock shell height
-   to prevent browser scrollbar competing with the feed scrollbar. */
+   to prevent browser scrollbar competing with the feed scrollbar.
+   Use 100dvh (dynamic viewport height) so the shell tracks the visual viewport
+   exactly on mobile — mobile browsers that show/hide their chrome bars shrink
+   the visual viewport, which makes 100vh larger than the visible area and can
+   push content under fixed elements. The 100vh fallback is kept for older
+   browsers that don't support dvh. */
 .hud-shell--workspace {
   height: 100vh;
+  height: 100dvh;
   min-height: 0;
   overflow: hidden;
   padding-top: var(--hud-shell-pad-top);
