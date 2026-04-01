@@ -5,7 +5,7 @@ import { getAuthedUser } from "@/lib/auth/server";
 import { projectAccessFilter } from "@/lib/auth/project-access";
 import { broadcastGenerationUpdate } from "@/lib/supabase/realtime";
 import { getProcessor } from "@/lib/models/processor";
-import { hydrateReferenceParameters } from "@/lib/reference-images";
+import { hasEphemeralReferenceUrls, hydrateReferenceParameters } from "@/lib/reference-images";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -40,6 +40,15 @@ export async function POST(request: Request, context: RouteContext) {
   const hydratedParameters = await hydrateReferenceParameters(
     (source.parameters as Record<string, unknown>) ?? {},
   );
+  if (hasEphemeralReferenceUrls(hydratedParameters)) {
+    return NextResponse.json(
+      {
+        error:
+          "This generation used browser-local reference images that can no longer be reused. Reattach the references and try again.",
+      },
+      { status: 400 }
+    );
+  }
 
   const generation = await prisma.generation.create({
     data: {

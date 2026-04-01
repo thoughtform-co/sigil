@@ -10,7 +10,11 @@ import { json } from "@/lib/api/responses";
 import { checkRateLimit } from "@/lib/api/rate-limit";
 import { getProcessor } from "@/lib/models/processor";
 import { projectAccessFilter } from "@/lib/auth/project-access";
-import { hydrateReferenceParameters, persistReferenceImage } from "@/lib/reference-images";
+import {
+  hasEphemeralReferenceUrls,
+  hydrateReferenceParameters,
+  persistReferenceImage,
+} from "@/lib/reference-images";
 
 export const maxDuration = 30;
 
@@ -41,6 +45,11 @@ export async function POST(request: Request) {
         endFrameImagePath: persisted.referenceImagePath,
       };
       delete workingParameters.endFrameImage;
+    }
+    if (hasEphemeralReferenceUrls(workingParameters)) {
+      return badRequest(
+        "Reference images must be uploaded before generation. Please reattach the image and try again."
+      );
     }
 
     const hydratedParameters = await hydrateReferenceParameters(workingParameters);

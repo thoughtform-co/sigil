@@ -45,10 +45,41 @@ export interface GenerationRequest {
   numOutputs?: number;
   seed?: number;
   referenceImage?: string;
+  referenceImageUrl?: string;
   referenceImages?: string[];
   beginFrame?: string;
   endFrame?: string;
   [key: string]: unknown;
+}
+
+export function collectReferenceImages(
+  request: GenerationRequest,
+  parameters?: Record<string, unknown>
+): string[] {
+  const referenceImages: string[] = [];
+  const seen = new Set<string>();
+
+  const pushReference = (value: unknown) => {
+    if (typeof value !== "string") return;
+    const trimmed = value.trim();
+    if (!trimmed || seen.has(trimmed)) return;
+    seen.add(trimmed);
+    referenceImages.push(trimmed);
+  };
+
+  const pushReferenceList = (value: unknown) => {
+    if (!Array.isArray(value)) return;
+    value.forEach(pushReference);
+  };
+
+  pushReferenceList(request.referenceImages);
+  pushReferenceList(parameters?.referenceImages);
+  pushReference(request.referenceImage);
+  pushReference(request.referenceImageUrl);
+  pushReference(parameters?.referenceImage);
+  pushReference(parameters?.referenceImageUrl);
+
+  return referenceImages;
 }
 
 export interface GenerationResponse {

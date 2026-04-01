@@ -16,7 +16,7 @@ import { observeGeneration } from "@/lib/observability/generation";
 import { classifyError, userFacingMessage } from "@/lib/errors/classification";
 import { unauthorized, notFound, badRequest } from "@/lib/api/errors";
 import { json } from "@/lib/api/responses";
-import { hydrateReferenceParameters } from "@/lib/reference-images";
+import { hasEphemeralReferenceUrls, hydrateReferenceParameters } from "@/lib/reference-images";
 
 export const maxDuration = 300;
 
@@ -185,6 +185,13 @@ export async function POST(request: Request) {
     const hydratedGenerationParameters = await hydrateReferenceParameters(
       (generation.parameters as Record<string, unknown>) ?? {},
     );
+    if (hasEphemeralReferenceUrls(hydratedGenerationParameters)) {
+      stopHeartbeat();
+      const message =
+        "Generation references were stored as browser-local URLs and cannot be processed. Reattach the reference images and try again.";
+      await markFailed(generation.id, generation.sessionId, new Error(message));
+      return NextResponse.json({ id: generation.id, status: "failed", error: message }, { status: 400 });
+    }
     const requestPayload = normalizeGenerationRequest(
       generation.prompt,
       generation.negativePrompt,

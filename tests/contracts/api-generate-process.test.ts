@@ -35,6 +35,7 @@ vi.mock("@/lib/observability/generation", () => ({
 
 vi.mock("@/lib/reference-images", () => ({
   hydrateReferenceParameters: vi.fn(),
+  hasEphemeralReferenceUrls: vi.fn().mockReturnValue(false),
 }));
 
 vi.mock("@/lib/supabase/storage", () => ({

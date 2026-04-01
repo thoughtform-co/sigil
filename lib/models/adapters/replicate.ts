@@ -1,4 +1,12 @@
-import { BaseModelAdapter, GenerationRequest, GenerationResponse, ModelConfig } from "@/lib/models/base";
+import {
+  BaseModelAdapter,
+  collectReferenceImages,
+  GenerationRequest,
+  GenerationResponse,
+  ModelConfig,
+} from "@/lib/models/base";
+
+const MAX_NANO_BANANA_REFERENCE_IMAGES = 14;
 
 export const SEEDREAM_4_CONFIG: ModelConfig = {
   id: "seedream-4",
@@ -191,12 +199,8 @@ export class ReplicateAdapter extends BaseModelAdapter {
       aspect_ratio: aspectRatio,
     };
 
-    const referenceImage =
-      typeof parameters.referenceImage === "string"
-        ? parameters.referenceImage
-        : typeof parameters.referenceImageUrl === "string"
-          ? parameters.referenceImageUrl
-          : undefined;
+    const referenceImages = collectReferenceImages(request, parameters);
+    const referenceImage = referenceImages[0];
 
     if (this.config.id === "seedream-4") {
       const resolution = Number(request.resolution || parameters.resolution || 2048);
@@ -211,8 +215,8 @@ export class ReplicateAdapter extends BaseModelAdapter {
     if (this.config.id === "nano-banana-backup") {
       const resolution = Number(request.resolution || parameters.resolution || 1024);
       input.resolution = resolution >= 4096 ? "4K" : resolution >= 2048 ? "2K" : "1K";
-      if (referenceImage) {
-        input.image_input = [referenceImage];
+      if (referenceImages.length > 0) {
+        input.image_input = referenceImages.slice(0, MAX_NANO_BANANA_REFERENCE_IMAGES);
       }
     }
 

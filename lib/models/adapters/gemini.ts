@@ -1,5 +1,6 @@
 import {
   BaseModelAdapter,
+  collectReferenceImages,
   GenerationRequest,
   GenerationResponse,
   ModelConfig,
@@ -91,6 +92,7 @@ const GEMINI_API_TIMEOUT_MS = 120_000;
 const REPLICATE_FETCH_TIMEOUT_MS = 15_000;
 const MAX_CONSECUTIVE_UNAVAILABLE = 2;
 const MAX_INLINE_REFERENCE_IMAGES = 6;
+const MAX_REPLICATE_REFERENCE_IMAGES = 14;
 const MAX_REFERENCE_DOWNLOAD_BYTES = 25 * 1024 * 1024;
 const MAX_REFERENCE_DATAURL_BYTES = 25 * 1024 * 1024;
 const REFERENCE_SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 30;
@@ -315,9 +317,12 @@ export class GeminiAdapter extends BaseModelAdapter {
     const geminiModel = GEMINI_MODEL_MAP[this.config.id] || GEMINI_MODEL;
     const endpoint = `${GEMINI_BASE_URL}/models/${geminiModel}:generateContent`;
     const parts: Array<Record<string, unknown>> = [{ text: request.prompt }];
+    const parameters = ((request as { parameters?: Record<string, unknown> }).parameters ?? {}) as Record<
+      string,
+      unknown
+    >;
 
-    const refImagesRaw =
-      request.referenceImages ?? (request.referenceImage ? [request.referenceImage] : []);
+    const refImagesRaw = collectReferenceImages(request, parameters);
     const refImages = refImagesRaw.slice(0, MAX_INLINE_REFERENCE_IMAGES);
     for (const img of refImages) {
       const dataUrlMatch = img.match(/^data:([^;]+);base64,(.+)$/);
@@ -500,9 +505,14 @@ export class GeminiAdapter extends BaseModelAdapter {
       resolution: resolution >= 4096 ? "4K" : resolution >= 2048 ? "2K" : "1K",
     };
 
-    const refImage =
-      request.referenceImage ?? request.referenceImages?.[0] ?? undefined;
-    if (refImage) input.image_input = [refImage];
+    const parameters = ((request as { parameters?: Record<string, unknown> }).parameters ?? {}) as Record<
+      string,
+      unknown
+    >;
+    const referenceImages = collectReferenceImages(request, parameters);
+    if (referenceImages.length > 0) {
+      input.image_input = referenceImages.slice(0, MAX_REPLICATE_REFERENCE_IMAGES);
+    }
 
     const predController = new AbortController();
     const predTimeout = setTimeout(() => predController.abort(), REPLICATE_FETCH_TIMEOUT_MS);

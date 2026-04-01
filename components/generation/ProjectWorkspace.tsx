@@ -569,6 +569,65 @@ export function ProjectWorkspace({
     [projectId],
   );
 
+  async function uploadReferenceDataUrl(dataUrl: string): Promise<{ url: string; path?: string }> {
+    const uploadRes = await fetch("/api/upload/reference-image", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dataUrl, projectId: projectId || undefined }),
+    });
+    const ct = uploadRes.headers.get("content-type") ?? "";
+    if (!ct.includes("application/json")) {
+      const text = await uploadRes.text();
+      throw new Error(`Upload returned non-JSON (${uploadRes.status}): ${text.slice(0, 120)}`);
+    }
+    const uploadData = (await uploadRes.json()) as {
+      url?: string;
+      referenceImageUrl?: string;
+      path?: string;
+      error?: string;
+    };
+    if (!uploadRes.ok) throw new Error(uploadData.error ?? "Reference image upload failed");
+    const url = uploadData.referenceImageUrl ?? uploadData.url;
+    if (!url) throw new Error("Reference image upload returned no URL");
+    return { url, path: uploadData.path };
+  }
+
+  async function uploadReferenceSource(rawUrl: string): Promise<{ url: string; path?: string }> {
+    const trimmedUrl = rawUrl.trim();
+    const compressedDataUrl = await compressImage(trimmedUrl, {
+      maxDim: 2048,
+      maxSizeMB: 4,
+      quality: 0.85,
+    });
+    if (compressedDataUrl) {
+      return uploadReferenceDataUrl(compressedDataUrl);
+    }
+    if (trimmedUrl.startsWith("data:")) {
+      return uploadReferenceDataUrl(trimmedUrl);
+    }
+
+    const sourceRes = await fetch(trimmedUrl);
+    if (!sourceRes.ok) {
+      throw new Error(`Failed to read reference image (${sourceRes.status})`);
+    }
+    const sourceBlob = await sourceRes.blob();
+    if (!sourceBlob.type.startsWith("image/")) {
+      throw new Error("Reference upload source is not an image.");
+    }
+    const extension =
+      sourceBlob.type.includes("png")
+        ? "png"
+        : sourceBlob.type.includes("webp")
+          ? "webp"
+          : sourceBlob.type.includes("gif")
+            ? "gif"
+            : "jpg";
+    const sourceFile = new File([sourceBlob], `reference.${extension}`, {
+      type: sourceBlob.type || "image/jpeg",
+    });
+    return uploadImageFileMultipart(sourceFile);
+  }
+
   const handleClipboardImage = useCallback(
     (files: File[]) => {
       if (mode === "canvas" || files.length === 0) return;
@@ -714,46 +773,30 @@ export function ProjectWorkspace({
       if (resolvedReferences.length > 0) {
         resolvedReferences = await Promise.all(
           resolvedReferences.map(async ({ url: rawUrl }) => {
-            const shouldCompressAndUpload =
-              rawUrl.startsWith("data:") ||
-              rawUrl.startsWith("blob:") ||
-              (mode === "image" && rawUrl.startsWith("http"));
-            if (!shouldCompressAndUpload) {
+            const isLocalReference = rawUrl.startsWith("data:") || rawUrl.startsWith("blob:");
+            const shouldUploadReference =
+              isLocalReference || (mode === "image" && rawUrl.startsWith("http"));
+            if (!shouldUploadReference) {
               return { url: rawUrl, path: "", bucket: "", referenceImageId: "" };
             }
-            const compressedDataUrl = await compressImage(rawUrl, {
-              maxDim: 2048,
-              maxSizeMB: 4,
-              quality: 0.85,
-            });
-            if (!compressedDataUrl) {
+            try {
+              const uploaded = await uploadReferenceSource(rawUrl);
+              return {
+                url: uploaded.url,
+                path: uploaded.path ?? "",
+                bucket: "",
+                referenceImageId: "",
+              };
+            } catch (error) {
+              if (isLocalReference) {
+                throw new Error(
+                  error instanceof Error
+                    ? `Reference image upload failed: ${error.message}`
+                    : "Reference image upload failed."
+                );
+              }
               return { url: rawUrl, path: "", bucket: "", referenceImageId: "" };
             }
-            const uploadRes = await fetch("/api/upload/reference-image", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ dataUrl: compressedDataUrl, projectId: projectId || undefined }),
-            });
-            const ct = uploadRes.headers.get("content-type") ?? "";
-            if (!ct.includes("application/json")) {
-              const text = await uploadRes.text();
-              throw new Error(`Upload returned non-JSON (${uploadRes.status}): ${text.slice(0, 120)}`);
-            }
-            const uploadData = (await uploadRes.json()) as {
-              url?: string;
-              referenceImageUrl?: string;
-              referenceImageId?: string;
-              bucket?: string;
-              path?: string;
-              error?: string;
-            };
-            if (!uploadRes.ok) throw new Error(uploadData.error ?? "Reference image upload failed");
-            return {
-              url: uploadData.referenceImageUrl ?? uploadData.url ?? rawUrl,
-              path: uploadData.path ?? "",
-              bucket: uploadData.bucket ?? "",
-              referenceImageId: uploadData.referenceImageId ?? "",
-            };
           }),
         );
       }

@@ -15,6 +15,13 @@ vi.mock("@/lib/prisma", () => ({
 
 vi.mock("@/lib/reference-images", () => ({
   hydrateReferenceParameters: vi.fn().mockImplementation(async (p: Record<string, unknown>) => p),
+  hasEphemeralReferenceUrls: vi.fn().mockImplementation((p: Record<string, unknown>) => {
+    if (typeof p.referenceImageUrl === "string" && p.referenceImageUrl.startsWith("blob:")) return true;
+    if (Array.isArray(p.referenceImages)) {
+      return p.referenceImages.some((item) => typeof item === "string" && item.startsWith("blob:"));
+    }
+    return false;
+  }),
   persistReferenceImage: vi.fn(),
 }));
 
@@ -133,6 +140,31 @@ describe("POST /api/generate contract", () => {
     expect(res.status).toBe(404);
     const data = await res.json();
     expect(data.error).toMatch(/session|access/i);
+  });
+
+  it("returns 400 when reference images are browser-local blob URLs", async () => {
+    vi.mocked(getAuthedUser).mockResolvedValue({ id: "user-1", email: "u@t.co" });
+    vi.mocked(prisma.session.findFirst).mockResolvedValue({ id: validSessionId, type: "image" } as never);
+    vi.mocked(getModelConfig).mockReturnValue({ type: "image" } as never);
+
+    const req = new Request("http://localhost/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sessionId: validSessionId,
+        modelId: "seedream-4",
+        prompt: "a cat",
+        parameters: {
+          referenceImages: ["blob:https://sigil.thoughtform.co/reference-1"],
+        },
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toMatch(/reference images must be uploaded/i);
+    expect(prisma.generation.create).not.toHaveBeenCalled();
   });
 
   it("returns 202 and generation payload when authenticated with valid session and model", async () => {

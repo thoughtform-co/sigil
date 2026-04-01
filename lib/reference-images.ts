@@ -110,6 +110,24 @@ export async function refreshReferenceImageUrl(
   }
 }
 
+function isEphemeralBrowserUrl(value: unknown): boolean {
+  return typeof value === "string" && value.trim().startsWith("blob:");
+}
+
+export function hasEphemeralReferenceUrls(parameters: Record<string, unknown>): boolean {
+  if (isEphemeralBrowserUrl(parameters.referenceImage)) return true;
+  if (isEphemeralBrowserUrl(parameters.referenceImageUrl)) return true;
+  if (isEphemeralBrowserUrl(parameters.endFrameImage)) return true;
+  if (isEphemeralBrowserUrl(parameters.endFrameImageUrl)) return true;
+  if (
+    Array.isArray(parameters.referenceImages) &&
+    parameters.referenceImages.some((item) => isEphemeralBrowserUrl(item))
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export async function hydrateReferenceParameters(
   parameters: Record<string, unknown>,
 ): Promise<Record<string, unknown>> {
