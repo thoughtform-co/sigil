@@ -5,6 +5,7 @@ import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { BaseNode } from "./BaseNode";
 import { useCanvasStore } from "../stores/canvasStore";
 import type { ModelItem } from "@/components/generation/types";
+import { uploadDataUrlAsMultipart } from "@/lib/client/reference-upload";
 import styles from "./ImageGenNode.module.css";
 
 export type VideoGenNodeData = {
@@ -88,27 +89,16 @@ export function VideoGenNode({ id, data: rawData, selected }: VideoGenProps) {
 
       let resolvedRef = referenceImageUrl.trim() || undefined;
       if (resolvedRef?.startsWith("data:")) {
-        const uploadRes = await fetch("/api/upload/reference-image", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ dataUrl: resolvedRef, projectId }),
-        });
-        const uploadData = (await uploadRes.json().catch(() => ({}))) as {
-          referenceImageUrl?: string;
-          url?: string;
-          error?: string;
-        };
-        if (!uploadRes.ok) {
+        try {
+          const uploaded = await uploadDataUrlAsMultipart(resolvedRef, projectId);
+          resolvedRef = uploaded.url;
+        } catch (err) {
           throw new Error(
-            uploadData.error ??
-              "Reference image upload failed. Use an https image URL or try again.",
+            err instanceof Error
+              ? err.message
+              : "Reference image upload failed. Use an https image URL or try again.",
           );
         }
-        const nextUrl = uploadData.referenceImageUrl ?? uploadData.url;
-        if (!nextUrl?.startsWith("http")) {
-          throw new Error("Reference image upload did not return a stored URL.");
-        }
-        resolvedRef = nextUrl;
       }
 
       const genRes = await fetch("/api/generate", {

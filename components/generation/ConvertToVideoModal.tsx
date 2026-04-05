@@ -7,6 +7,7 @@ import type { ModelItem } from "@/components/generation/types";
 import { pickPreferredModelId } from "@/lib/models/preferences";
 import { useVideoIterations } from "@/hooks/useVideoIterations";
 import { ImageBrowseModal } from "@/components/generation/ImageBrowseModal";
+import { uploadReferenceImageMultipart } from "@/lib/client/reference-upload";
 import styles from "./ConvertToVideoModal.module.css";
 
 type VideoModelSpec = {
@@ -78,20 +79,11 @@ type ConvertToVideoModalProps = {
 const ITERATION_STUCK_THRESHOLD_MS = 15 * 60 * 1000;
 
 async function uploadReferenceImageFile(file: File, projectId: string): Promise<string> {
-  const formData = new FormData();
-  formData.append("file", file);
-  if (projectId) formData.append("projectId", projectId);
-  const res = await fetch("/api/upload/reference-image", {
-    method: "POST",
-    body: formData,
-  });
-  const data = (await res.json()) as { referenceImageUrl?: string; url?: string; error?: string };
-  if (!res.ok) throw new Error(data.error ?? "Upload failed");
-  const stableUrl = data.referenceImageUrl ?? data.url;
-  if (!stableUrl?.startsWith("http")) {
+  const { url } = await uploadReferenceImageMultipart(file, projectId);
+  if (!url?.startsWith("http")) {
     throw new Error("Upload did not return a stored image URL.");
   }
-  return stableUrl;
+  return url;
 }
 
 function iterationStatusLabel(status: string): string {

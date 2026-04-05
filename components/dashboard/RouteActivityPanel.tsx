@@ -78,7 +78,7 @@ export function RouteActivityPanel({ routeId }: RouteActivityPanelProps) {
         flexDirection: "column",
         height: "100%",
         minHeight: 0,
-        overflow: "hidden",
+        overflow: "clip",
         paddingLeft: "var(--space-sm)",
       }}
     >

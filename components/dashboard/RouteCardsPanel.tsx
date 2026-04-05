@@ -170,7 +170,7 @@ export function RouteCardsPanel({ routes, journeyId, selectedRouteId: controlled
         flexDirection: "column",
         height: "100%",
         minHeight: 0,
-        overflow: "hidden",
+        overflow: "clip",
         paddingLeft: "clamp(var(--space-sm), 1.5vw, var(--space-md))",
         paddingRight: "clamp(4px, 0.8vw, var(--space-sm))",
       }}

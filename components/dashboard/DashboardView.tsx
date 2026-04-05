@@ -340,7 +340,7 @@ export function DashboardView({
         <div
           style={{
             minHeight: 0,
-            overflow: "hidden",
+            overflow: "clip",
             display: "flex",
             flexDirection: "column",
           }}
@@ -362,7 +362,7 @@ export function DashboardView({
           className="dashboard-activity-col"
           style={{
             minHeight: 0,
-            overflow: "hidden",
+            overflow: "clip",
             display: "flex",
             flexDirection: "column",
             borderLeft: "1px solid var(--dawn-08)",

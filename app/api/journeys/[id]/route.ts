@@ -69,41 +69,64 @@ export async function GET(
 
   const briefingIds = journey.briefings.map((b) => b.id);
   const thumbnailByProjectId = new Map<string, string>();
+  const activityByProjectId = new Map<string, Date>();
 
   if (briefingIds.length > 0) {
-    const thumbRows = await prisma.$queryRaw<
-      { project_id: string; file_url: string }[]
-    >(Prisma.sql`
-      SELECT p.id AS project_id, thumb.file_url
-      FROM projects p
-      LEFT JOIN LATERAL (
-        SELECT o.file_url
+    const [thumbRows, activityRows] = await Promise.all([
+      prisma.$queryRaw<
+        { project_id: string; file_url: string }[]
+      >(Prisma.sql`
+        SELECT p.id AS project_id, thumb.file_url
+        FROM projects p
+        LEFT JOIN LATERAL (
+          SELECT o.file_url
+          FROM sessions s
+          INNER JOIN generations g ON g.session_id = s.id
+          INNER JOIN outputs o ON o.generation_id = g.id
+          WHERE s.project_id = p.id
+            AND g.status = 'completed'
+            AND o.file_url NOT LIKE 'data:%'
+          ORDER BY
+            CASE WHEN o.file_type LIKE 'image/%' THEN 0 ELSE 1 END,
+            g.created_at DESC, o.created_at DESC
+          LIMIT 1
+        ) thumb ON TRUE
+        WHERE p.id = ANY(${briefingIds}::uuid[])
+          AND thumb.file_url IS NOT NULL
+      `),
+      prisma.$queryRaw<
+        { project_id: string; latest_at: Date }[]
+      >(Prisma.sql`
+        SELECT s.project_id, MAX(g.created_at) AS latest_at
         FROM sessions s
         INNER JOIN generations g ON g.session_id = s.id
-        INNER JOIN outputs o ON o.generation_id = g.id
-        WHERE s.project_id = p.id
-          AND g.status = 'completed'
-          AND o.file_url NOT LIKE 'data:%'
-        ORDER BY g.created_at DESC, o.created_at DESC
-        LIMIT 1
-      ) thumb ON TRUE
-      WHERE p.id = ANY(${briefingIds}::uuid[])
-        AND thumb.file_url IS NOT NULL
-    `);
+        WHERE s.project_id = ANY(${briefingIds}::uuid[])
+        GROUP BY s.project_id
+      `),
+    ]);
     for (const row of thumbRows) {
       thumbnailByProjectId.set(row.project_id, row.file_url);
     }
+    for (const row of activityRows) {
+      activityByProjectId.set(row.project_id, row.latest_at);
+    }
   }
 
-  const routesWithThumbnails = journey.briefings.map((b) => ({
-    id: b.id,
-    name: b.name,
-    description: b.description,
-    creatorName: getProfileName(b.owner),
-    updatedAt: b.updatedAt,
-    waypointCount: b._count.sessions,
-    thumbnailUrl: thumbnailByProjectId.get(b.id) ?? null,
-  }));
+  const routesWithThumbnails = [...journey.briefings]
+    .sort((a, b) => {
+      const aTime = activityByProjectId.get(a.id)?.getTime() ?? a.updatedAt.getTime();
+      const bTime = activityByProjectId.get(b.id)?.getTime() ?? b.updatedAt.getTime();
+      return bTime - aTime;
+    })
+    .map((b) => ({
+      id: b.id,
+      name: b.name,
+      description: b.description,
+      creatorName: getProfileName(b.owner),
+      updatedAt: b.updatedAt,
+      waypointCount: b._count.sessions,
+      thumbnailUrl: thumbnailByProjectId.get(b.id) ?? null,
+    }));
 
   const response = NextResponse.json({
     journey: {

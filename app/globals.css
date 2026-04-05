@@ -482,7 +482,7 @@ body {
   height: 100vh;
   height: 100dvh;
   min-height: 0;
-  overflow: hidden;
+  overflow: clip;
   padding-top: var(--hud-shell-pad-top);
   /* Bottom padding so content ends above the bottom HUD corners (24px); match corner inset so content bottom = corner top */
   padding-bottom: calc(var(--hud-margin) + 24px);
@@ -494,7 +494,7 @@ body {
 .hud-shell--workspace .dashboard-two-panel {
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow: clip;
   max-height: 100%;
 }
 

@@ -82,6 +82,27 @@ export async function prefetchDashboard(
       wp.briefings.map((b) => b.id),
     );
 
+    const activityByRouteId = new Map<string, Date>();
+    const genCountByRouteId = new Map<string, number>();
+    if (allBriefingIds.length > 0) {
+      const routeActivityRows = await prisma.$queryRaw<
+        { project_id: string; latest_at: Date; gen_count: bigint }[]
+      >(Prisma.sql`
+        SELECT
+          s.project_id,
+          MAX(g.created_at) AS latest_at,
+          COUNT(g.id) AS gen_count
+        FROM sessions s
+        INNER JOIN generations g ON g.session_id = s.id
+        WHERE s.project_id = ANY(${allBriefingIds}::uuid[])
+        GROUP BY s.project_id
+      `);
+      for (const row of routeActivityRows) {
+        activityByRouteId.set(row.project_id, row.latest_at);
+        genCountByRouteId.set(row.project_id, Number(row.gen_count));
+      }
+    }
+
     const thumbnailsByProjectId = new Map<
       string,
       { id: string; fileUrl: string; fileType: string; width: number | null; height: number | null }[]
@@ -100,7 +121,13 @@ export async function prefetchDashboard(
             o.file_type,
             o.width,
             o.height,
-            ROW_NUMBER() OVER (PARTITION BY s.project_id ORDER BY g.created_at DESC, o.created_at DESC) AS rn
+            ROW_NUMBER() OVER (
+              PARTITION BY s.project_id
+              ORDER BY
+                CASE WHEN o.file_type LIKE 'image/%' THEN 0 ELSE 1 END,
+                g.created_at DESC,
+                o.created_at DESC
+            ) AS rn
           FROM sessions s
           INNER JOIN generations g ON g.session_id = s.id
           INNER JOIN outputs o ON o.generation_id = g.id
@@ -127,6 +154,25 @@ export async function prefetchDashboard(
         });
       }
     }
+
+    function sortedRoutes(briefings: typeof workspaceProjects[number]["briefings"]) {
+      return [...briefings]
+        .sort((a, b) => {
+          const aTime = activityByRouteId.get(a.id)?.getTime() ?? a.updatedAt.getTime();
+          const bTime = activityByRouteId.get(b.id)?.getTime() ?? b.updatedAt.getTime();
+          return bTime - aTime;
+        })
+        .map((b) => ({
+          id: b.id,
+          name: b.name,
+          description: b.description,
+          updatedAt: b.updatedAt.toISOString(),
+          waypointCount: b._count.sessions,
+          generationCount: genCountByRouteId.get(b.id) ?? 0,
+          thumbnails: thumbnailsByProjectId.get(b.id) ?? [],
+        }));
+    }
+
     const journeys = workspaceProjects.map((wp) => ({
       id: wp.id,
       name: wp.name,
@@ -134,15 +180,7 @@ export async function prefetchDashboard(
       type: wp.type ?? "create",
       routeCount: wp._count.briefings,
       generationCount: 0,
-      routes: wp.briefings.map((b) => ({
-        id: b.id,
-        name: b.name,
-        description: b.description,
-        updatedAt: b.updatedAt.toISOString(),
-        waypointCount: b._count.sessions,
-        generationCount: 0,
-        thumbnails: thumbnailsByProjectId.get(b.id) ?? [],
-      })),
+      routes: sortedRoutes(wp.briefings),
     }));
     return { data: { journeys }, isAdmin };
   } catch (error) {
