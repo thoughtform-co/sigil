@@ -14,6 +14,8 @@ import { useClipboardImage } from "@/hooks/useClipboardImage";
 import { useAuth } from "@/context/AuthContext";
 
 const DEFAULT_ASPECT_RATIOS = ["1:1", "16:9", "9:16", "4:3", "3:4"];
+// Keep binary uploads under Vercel's 4.5MB function payload ceiling, with room for multipart overhead.
+const MAX_IMAGE_UPLOAD_REQUEST_BYTES = 4 * 1024 * 1024;
 
 function detectClosestAspectRatio(
   width: number,
@@ -542,8 +544,13 @@ export function ProjectWorkspace({
 
   const uploadImageFileMultipart = useCallback(
     async (file: File): Promise<{ url: string; path?: string }> => {
+      const uploadFile = await prepareImageFileForUpload(file, {
+        maxDim: 2048,
+        maxSizeBytes: MAX_IMAGE_UPLOAD_REQUEST_BYTES,
+        quality: 0.85,
+      });
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", uploadFile);
       formData.append("projectId", projectId);
       const res = await fetch("/api/upload/reference-image", {
         method: "POST",
@@ -569,44 +576,8 @@ export function ProjectWorkspace({
     [projectId],
   );
 
-  async function uploadReferenceDataUrl(dataUrl: string): Promise<{ url: string; path?: string }> {
-    const uploadRes = await fetch("/api/upload/reference-image", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ dataUrl, projectId: projectId || undefined }),
-    });
-    const ct = uploadRes.headers.get("content-type") ?? "";
-    if (!ct.includes("application/json")) {
-      const text = await uploadRes.text();
-      throw new Error(`Upload returned non-JSON (${uploadRes.status}): ${text.slice(0, 120)}`);
-    }
-    const uploadData = (await uploadRes.json()) as {
-      url?: string;
-      referenceImageUrl?: string;
-      path?: string;
-      error?: string;
-    };
-    if (!uploadRes.ok) throw new Error(uploadData.error ?? "Reference image upload failed");
-    const url = uploadData.referenceImageUrl ?? uploadData.url;
-    if (!url) throw new Error("Reference image upload returned no URL");
-    return { url, path: uploadData.path };
-  }
-
-  async function uploadReferenceSource(rawUrl: string): Promise<{ url: string; path?: string }> {
-    const trimmedUrl = rawUrl.trim();
-    const compressedDataUrl = await compressImage(trimmedUrl, {
-      maxDim: 2048,
-      maxSizeMB: 4,
-      quality: 0.85,
-    });
-    if (compressedDataUrl) {
-      return uploadReferenceDataUrl(compressedDataUrl);
-    }
-    if (trimmedUrl.startsWith("data:")) {
-      return uploadReferenceDataUrl(trimmedUrl);
-    }
-
-    const sourceRes = await fetch(trimmedUrl);
+  async function fetchImageSourceBlob(src: string): Promise<Blob> {
+    const sourceRes = await fetch(src);
     if (!sourceRes.ok) {
       throw new Error(`Failed to read reference image (${sourceRes.status})`);
     }
@@ -614,6 +585,12 @@ export function ProjectWorkspace({
     if (!sourceBlob.type.startsWith("image/")) {
       throw new Error("Reference upload source is not an image.");
     }
+    return sourceBlob;
+  }
+
+  async function uploadReferenceSource(rawUrl: string): Promise<{ url: string; path?: string }> {
+    const trimmedUrl = rawUrl.trim();
+    const sourceBlob = await fetchImageSourceBlob(trimmedUrl);
     const extension =
       sourceBlob.type.includes("png")
         ? "png"
@@ -951,6 +928,90 @@ export function ProjectWorkspace({
       }
     } catch {
       return undefined;
+    }
+  }
+
+  function canvasToBlob(
+    canvas: HTMLCanvasElement,
+    type: string,
+    quality?: number,
+  ): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (blob) {
+          resolve(blob);
+          return;
+        }
+        reject(new Error("Failed to encode image for upload."));
+      }, type, quality);
+    });
+  }
+
+  async function prepareImageFileForUpload(
+    file: File,
+    opts: { maxDim?: number; maxSizeBytes?: number; quality?: number } = {},
+  ): Promise<File> {
+    const { maxDim = 2048, maxSizeBytes = MAX_IMAGE_UPLOAD_REQUEST_BYTES, quality: initQuality = 0.85 } = opts;
+    if (!file.type.startsWith("image/")) {
+      throw new Error("Reference upload source is not an image.");
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    try {
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error("Failed to decode image for upload."));
+        img.src = objectUrl;
+      });
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+    }
+
+    let { width, height } = img;
+    if (!width || !height) {
+      throw new Error("Reference image is empty or unreadable.");
+    }
+    const needsResize = width > maxDim || height > maxDim;
+    if (!needsResize && file.size <= maxSizeBytes) {
+      return file;
+    }
+
+    if (needsResize) {
+      const ratio = maxDim / Math.max(width, height);
+      width = Math.max(1, Math.floor(width * ratio));
+      height = Math.max(1, Math.floor(height * ratio));
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      canvas.width = 0;
+      canvas.height = 0;
+      throw new Error("Failed to prepare reference image for upload.");
+    }
+
+    try {
+      ctx.drawImage(img, 0, 0, width, height);
+      let quality = initQuality;
+      let attempts = 0;
+      let encoded = await canvasToBlob(canvas, "image/jpeg", quality);
+      while (encoded.size > maxSizeBytes && attempts < 5 && quality > 0.45) {
+        quality = Math.max(0.45, quality - 0.1);
+        encoded = await canvasToBlob(canvas, "image/jpeg", quality);
+        attempts++;
+      }
+      if (encoded.size > maxSizeBytes) {
+        throw new Error("Reference image is too large to upload. Try a smaller image.");
+      }
+      return new File([encoded], `${file.name.replace(/\.[^.]+$/, "") || "reference"}.jpg`, {
+        type: "image/jpeg",
+      });
+    } finally {
+      canvas.width = 0;
+      canvas.height = 0;
     }
   }
 
