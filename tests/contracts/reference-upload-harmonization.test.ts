@@ -61,6 +61,15 @@ describe("reference upload harmonization", () => {
     ).toEqual([]);
   });
 
+  it("the shared helper uses signed direct storage upload instead of server body upload", () => {
+    const src = readFileSync(
+      join(REPO_ROOT, "lib/client/reference-upload.ts"),
+      "utf8",
+    );
+    expect(src).toContain("/api/upload/reference-image/direct");
+    expect(src).toContain("uploadToSignedUrl");
+  });
+
   it("handleUseAsReference replaces refs rather than appending", () => {
     const src = readFileSync(
       join(REPO_ROOT, "components/generation/ProjectWorkspace.tsx"),

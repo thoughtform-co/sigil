@@ -1,6 +1,10 @@
 "use client";
 
-const MAX_IMAGE_UPLOAD_REQUEST_BYTES = 4 * 1024 * 1024;
+import { createClient } from "@/lib/supabase/client";
+
+const REFERENCES_BUCKET = "references";
+const MAX_REFERENCE_IMAGE_BYTES = 25 * 1024 * 1024;
+const MAX_REFERENCE_IMAGE_DIM = 4096;
 
 function canvasToBlob(
   canvas: HTMLCanvasElement,
@@ -19,17 +23,18 @@ function canvasToBlob(
 }
 
 /**
- * Resize/recompress an image File so it stays under Vercel's function payload
- * limit when sent as multipart. Returns the original file untouched when it
- * already fits.
+ * Resize/recompress a reference image only when it is extremely large.
+ * With direct-to-storage uploads we no longer need to squeeze images under the
+ * Vercel function payload limit, but we still keep a practical ceiling to avoid
+ * pathological browser memory usage and provider fetch failures.
  */
 export async function prepareImageFileForUpload(
   file: File,
   opts: { maxDim?: number; maxSizeBytes?: number; quality?: number } = {},
 ): Promise<File> {
   const {
-    maxDim = 2048,
-    maxSizeBytes = MAX_IMAGE_UPLOAD_REQUEST_BYTES,
+    maxDim = MAX_REFERENCE_IMAGE_DIM,
+    maxSizeBytes = MAX_REFERENCE_IMAGE_BYTES,
     quality: initQuality = 0.85,
   } = opts;
   if (!file.type.startsWith("image/")) {
@@ -84,7 +89,9 @@ export async function prepareImageFileForUpload(
       attempts++;
     }
     if (encoded.size > maxSizeBytes) {
-      throw new Error("Reference image is too large to upload. Try a smaller image.");
+      throw new Error(
+        `Reference image is too large to upload. Try an image under ${Math.round(maxSizeBytes / (1024 * 1024))}MB.`,
+      );
     }
     return new File(
       [encoded],
@@ -98,38 +105,79 @@ export async function prepareImageFileForUpload(
 }
 
 /**
- * Upload an image File to `/api/upload/reference-image` as multipart, with
- * client-side resize/recompress to stay under payload limits. Returns the
- * stored URL and optional storage path.
+ * Upload an image File directly to Supabase Storage using a short-lived signed
+ * upload URL minted by the server. This avoids Vercel function request-body
+ * limits for prompt-bar reference images.
  */
 export async function uploadReferenceImageMultipart(
   file: File,
   projectId: string,
 ): Promise<{ url: string; path?: string }> {
   const uploadFile = await prepareImageFileForUpload(file);
-  const formData = new FormData();
-  formData.append("file", uploadFile);
-  formData.append("projectId", projectId);
-  const res = await fetch("/api/upload/reference-image", {
+  const prepareRes = await fetch("/api/upload/reference-image/direct", {
     method: "POST",
-    body: formData,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "prepare",
+      mimeType: uploadFile.type || "image/jpeg",
+      projectId: projectId || undefined,
+    }),
     credentials: "include",
   });
-  const ct = res.headers.get("content-type") ?? "";
-  if (!ct.includes("application/json")) {
-    const text = await res.text();
-    throw new Error(`Upload failed (${res.status}): ${text.slice(0, 120)}`);
+  const prepareCt = prepareRes.headers.get("content-type") ?? "";
+  if (!prepareCt.includes("application/json")) {
+    const text = await prepareRes.text();
+    throw new Error(`Upload prepare failed (${prepareRes.status}): ${text.slice(0, 120)}`);
   }
-  const data = (await res.json()) as {
+  const prepareData = (await prepareRes.json()) as {
+    bucket?: string;
+    path?: string;
+    token?: string;
+    referenceImageId?: string;
+    error?: string;
+  };
+  if (!prepareRes.ok) throw new Error(prepareData.error ?? "Upload prepare failed");
+  if (!prepareData.path || !prepareData.token) {
+    throw new Error("Upload prepare returned no storage target.");
+  }
+
+  const supabase = createClient();
+  const { error: directUploadError } = await supabase.storage
+    .from(prepareData.bucket ?? REFERENCES_BUCKET)
+    .uploadToSignedUrl(prepareData.path, prepareData.token, uploadFile, {
+      upsert: true,
+      cacheControl: "31536000",
+      contentType: uploadFile.type || "image/jpeg",
+    });
+  if (directUploadError) {
+    throw new Error(directUploadError.message);
+  }
+
+  const completeRes = await fetch("/api/upload/reference-image/direct", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "complete",
+      path: prepareData.path,
+      referenceImageId: prepareData.referenceImageId,
+    }),
+    credentials: "include",
+  });
+  const completeCt = completeRes.headers.get("content-type") ?? "";
+  if (!completeCt.includes("application/json")) {
+    const text = await completeRes.text();
+    throw new Error(`Upload finalize failed (${completeRes.status}): ${text.slice(0, 120)}`);
+  }
+  const completeData = (await completeRes.json()) as {
     url?: string;
     referenceImageUrl?: string;
     path?: string;
     error?: string;
   };
-  if (!res.ok) throw new Error(data.error ?? "Upload failed");
-  const url = data.referenceImageUrl ?? data.url;
+  if (!completeRes.ok) throw new Error(completeData.error ?? "Upload finalize failed");
+  const url = completeData.referenceImageUrl ?? completeData.url;
   if (!url) throw new Error("Upload returned no URL");
-  return { url, path: data.path };
+  return { url, path: completeData.path ?? prepareData.path };
 }
 
 /**

@@ -121,6 +121,7 @@ export function ForgePromptBar({
   const containerRef = useRef<HTMLDivElement>(null);
   const endFrameInputRef = useRef<HTMLInputElement>(null);
   const endFrameMenuRef = useRef<HTMLDivElement>(null);
+  const resizeHandleRef = useRef<HTMLDivElement>(null);
   const [showEndFrameMenu, setShowEndFrameMenu] = useState(false);
   const [browseTarget, setBrowseTarget] = useState<"reference" | "endFrame">("reference");
   /** Blob URL for thumb while multipart upload is in flight (parent endFrameUrl is empty until done). */
@@ -170,22 +171,27 @@ export function ForgePromptBar({
   const [isResizing, setIsResizing] = useState(false);
   const resizeStartY = useRef(0);
   const resizeStartHeight = useRef(PROMPT_MIN_HEIGHT);
+  const resizePointerId = useRef<number | null>(null);
   const currentHeightRef = useRef(PROMPT_MIN_HEIGHT);
   const rafId = useRef<number | null>(null);
 
   useEffect(() => { currentHeightRef.current = inputHeight; }, [inputHeight]);
 
-  const handleResizeStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+  const handleResizeStart = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
     e.preventDefault();
-    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
-    resizeStartY.current = clientY;
+    e.stopPropagation();
+    resizePointerId.current = e.pointerId;
+    resizeStartY.current = e.clientY;
     resizeStartHeight.current = currentHeightRef.current;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
     setIsResizing(true);
   }, []);
 
-  const handleResizeMove = useCallback((e: MouseEvent | TouchEvent) => {
-    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
-    const delta = resizeStartY.current - clientY;
+  const handleResizeMove = useCallback((e: PointerEvent) => {
+    if (resizePointerId.current !== null && e.pointerId !== resizePointerId.current) return;
+    e.preventDefault();
+    const delta = resizeStartY.current - e.clientY;
     const newHeight = Math.min(
       Math.max(resizeStartHeight.current + delta, PROMPT_MIN_HEIGHT),
       PROMPT_MAX_HEIGHT,
@@ -197,28 +203,42 @@ export function ForgePromptBar({
     });
   }, []);
 
-  const handleResizeEnd = useCallback(() => {
+  const handleResizeEnd = useCallback((e?: PointerEvent) => {
+    if (resizePointerId.current !== null && e && e.pointerId !== resizePointerId.current) return;
     if (rafId.current) { cancelAnimationFrame(rafId.current); rafId.current = null; }
+    const handleEl = resizeHandleRef.current;
+    if (handleEl && resizePointerId.current !== null) {
+      try {
+        handleEl.releasePointerCapture?.(resizePointerId.current);
+      } catch {
+        // Ignore stale pointer capture during cleanup.
+      }
+    }
+    resizePointerId.current = null;
     setIsResizing(false);
   }, []);
 
+  const handleResizeCancel = useCallback(() => {
+    handleResizeEnd();
+  }, [handleResizeEnd]);
+
   useEffect(() => {
     if (!isResizing) return;
-    document.addEventListener("mousemove", handleResizeMove);
-    document.addEventListener("mouseup", handleResizeEnd);
-    document.addEventListener("touchmove", handleResizeMove, { passive: false });
-    document.addEventListener("touchend", handleResizeEnd);
+    window.addEventListener("pointermove", handleResizeMove, { passive: false });
+    window.addEventListener("pointerup", handleResizeEnd);
+    window.addEventListener("pointercancel", handleResizeEnd);
+    window.addEventListener("blur", handleResizeCancel);
     document.body.style.userSelect = "none";
     document.body.style.cursor = "ns-resize";
     return () => {
-      document.removeEventListener("mousemove", handleResizeMove);
-      document.removeEventListener("mouseup", handleResizeEnd);
-      document.removeEventListener("touchmove", handleResizeMove);
-      document.removeEventListener("touchend", handleResizeEnd);
+      window.removeEventListener("pointermove", handleResizeMove);
+      window.removeEventListener("pointerup", handleResizeEnd);
+      window.removeEventListener("pointercancel", handleResizeEnd);
+      window.removeEventListener("blur", handleResizeCancel);
       document.body.style.userSelect = "";
       document.body.style.cursor = "";
     };
-  }, [isResizing, handleResizeMove, handleResizeEnd]);
+  }, [isResizing, handleResizeMove, handleResizeEnd, handleResizeCancel]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -522,9 +542,10 @@ export function ForgePromptBar({
         >
           {/* Resize handle */}
           <div
+            ref={resizeHandleRef}
             className={styles.resizeHandle}
-            onMouseDown={handleResizeStart}
-            onTouchStart={handleResizeStart}
+            onPointerDown={handleResizeStart}
+            onDragStart={(e) => e.preventDefault()}
             role="separator"
             aria-orientation="horizontal"
             aria-label="Resize prompt bar"
