@@ -337,16 +337,19 @@ export function ForgePromptBar({
         replaceEndFrameLocalPreview(null);
         onEndFrameChange(url);
       } else {
+        const hadRefs = referenceImages.length > 0;
         appendReferences([url]);
-        const img = new window.Image();
-        img.onload = () => {
-          const match = detectClosestAspectRatio(img.naturalWidth, img.naturalHeight, aspectRatios);
-          if (match) onAspectRatioChange(match);
-        };
-        img.src = url;
+        if (!hadRefs) {
+          const img = new window.Image();
+          img.onload = () => {
+            const match = detectClosestAspectRatio(img.naturalWidth, img.naturalHeight, aspectRatios);
+            if (match) onAspectRatioChange(match);
+          };
+          img.src = url;
+        }
       }
     },
-    [browseTarget, appendReferences, onEndFrameChange, replaceEndFrameLocalPreview, aspectRatios, onAspectRatioChange],
+    [browseTarget, appendReferences, onEndFrameChange, replaceEndFrameLocalPreview, aspectRatios, onAspectRatioChange, referenceImages.length],
   );
 
   const handleEndFrameImageSelect = useCallback(
@@ -401,18 +404,21 @@ export function ForgePromptBar({
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = Array.from(e.target.files ?? []).filter((file) => file.type.startsWith("image/"));
       if (files.length === 0) return;
+      const hadRefs = referenceImages.length > 0;
       const objectUrls = files.map((file) => URL.createObjectURL(file));
-      const firstObjectUrl = objectUrls[0];
-      const img = new window.Image();
-      img.onload = () => {
-        const match = detectClosestAspectRatio(img.naturalWidth, img.naturalHeight, aspectRatios);
-        if (match) onAspectRatioChange(match);
-      };
-      img.src = firstObjectUrl;
+      if (!hadRefs) {
+        const firstObjectUrl = objectUrls[0];
+        const img = new window.Image();
+        img.onload = () => {
+          const match = detectClosestAspectRatio(img.naturalWidth, img.naturalHeight, aspectRatios);
+          if (match) onAspectRatioChange(match);
+        };
+        img.src = firstObjectUrl;
+      }
       appendReferences(objectUrls);
       if (fileInputRef.current) fileInputRef.current.value = "";
     },
-    [appendReferences, onAspectRatioChange, aspectRatios],
+    [appendReferences, onAspectRatioChange, aspectRatios, referenceImages.length],
   );
 
   const handleDrop = useCallback(
@@ -421,17 +427,20 @@ export function ForgePromptBar({
       e.stopPropagation();
       const files = Array.from(e.dataTransfer.files ?? []).filter((file) => file.type.startsWith("image/"));
       if (files.length === 0) return;
+      const hadRefs = referenceImages.length > 0;
       const objectUrls = files.map((file) => URL.createObjectURL(file));
-      const url = objectUrls[0];
-      const img = new window.Image();
-      img.onload = () => {
-        const match = detectClosestAspectRatio(img.naturalWidth, img.naturalHeight, aspectRatios);
-        if (match) onAspectRatioChange(match);
-      };
-      img.src = url;
+      if (!hadRefs) {
+        const url = objectUrls[0];
+        const img = new window.Image();
+        img.onload = () => {
+          const match = detectClosestAspectRatio(img.naturalWidth, img.naturalHeight, aspectRatios);
+          if (match) onAspectRatioChange(match);
+        };
+        img.src = url;
+      }
       appendReferences(objectUrls);
     },
-    [appendReferences, onAspectRatioChange, aspectRatios],
+    [appendReferences, onAspectRatioChange, aspectRatios, referenceImages.length],
   );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
