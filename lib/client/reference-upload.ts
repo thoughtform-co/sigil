@@ -105,42 +105,87 @@ export async function prepareImageFileForUpload(
 }
 
 /**
+ * Upload an image File via multipart form-data to the server-side upload route.
+ * The server handles the Supabase Storage upload, avoiding browser CORS issues.
+ */
+async function uploadViaServer(
+  uploadFile: File,
+  projectId: string,
+): Promise<{ url: string; path?: string }> {
+  const formData = new FormData();
+  formData.append("file", uploadFile);
+  if (projectId) formData.append("projectId", projectId);
+  const res = await fetch("/api/upload/reference-image", {
+    method: "POST",
+    body: formData,
+    credentials: "include",
+  });
+  const ct = res.headers.get("content-type") ?? "";
+  if (!ct.includes("application/json")) {
+    const text = await res.text();
+    throw new Error(`Upload failed (${res.status}): ${text.slice(0, 120)}`);
+  }
+  const data = (await res.json()) as {
+    url?: string;
+    referenceImageUrl?: string;
+    path?: string;
+    error?: string;
+  };
+  if (!res.ok) throw new Error(data.error ?? "Upload failed");
+  const url = data.referenceImageUrl ?? data.url;
+  if (!url) throw new Error("Upload returned no URL");
+  return { url, path: data.path };
+}
+
+/**
  * Upload an image File directly to Supabase Storage using a short-lived signed
  * upload URL minted by the server. This avoids Vercel function request-body
  * limits for prompt-bar reference images.
+ *
+ * Falls back to server-side upload if the direct Supabase upload fails (e.g.
+ * due to CORS or network issues with the storage endpoint).
  */
 export async function uploadReferenceImageMultipart(
   file: File,
   projectId: string,
 ): Promise<{ url: string; path?: string }> {
   const uploadFile = await prepareImageFileForUpload(file);
-  const prepareRes = await fetch("/api/upload/reference-image/direct", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      action: "prepare",
-      mimeType: uploadFile.type || "image/jpeg",
-      projectId: projectId || undefined,
-    }),
-    credentials: "include",
-  });
-  const prepareCt = prepareRes.headers.get("content-type") ?? "";
-  if (!prepareCt.includes("application/json")) {
-    const text = await prepareRes.text();
-    throw new Error(`Upload prepare failed (${prepareRes.status}): ${text.slice(0, 120)}`);
-  }
-  const prepareData = (await prepareRes.json()) as {
+
+  // --- Step 1: Prepare signed upload URL on the server ---
+  let prepareData: {
     bucket?: string;
     path?: string;
     token?: string;
     referenceImageId?: string;
     error?: string;
   };
-  if (!prepareRes.ok) throw new Error(prepareData.error ?? "Upload prepare failed");
-  if (!prepareData.path || !prepareData.token) {
-    throw new Error("Upload prepare returned no storage target.");
+  try {
+    const prepareRes = await fetch("/api/upload/reference-image/direct", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "prepare",
+        mimeType: uploadFile.type || "image/jpeg",
+        projectId: projectId || undefined,
+      }),
+      credentials: "include",
+    });
+    const prepareCt = prepareRes.headers.get("content-type") ?? "";
+    if (!prepareCt.includes("application/json")) {
+      const text = await prepareRes.text();
+      throw new Error(`Upload prepare failed (${prepareRes.status}): ${text.slice(0, 120)}`);
+    }
+    prepareData = await prepareRes.json();
+    if (!prepareRes.ok) throw new Error(prepareData.error ?? "Upload prepare failed");
+    if (!prepareData.path || !prepareData.token) {
+      throw new Error("Upload prepare returned no storage target.");
+    }
+  } catch {
+    // Prepare step failed — fall back to server-side upload
+    return uploadViaServer(uploadFile, projectId);
   }
 
+  // --- Step 2: Direct upload to Supabase Storage ---
   const supabase = createClient();
   const { error: directUploadError } = await supabase.storage
     .from(prepareData.bucket ?? REFERENCES_BUCKET)
@@ -150,9 +195,11 @@ export async function uploadReferenceImageMultipart(
       contentType: uploadFile.type || "image/jpeg",
     });
   if (directUploadError) {
-    throw new Error(directUploadError.message);
+    // Direct Supabase upload failed (CORS, network, etc.) — fall back to server-side upload
+    return uploadViaServer(uploadFile, projectId);
   }
 
+  // --- Step 3: Finalize — get a signed URL for the uploaded file ---
   const completeRes = await fetch("/api/upload/reference-image/direct", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
