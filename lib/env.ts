@@ -17,6 +17,10 @@ const envSchema = z.object({
   KLING_SECRET_KEY: z.string().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
   ANTHROPIC_PROMPT_ENHANCE_MODEL: z.string().optional(),
+  NOTION_API_KEY: z.string().optional(),
+  NOTION_HERALDS_DATABASE_ID: z.string().optional(),
+  NOTION_PROJECTS_DATABASE_ID: z.string().optional(),
+  NOTION_THOUGHTFORM_CLIENT_PAGE_ID: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -51,6 +51,7 @@ model WorkspaceProject {
   members   WorkspaceProjectMember[]
   briefings Project[]
   profilesLockedToThisJourney Profile[] @relation("ProfileLockedJourney")
+  workshopEvents WorkshopEvent[]
 
   @@index([updatedAt(sort: Desc), id(sort: Desc)])
   @@map("workspace_projects")
@@ -262,6 +263,125 @@ model PromptEnhancementPrompt {
 
   @@index([isActive])
   @@map("prompt_enhancement_prompts")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// WORKSHOP REGISTRATION (portable module)
+// ═══════════════════════════════════════════════════════════════════
+
+enum WorkshopEventStatus {
+  draft
+  published
+  closed
+  cancelled
+}
+
+enum RegistrationStatus {
+  registered
+  approved
+  declined
+  cancelled
+}
+
+enum PaymentStatus {
+  not_required
+  pending_invoice
+  invoiced
+  paid
+  refunded
+}
+
+enum NotionSyncStatus {
+  pending
+  synced
+  failed
+  skipped
+}
+
+model WorkshopEvent {
+  id                   String              @id @default(uuid()) @db.Uuid
+  slug                 String              @unique
+  title                String
+  description          String?             @db.Text
+  coverImageUrl        String?             @map("cover_image_url")
+  status               WorkshopEventStatus @default(draft)
+
+  startAt              DateTime            @map("start_at")
+  endAt                DateTime?           @map("end_at")
+  timezone             String              @default("Europe/Brussels")
+  locationName         String?             @map("location_name")
+  locationAddress      String?             @map("location_address") @db.Text
+  isOnline             Boolean             @default(false) @map("is_online")
+  onlineUrl            String?             @map("online_url")
+
+  capacity             Int?
+  requireApproval      Boolean             @default(false) @map("require_approval")
+  priceAmountCents     Int?                @map("price_amount_cents")
+  priceCurrency        String?             @map("price_currency")
+
+  /// Ties back to Sigil's branded workshop journey (optional).
+  workspaceProjectId   String?             @map("workspace_project_id") @db.Uuid
+  workspaceProject     WorkspaceProject?   @relation(fields: [workspaceProjectId], references: [id], onDelete: SetNull)
+
+  /// Custom registration question definitions stored as JSON array.
+  registrationQuestions Json?               @map("registration_questions")
+
+  /// Host / facilitator metadata for the public page.
+  hostName             String?             @map("host_name")
+  hostAvatarUrl        String?             @map("host_avatar_url")
+
+  /// Notion sync metadata.
+  notionArcPageId      String?             @map("notion_arc_page_id")
+  notionSyncStatus     NotionSyncStatus    @default(pending) @map("notion_sync_status")
+  notionSyncError      String?             @map("notion_sync_error") @db.Text
+  notionSyncedAt       DateTime?           @map("notion_synced_at")
+
+  createdAt            DateTime            @default(now()) @map("created_at")
+  updatedAt            DateTime            @updatedAt @map("updated_at")
+
+  registrations        WorkshopRegistration[]
+
+  @@index([status, startAt(sort: Asc)])
+  @@index([workspaceProjectId])
+  @@map("workshop_events")
+}
+
+model WorkshopRegistration {
+  id                   String              @id @default(uuid()) @db.Uuid
+  eventId              String              @map("event_id") @db.Uuid
+  event                WorkshopEvent       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  name                 String
+  email                String
+  phone                String?
+  company              String?
+  vatNumber            String?             @map("vat_number")
+
+  status               RegistrationStatus  @default(registered)
+  paymentStatus        PaymentStatus       @default(not_required) @map("payment_status")
+
+  /// Answers to custom registration questions, stored as JSON array.
+  answers              Json?
+
+  /// IP address of the registrant (for rate-limiting auditing).
+  ipAddress            String?             @map("ip_address")
+
+  /// Notion sync metadata.
+  notionHeraldPageId   String?             @map("notion_herald_page_id")
+  notionJoinerPageId   String?             @map("notion_joiner_page_id")
+  notionSyncStatus     NotionSyncStatus    @default(pending) @map("notion_sync_status")
+  notionSyncError      String?             @map("notion_sync_error") @db.Text
+  notionSyncedAt       DateTime?           @map("notion_synced_at")
+
+  createdAt            DateTime            @default(now()) @map("created_at")
+  updatedAt            DateTime            @updatedAt @map("updated_at")
+
+  @@unique([eventId, email])
+  @@index([eventId, status])
+  @@index([eventId, createdAt(sort: Desc)])
+  @@index([email])
+  @@index([notionSyncStatus])
+  @@map("workshop_registrations")
 }
 
 model ProjectChat {

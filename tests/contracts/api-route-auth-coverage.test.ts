@@ -23,7 +23,10 @@ function collectRouteFiles(dir: string, acc: string[] = []): string[] {
 }
 
 /** Intentionally public handlers (middleware does not gate `/api/*`). */
-const PUBLIC_ROUTE_REL = "app/api/auth/check-email/route.ts";
+const PUBLIC_ROUTES_REL = [
+  "app/api/auth/check-email/route.ts",
+  "app/api/workshop-registration/route.ts",
+];
 
 describe("API route auth coverage", () => {
   it("every non-allowlisted app/api route calls getAuthedUser or requireAdmin", () => {
@@ -34,7 +37,7 @@ describe("API route auth coverage", () => {
     const violations: string[] = [];
     for (const abs of routes) {
       const rel = relative(REPO_ROOT, abs).replace(/\\/g, "/");
-      if (rel === PUBLIC_ROUTE_REL) continue;
+      if (PUBLIC_ROUTES_REL.includes(rel)) continue;
 
       const text = readFileSync(abs, "utf8");
       const hasAuth =

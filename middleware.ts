@@ -8,7 +8,7 @@ import { withCorrelationId } from "@/lib/api/correlation";
  * `route.ts` must call `getAuthedUser()` / `requireAdmin()` or be intentionally public (e.g.
  * `POST /api/auth/check-email`). See `AGENTS.md` and contract tests under `tests/contracts/`.
  */
-const PUBLIC_PREFIXES = ["/auth/", "/api/auth/"];
+const PUBLIC_PREFIXES = ["/auth/", "/api/auth/", "/events/"];
 
 function isPublicPath(pathname: string): boolean {
   if (pathname === "/login") return true;

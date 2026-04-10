@@ -4,6 +4,8 @@ import { AdminHealthPanel } from "@/components/admin/AdminHealthPanel";
 import { UserManagementAdmin } from "@/components/admin/UserManagementAdmin";
 import { PromptEnhancementAdmin } from "@/components/admin/PromptEnhancementAdmin";
 import { FailedGenerationsPanel } from "@/components/admin/FailedGenerationsPanel";
+import { WorkshopEventsAdmin } from "@/components/workshop-registration/WorkshopEventsAdmin";
+import "@/components/workshop-registration/event-page.css";
 
 export default function AdminPage() {
   return (
@@ -21,6 +23,7 @@ export default function AdminPage() {
           </h1>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-xl)" }}>
+            <WorkshopEventsAdmin />
             <AdminHealthPanel />
             <UserManagementAdmin />
             <PromptEnhancementAdmin />
