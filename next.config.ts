@@ -16,7 +16,7 @@ function contentSecurityPolicy(): string | undefined {
     "media-src 'self' data: blob: https:",
     "font-src 'self' https://fonts.gstatic.com",
     [
-      "connect-src 'self'",
+      "connect-src 'self' blob:",
       "https://*.supabase.co",
       "wss://*.supabase.co",
       "https://replicate.delivery",
