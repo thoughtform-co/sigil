@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getAuthedUser } from "@/lib/auth/server";
 import { withCacheHeaders } from "@/lib/api/cache-headers";
 import { projectAccessFilter } from "@/lib/auth/project-access";
-import { hydrateReferenceParameters, sanitizeParametersForTransport } from "@/lib/reference-images";
+import { hydrateReferenceParameters } from "@/lib/reference-images";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 200;
@@ -48,17 +48,13 @@ async function hydrateGenerationReferences<
   return Promise.all(
     generations.map(async (generation) => {
       const parameters = generation.parameters;
-      const hydrated =
+      const hydratedParameters =
         parameters && typeof parameters === "object" && !Array.isArray(parameters)
           ? await hydrateReferenceParameters(parameters as Record<string, unknown>)
           : parameters;
-      const sanitized =
-        hydrated && typeof hydrated === "object" && !Array.isArray(hydrated)
-          ? sanitizeParametersForTransport(hydrated as Record<string, unknown>)
-          : hydrated;
       return {
         ...generation,
-        parameters: sanitized,
+        parameters: hydratedParameters,
       };
     }),
   );
@@ -75,6 +71,9 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const sessionId = searchParams.get("sessionId");
   const projectId = searchParams.get("projectId");
+  const requestedType = searchParams.get("type");
+  const generationType =
+    requestedType === "image" || requestedType === "video" ? requestedType : null;
 
   const accessFilter = await projectAccessFilter(user.id);
 
@@ -91,11 +90,14 @@ export async function GET(request: Request) {
     const cursor = searchParams.get("cursor");
     const latest = searchParams.get("latest") === "true";
     const before = searchParams.get("before");
+    const projectGenerationWhere = generationType
+      ? { session: { projectId, type: generationType } }
+      : { session: { projectId } };
 
     if (latest) {
       const tQuery = performance.now();
       const raw = await prisma.generation.findMany({
-        where: { session: { projectId } },
+        where: projectGenerationWhere,
         orderBy: { createdAt: "desc" },
         take: limit,
         select: GENERATION_SELECT,
@@ -112,7 +114,7 @@ export async function GET(request: Request) {
     if (before) {
       const tQuery = performance.now();
       const raw = await prisma.generation.findMany({
-        where: { session: { projectId } },
+        where: projectGenerationWhere,
         orderBy: { createdAt: "asc" },
         take: -(limit + 1),
         cursor: { id: before },
@@ -130,7 +132,7 @@ export async function GET(request: Request) {
 
     const tQuery = performance.now();
     const generations = await prisma.generation.findMany({
-      where: { session: { projectId } },
+      where: projectGenerationWhere,
       orderBy: { createdAt: "asc" },
       take: limit + 1,
       ...(cursor && { cursor: { id: cursor }, skip: 1 }),

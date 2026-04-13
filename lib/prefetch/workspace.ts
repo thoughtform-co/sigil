@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getAuthedUser } from "@/lib/auth/server";
 import { projectAccessFilter } from "@/lib/auth/project-access";
-import { sanitizeParametersForTransport } from "@/lib/reference-images";
 import type { SessionItem, GenerationItem } from "@/lib/types/generation";
 
 const PREFETCH_LIMIT = 20;
@@ -117,7 +116,7 @@ export async function prefetchWorkspaceData(
         : undefined,
       prompt: g.prompt,
       negativePrompt: g.negativePrompt,
-      parameters: sanitizeParametersForTransport(g.parameters as Record<string, unknown>),
+      parameters: g.parameters as Record<string, unknown>,
       status: g.status,
       modelId: g.modelId,
       createdAt: g.createdAt.toISOString(),
@@ -256,7 +255,7 @@ export async function prefetchWorkspaceShell(
         : undefined,
       prompt: g.prompt,
       negativePrompt: g.negativePrompt,
-      parameters: sanitizeParametersForTransport(g.parameters as Record<string, unknown>),
+      parameters: g.parameters as Record<string, unknown>,
       status: g.status,
       modelId: g.modelId,
       createdAt: g.createdAt.toISOString(),

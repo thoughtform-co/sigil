@@ -128,48 +128,6 @@ export function hasEphemeralReferenceUrls(parameters: Record<string, unknown>): 
   return false;
 }
 
-function isOversizedInlineValue(value: unknown): boolean {
-  if (typeof value !== "string") return false;
-  const v = value.trimStart();
-  return v.startsWith("data:") || v.startsWith("blob:");
-}
-
-/**
- * Strip large inline data-URI / blob-URI values from generation parameters so
- * they can be safely serialized in RSC payloads and API responses without
- * exceeding Vercel's serverless body limits.  Keeps all other keys intact.
- */
-export function sanitizeParametersForTransport(
-  parameters: Record<string, unknown>,
-): Record<string, unknown> {
-  const next = { ...parameters };
-
-  if (isOversizedInlineValue(next.referenceImageUrl)) {
-    delete next.referenceImageUrl;
-  }
-  if (isOversizedInlineValue(next.referenceImage)) {
-    delete next.referenceImage;
-  }
-  if (isOversizedInlineValue(next.endFrameImageUrl)) {
-    delete next.endFrameImageUrl;
-  }
-  if (isOversizedInlineValue(next.endFrameImage)) {
-    delete next.endFrameImage;
-  }
-  if (Array.isArray(next.referenceImages)) {
-    const filtered = next.referenceImages.filter(
-      (item) => !isOversizedInlineValue(item),
-    );
-    if (filtered.length === 0) {
-      delete next.referenceImages;
-    } else {
-      next.referenceImages = filtered;
-    }
-  }
-
-  return next;
-}
-
 export async function hydrateReferenceParameters(
   parameters: Record<string, unknown>,
 ): Promise<Record<string, unknown>> {

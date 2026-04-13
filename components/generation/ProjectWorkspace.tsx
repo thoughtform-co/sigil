@@ -140,7 +140,27 @@ export function ProjectWorkspace({
 
   const hasPrefetch = Boolean(prefetchedData);
   const generationsNeedHydration = prefetchedData?.includesGenerationOutputs === false;
-  const prefetchIsEmpty = (prefetchedData?.generationsPage?.generations?.length ?? 0) === 0;
+  const prefetchedModeSessionIds = useMemo(
+    () =>
+      new Set(
+        (prefetchedData?.sessions ?? [])
+          .filter((session) => session.type === mode)
+          .map((session) => session.id),
+      ),
+    [mode, prefetchedData?.sessions],
+  );
+  const prefetchedGenerationsPage = useMemo(() => {
+    if (mode === "canvas") return undefined;
+    if (!prefetchedData?.generationsPage) return undefined;
+    return {
+      ...prefetchedData.generationsPage,
+      generations: prefetchedData.generationsPage.generations.filter(
+        (generation) =>
+          !generation.sessionId || prefetchedModeSessionIds.has(generation.sessionId),
+      ),
+    };
+  }, [mode, prefetchedData?.generationsPage, prefetchedModeSessionIds]);
+  const prefetchIsEmpty = (prefetchedGenerationsPage?.generations.length ?? 0) === 0;
 
   const [olderGenerations, setOlderGenerations] = useState<GenerationItem[]>([]);
   const [hasOlderHistory, setHasOlderHistory] = useState(true);
@@ -182,6 +202,7 @@ export function ProjectWorkspace({
       if (mode === "canvas") return null;
       if (previousPageData && !previousPageData.nextCursor) return null;
       const params = new URLSearchParams({ projectId, limit: String(GENERATIONS_PAGE_SIZE) });
+      params.set("type", mode);
       if (pageIndex === 0) {
         params.set("latest", "true");
       } else if (previousPageData?.nextCursor) {
@@ -196,8 +217,8 @@ export function ProjectWorkspace({
       revalidateFirstPage: false,
       revalidateOnMount: !hasPrefetch || generationsNeedHydration || prefetchIsEmpty,
       dedupingInterval: 5_000,
-      fallbackData: prefetchedData?.generationsPage
-        ? [prefetchedData.generationsPage]
+      fallbackData: prefetchedGenerationsPage
+        ? [prefetchedGenerationsPage]
         : undefined,
     },
   );
@@ -243,6 +264,7 @@ export function ProjectWorkspace({
         limit: String(GENERATIONS_PAGE_SIZE),
         before: oldestVisibleId,
       });
+      params.set("type", mode);
       const res = await fetch(`/api/generations?${params}`);
       if (!res.ok) return;
       const data = (await res.json()) as GenerationsPage;
