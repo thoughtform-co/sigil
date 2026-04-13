@@ -140,6 +140,7 @@ export function ProjectWorkspace({
 
   const hasPrefetch = Boolean(prefetchedData);
   const generationsNeedHydration = prefetchedData?.includesGenerationOutputs === false;
+  const prefetchIsEmpty = (prefetchedData?.generationsPage?.generations?.length ?? 0) === 0;
 
   const [olderGenerations, setOlderGenerations] = useState<GenerationItem[]>([]);
   const [hasOlderHistory, setHasOlderHistory] = useState(true);
@@ -193,7 +194,7 @@ export function ProjectWorkspace({
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
       revalidateFirstPage: false,
-      revalidateOnMount: !hasPrefetch || generationsNeedHydration,
+      revalidateOnMount: !hasPrefetch || generationsNeedHydration || prefetchIsEmpty,
       dedupingInterval: 5_000,
       fallbackData: prefetchedData?.generationsPage
         ? [prefetchedData.generationsPage]

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getAuthedUser } from "@/lib/auth/server";
 import { withCacheHeaders } from "@/lib/api/cache-headers";
 import { projectAccessFilter } from "@/lib/auth/project-access";
-import { hydrateReferenceParameters } from "@/lib/reference-images";
+import { hydrateReferenceParameters, sanitizeParametersForTransport } from "@/lib/reference-images";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 200;
@@ -48,13 +48,17 @@ async function hydrateGenerationReferences<
   return Promise.all(
     generations.map(async (generation) => {
       const parameters = generation.parameters;
-      const hydratedParameters =
+      const hydrated =
         parameters && typeof parameters === "object" && !Array.isArray(parameters)
           ? await hydrateReferenceParameters(parameters as Record<string, unknown>)
           : parameters;
+      const sanitized =
+        hydrated && typeof hydrated === "object" && !Array.isArray(hydrated)
+          ? sanitizeParametersForTransport(hydrated as Record<string, unknown>)
+          : hydrated;
       return {
         ...generation,
-        parameters: hydratedParameters,
+        parameters: sanitized,
       };
     }),
   );
