@@ -1,7 +1,15 @@
 /**
- * Shared HUD grid constants for Sigil
- * Source: Figma TF node 120:968 "tf-hud-main-semantic dawn" (1920×1080 ref)
- * Right-rail individual tick elements (120:1191–1209) give exact viewport coordinates.
+ * Shared HUD grid constants for Sigil.
+ *
+ * Canonical source: Brand Codex file XO8yGN90SfxiG1hmYPGYXn
+ *   - Brand System page (1767:3744) — reusable HUD primitives + specimens
+ *   - Variable collection "Thoughtform/HUD" (VariableCollectionId:1770:2)
+ *
+ * These constants mirror Astrolabe's lib/navigation/rail-contract.ts.
+ * Keep both in sync until a shared package is introduced.
+ *
+ * Legacy Figma TF refs: node 120:968 (1920×1080 shell ref),
+ *   nodes 120:1191–1209 (right-rail tick geometry).
  */
 
 /** Design reference viewport */

@@ -53,6 +53,16 @@
   --tracking-ui: 0.0125em;
   --tracking-caps: 0.04em;
 
+  /* ── Content rhythm — semantic density presets (not viewport-derived).
+     Compact = telemetry/dense UI; Default = web/editorial; Relaxed = presentation/hero.
+     Source: Brand Codex specimens 1:732 (28px), deck 1:177 (45px). ── */
+  --tf-rhythm-inline: 15px;
+  --tf-rhythm-compact: 20px;
+  --tf-rhythm-default: 28px;
+  --tf-rhythm-large: 36px;
+  --tf-rhythm-relaxed: 45px;
+  --tf-panel-padding: 53px;
+
   /* ── Layout tokens ── */
   --layout-sidebar: 300px;
   --layout-content-sm: 960px;
@@ -119,9 +129,9 @@
   --z-modal: 40;
   --z-nav: 50;
 
-  /* HUD shell — Figma TF grid (1920×1080 ref, node 120:968)
-     Corners at y=50px top/bottom, guide line at x≈49px from each edge.
-     Corner stub height 30px, gap to guide ~14px → corner zone total ≈44px. */
+  /* HUD shell — Brand Codex Brand System (1767:3744). Ref 1920×1080.
+     Shared contract with Astrolabe (lib/navigation/rail-contract.ts).
+     Corner stub 23px, arm 24px, guide inset 9px. */
   --hud-margin: clamp(16px, min(2.8125vw, 5vmin), 54px);
   --hud-padding: var(--hud-margin);
   /* Visual width of the rail aside container (contains guide + outward ticks) */
@@ -303,8 +313,8 @@ body {
 }
 
 /* ─── HUD CORNER BRACKETS ───
-   Figma node 120:415 "tf-hud-main-latent-night-2-straight-corners":
-   Non-intersecting L-shape. Stub (23px) and arm (24px) meet at the same point.
+   Source: Brand Codex Brand System page (1767:3744), HudCornerBracket component.
+   Non-intersecting L-shape (clean-vertex rule). Stub 23px, arm 24px.
    Arm extends inward from the guide x; stub extends away from the corner edge. */
 
 .hud-corner {
