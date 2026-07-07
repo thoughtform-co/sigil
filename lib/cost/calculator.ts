@@ -13,6 +13,7 @@ const IMAGE_MODEL_COST: Record<string, number> = {
   "nano-banana-backup": 0.04,
   "gemini-2.5-flash-image": 0.04,
   "fal-seedream-4": 0.04,
+  "openai-gpt-image-2": 0.053,
 };
 
 const VIDEO_PER_SECOND_COST: Record<string, number> = {

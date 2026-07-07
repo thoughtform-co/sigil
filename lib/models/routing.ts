@@ -7,6 +7,7 @@ type RoutingResult = {
 const hasGeminiKey = () => Boolean(process.env.GEMINI_API_KEY);
 const hasFalKey = () => Boolean(process.env.FAL_KEY);
 const hasKlingKeys = () => Boolean(process.env.KLING_ACCESS_KEY && process.env.KLING_SECRET_KEY);
+const hasOpenAIKey = () => Boolean(process.env.OPENAI_API_KEY);
 
 export function routeModel(modelId: string): RoutingResult {
   if (modelId === "gemini-nano-banana-pro" && !hasGeminiKey()) {
@@ -38,6 +39,14 @@ export function routeModel(modelId: string): RoutingResult {
       modelId: "kling-2.6",
       routed: true,
       reason: "Kling official keys missing, routed to Replicate Kling",
+    };
+  }
+
+  if (modelId === "openai-gpt-image-2" && !hasOpenAIKey()) {
+    return {
+      modelId: "nano-banana-backup",
+      routed: true,
+      reason: "OPENAI_API_KEY missing, routed to Replicate backup image model",
     };
   }
 

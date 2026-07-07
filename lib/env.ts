@@ -15,6 +15,7 @@ const envSchema = z.object({
   FAL_KEY: z.string().optional(),
   KLING_ACCESS_KEY: z.string().optional(),
   KLING_SECRET_KEY: z.string().optional(),
+  OPENAI_API_KEY: z.string().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
   ANTHROPIC_PROMPT_ENHANCE_MODEL: z.string().optional(),
   NOTION_API_KEY: z.string().optional(),

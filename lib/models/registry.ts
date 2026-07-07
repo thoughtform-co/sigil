@@ -8,6 +8,7 @@ import {
   SEEDREAM_4_CONFIG,
 } from "@/lib/models/adapters/replicate";
 import { KLING_OFFICIAL_CONFIG, KlingOfficialAdapter } from "@/lib/models/adapters/kling";
+import { GPT_IMAGE_2_CONFIG, OpenAIAdapter } from "@/lib/models/adapters/openai";
 
 type AdapterCtor = new (config: ModelConfig) => BaseModelAdapter;
 
@@ -30,6 +31,8 @@ class ModelRegistry {
     this.register(NANO_BANANA_BACKUP_CONFIG, ReplicateAdapter);
 
     this.register(KLING_OFFICIAL_CONFIG, KlingOfficialAdapter);
+
+    this.register(GPT_IMAGE_2_CONFIG, OpenAIAdapter);
   }
 
   register(config: ModelConfig, adapter: AdapterCtor) {
