@@ -6,7 +6,11 @@
   grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
   gap: 16px;
   width: 100%;
-  max-width: calc(var(--layout-content-md, 1200px) - 80px);
+  /* Cap the row so a single output renders at ~480px wide (Vesper parity)
+     instead of ballooning to the full content width on large monitors:
+     300px prompt column + 16px gap + 480px media track. Keep the 480 in sync
+     with MEDIA_MAX_PX in ForgeGallery.tsx (virtual row-height estimate). */
+  max-width: calc(300px + 16px + 480px);
   background: transparent;
   /* contain: layout isolates each card's layout so the virtualizer can measure
      it without interference from sibling rows. overflow: clip prevents

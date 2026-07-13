@@ -9,6 +9,10 @@ import styles from "./ForgeGallery.module.css";
 
 const VIRTUAL_THRESHOLD = 4;
 const INITIAL_ANCHOR_STABLE_FRAMES = 8;
+/** Max rendered width of a single media output, in px. Keep in sync with the
+ *  `.card` max-width cap (300px prompt + 16px gap + 480px media) in
+ *  ForgeGenerationCard.module.css. */
+const MEDIA_MAX_PX = 480;
 
 function FeedSeparator() {
   return (
@@ -411,8 +415,9 @@ export function ForgeGallery({
           const aw = Number(parts[0]);
           const ah = Number(parts[1]);
           if (aw > 0 && ah > 0) {
-            // Left prompt column (max 300px) + card gap (16px)
-            const mediaColWidth = Math.max(0, feedWidth - 316);
+            // Left prompt column (max 300px) + card gap (16px), then capped to
+            // the media width (matches the .card max-width in the CSS module).
+            const mediaColWidth = Math.min(MEDIA_MAX_PX, Math.max(0, feedWidth - 316));
             // Media frame height + action bar (~38px)
             const mediaFrameH = mediaColWidth * (ah / aw) + 38;
             // Card row height = taller of prompt panel (380px fixed) and media

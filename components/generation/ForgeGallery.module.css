@@ -82,7 +82,9 @@
   grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
   gap: 16px;
   width: 100%;
-  max-width: calc(var(--layout-content-md, 1200px) - 80px);
+  /* Match .card cap in ForgeGenerationCard.module.css so loading placeholders
+     are the same size as real rows: 300px prompt + 16px gap + 480px media. */
+  max-width: calc(300px + 16px + 480px);
 }
 
 .skeleton + .skeleton {
