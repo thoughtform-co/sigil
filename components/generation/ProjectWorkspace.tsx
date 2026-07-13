@@ -6,6 +6,11 @@ import useSWR from "swr";
 import useSWRInfinite from "swr/infinite";
 import type { GenerationItem, GenerationType, ModelItem, SessionItem } from "@/components/generation/types";
 import { pickPreferredModelId } from "@/lib/models/preferences";
+import {
+  DEFAULT_ASPECT_RATIOS,
+  detectClosestAspectRatio,
+  snapLabelToSupported,
+} from "@/lib/models/aspect-ratio";
 import { useGenerationsRealtime } from "@/hooks/useGenerationsRealtime";
 import { ForgeGallery } from "@/components/generation/ForgeGallery";
 import { ForgePromptBar } from "@/components/generation/ForgePromptBar";
@@ -16,29 +21,6 @@ import {
   prepareImageFileForUpload,
   uploadReferenceImageMultipart,
 } from "@/lib/client/reference-upload";
-
-const DEFAULT_ASPECT_RATIOS = ["1:1", "16:9", "9:16", "4:3", "3:4"];
-
-function detectClosestAspectRatio(
-  width: number,
-  height: number,
-  supported: string[],
-): string | null {
-  if (width <= 0 || height <= 0 || supported.length === 0) return null;
-  const ratio = width / height;
-  let closest = supported[0];
-  let minDiff = Infinity;
-  for (const label of supported) {
-    const [w, h] = label.split(":").map(Number);
-    if (!w || !h) continue;
-    const diff = Math.abs(ratio - w / h);
-    if (diff < minDiff) {
-      minDiff = diff;
-      closest = label;
-    }
-  }
-  return closest ?? null;
-}
 
 /** Map ConvertToVideoModal / provider labels to Forge video tab resolution strings (pixel long side). */
 function normalizeReusedResolution(value: unknown): string | undefined {
@@ -547,6 +529,33 @@ export function ProjectWorkspace({
     [compatibleModels, modelId],
   );
   const supportsEndFrame = mode === "video" && !!selectedModelConfig?.capabilities?.["frame-interpolation"];
+
+  // Keep the aspect ratio valid when the selected model changes. Only re-snap
+  // when the current ratio is unsupported by the new model — a still-valid
+  // ratio (manual pick or a previously-derived one) is never overridden.
+  // Prefer the FIRST reference image so the character reference keeps driving
+  // the ratio; fall back to mapping the current label, then the first option.
+  useEffect(() => {
+    const supported = selectedModelConfig?.supportedAspectRatios?.length
+      ? selectedModelConfig.supportedAspectRatios
+      : DEFAULT_ASPECT_RATIOS;
+    if (supported.includes(aspectRatio)) return;
+
+    const firstRef = referenceImages[0];
+    const fallback = () =>
+      setAspectRatio(snapLabelToSupported(aspectRatio, supported) ?? supported[0]);
+    if (firstRef) {
+      const img = new window.Image();
+      img.onload = () => {
+        const match = detectClosestAspectRatio(img.naturalWidth, img.naturalHeight, supported);
+        setAspectRatio(match ?? supported[0]);
+      };
+      img.onerror = fallback;
+      img.src = firstRef;
+    } else {
+      fallback();
+    }
+  }, [modelId, selectedModelConfig, aspectRatio, referenceImages]);
 
   const handleEndFrameChange = useCallback((url: string, path?: string) => {
     setEndFrameUrl(url);

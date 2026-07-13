@@ -1,11 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Handle, Position, type NodeProps, useReactFlow } from "@xyflow/react";
 import { BaseNode } from "./BaseNode";
 import { useCanvasStore } from "../stores/canvasStore";
 import type { ModelItem } from "@/components/generation/types";
 import { uploadDataUrlAsMultipart } from "@/lib/client/reference-upload";
+import {
+  DEFAULT_ASPECT_RATIOS,
+  detectClosestAspectRatio,
+  snapLabelToSupported,
+} from "@/lib/models/aspect-ratio";
 import styles from "./ImageGenNode.module.css";
 
 export type ImageGenNodeData = {
@@ -36,6 +41,11 @@ export function ImageGenNode({ id, data: rawData, selected }: ImageGenProps) {
   const resolution = data?.resolution ?? "4096";
   const referenceImageUrl = data?.referenceImageUrl ?? "";
 
+  const selectedModel = models.find((m) => m.id === modelId);
+  const supportedAspectRatios = selectedModel?.supportedAspectRatios?.length
+    ? selectedModel.supportedAspectRatios
+    : DEFAULT_ASPECT_RATIOS;
+
   useEffect(() => {
     let cancelled = false;
     fetch("/api/models?type=image", { cache: "no-store" })
@@ -59,6 +69,45 @@ export function ImageGenNode({ id, data: rawData, selected }: ImageGenProps) {
     },
     [id, setNodes]
   );
+
+  // Snap the aspect ratio to the reference image when a NEW reference URL is
+  // set (empty → non-empty, or replaced). The mount value is recorded without
+  // snapping so a restored node keeps its saved ratio.
+  const prevRefUrlRef = useRef<string | null>(null);
+  useEffect(() => {
+    const url = referenceImageUrl.trim();
+    const prev = prevRefUrlRef.current;
+    prevRefUrlRef.current = url;
+    if (prev === null) return;
+    if (!url || url === prev) return;
+    const img = new window.Image();
+    img.onload = () => {
+      const match = detectClosestAspectRatio(img.naturalWidth, img.naturalHeight, supportedAspectRatios);
+      if (match) updateData({ aspectRatio: match });
+    };
+    img.src = url;
+  }, [referenceImageUrl, supportedAspectRatios, updateData]);
+
+  // Keep the aspect ratio valid when the model changes. Only re-snap when the
+  // current ratio is unsupported by the new model, preferring the reference
+  // image's dimensions so it keeps driving the ratio.
+  useEffect(() => {
+    if (supportedAspectRatios.includes(aspectRatio)) return;
+    const url = referenceImageUrl.trim();
+    const fallback = () =>
+      updateData({ aspectRatio: snapLabelToSupported(aspectRatio, supportedAspectRatios) ?? supportedAspectRatios[0] });
+    if (url) {
+      const img = new window.Image();
+      img.onload = () => {
+        const match = detectClosestAspectRatio(img.naturalWidth, img.naturalHeight, supportedAspectRatios);
+        updateData({ aspectRatio: match ?? supportedAspectRatios[0] });
+      };
+      img.onerror = fallback;
+      img.src = url;
+    } else {
+      fallback();
+    }
+  }, [modelId, supportedAspectRatios, aspectRatio, referenceImageUrl, updateData]);
 
   const projectId = useCanvasStore((s) => s.projectId);
   const setEdges = useCanvasStore((s) => s.setEdges);
@@ -224,9 +273,11 @@ export function ImageGenNode({ id, data: rawData, selected }: ImageGenProps) {
             onChange={(e) => updateData({ aspectRatio: e.target.value })}
             disabled={busy}
           >
-            <option value="1:1">1:1</option>
-            <option value="16:9">16:9</option>
-            <option value="9:16">9:16</option>
+            {supportedAspectRatios.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
           </select>
           <select
             className={`${styles.select} nodrag`}

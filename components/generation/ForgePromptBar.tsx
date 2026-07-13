@@ -4,35 +4,14 @@ import Link from "next/link";
 import { useRef, useState, useEffect, useCallback } from "react";
 import type { GenerationType, ModelItem } from "@/components/generation/types";
 import { ImageBrowseModal } from "@/components/generation/ImageBrowseModal";
+import { DEFAULT_ASPECT_RATIOS, detectClosestAspectRatio } from "@/lib/models/aspect-ratio";
 import styles from "./ForgePromptBar.module.css";
 
-const DEFAULT_ASPECT_RATIOS = ["1:1", "16:9", "9:16", "4:3", "3:4"];
 const PROMPT_MIN_HEIGHT = 52;
 const PROMPT_MAX_HEIGHT = 300;
 
 /** Matches [`app/api/upload/reference-image/route.ts`](app/api/upload/reference-image/route.ts) MAX_FILE_SIZE */
 const MAX_END_FRAME_FILE_BYTES = 25 * 1024 * 1024;
-
-function detectClosestAspectRatio(
-  width: number,
-  height: number,
-  supported: string[],
-): string | null {
-  if (width <= 0 || height <= 0 || supported.length === 0) return null;
-  const ratio = width / height;
-  let closest = supported[0];
-  let minDiff = Infinity;
-  for (const label of supported) {
-    const [w, h] = label.split(":").map(Number);
-    if (!w || !h) continue;
-    const diff = Math.abs(ratio - w / h);
-    if (diff < minDiff) {
-      minDiff = diff;
-      closest = label;
-    }
-  }
-  return closest;
-}
 
 type ForgePromptBarProps = {
   projectId: string;
