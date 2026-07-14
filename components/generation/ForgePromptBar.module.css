@@ -304,6 +304,32 @@
   line-height: 1.3;
 }
 
+/* Drop-to-replace: a dragged file is hovering this reference slot. */
+.attachThumbReplace {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px var(--gold), 0 0 8px var(--gold-30);
+}
+
+.attachThumbReplace img {
+  opacity: 0.45;
+}
+
+.replaceHint {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 7px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold);
+  background: rgba(5, 4, 3, 0.55);
+  pointer-events: none;
+}
+
 /* Prompt + params column */
 .promptAndParams {
   flex: 1;

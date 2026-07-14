@@ -103,6 +103,8 @@ export function ForgePromptBar({
   const resizeHandleRef = useRef<HTMLDivElement>(null);
   const [showEndFrameMenu, setShowEndFrameMenu] = useState(false);
   const [browseTarget, setBrowseTarget] = useState<"reference" | "endFrame">("reference");
+  /** Reference slot currently hovered by a dragged file; that slot will be replaced in place on drop. */
+  const [replaceTargetIndex, setReplaceTargetIndex] = useState<number | null>(null);
   /** Blob URL for thumb while multipart upload is in flight (parent endFrameUrl is empty until done). */
   const [endFrameLocalPreview, setEndFrameLocalPreview] = useState<string | null>(null);
   const endFrameLocalPreviewRef = useRef<string | null>(null);
@@ -435,6 +437,33 @@ export function ForgePromptBar({
     [onReferenceImagesChange, referenceImages],
   );
 
+  /**
+   * Drop a file directly onto an existing reference thumbnail to replace that slot
+   * in place, preserving overall order. The first dropped image takes the hovered
+   * slot; any extra images append to the end (matching the multi-drop behavior of
+   * {@link handleDrop}). Unlike an append, this never re-snaps the aspect ratio.
+   */
+  const handleReferenceSlotDrop = useCallback(
+    (index: number) => (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation(); // keep the container's handleDrop from also appending
+      setReplaceTargetIndex(null);
+      const files = Array.from(e.dataTransfer.files ?? []).filter((file) =>
+        file.type.startsWith("image/"),
+      );
+      if (files.length === 0) return;
+      const objectUrls = files.map((file) => URL.createObjectURL(file));
+      const next = referenceImages.map((existing, idx) =>
+        idx === index ? objectUrls[0] : existing,
+      );
+      for (const extra of objectUrls.slice(1)) {
+        if (!next.includes(extra)) next.push(extra);
+      }
+      onReferenceImagesChange(next);
+    },
+    [referenceImages, onReferenceImagesChange],
+  );
+
   const addReferenceFromUrl = useCallback(() => {
     const url = urlInputValue.trim();
     if (!url) return;
@@ -615,9 +644,27 @@ export function ForgePromptBar({
                 )}
               </div>
               {referenceImages.map((ref, index) => (
-                <div key={`${ref}-${index}`} className={styles.attachThumb}>
+                <div
+                  key={`${ref}-${index}`}
+                  className={`${styles.attachThumb} ${replaceTargetIndex === index ? styles.attachThumbReplace : ""}`}
+                  onDragOver={(e) => {
+                    if (!e.dataTransfer.types.includes("Files")) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (replaceTargetIndex !== index) setReplaceTargetIndex(index);
+                  }}
+                  onDragLeave={(e) => {
+                    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+                      setReplaceTargetIndex((cur) => (cur === index ? null : cur));
+                    }
+                  }}
+                  onDrop={handleReferenceSlotDrop(index)}
+                >
                   {generationType === "video" && index === 0 && (
                     <span className={styles.frameTag}>START</span>
+                  )}
+                  {replaceTargetIndex === index && (
+                    <span className={styles.replaceHint}>REPLACE</span>
                   )}
                   <img
                     src={ref}
