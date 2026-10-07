@@ -19,7 +19,8 @@ const IMAGE_MODEL_COST: Record<string, number> = {
 const VIDEO_PER_SECOND_COST: Record<string, number> = {
   "kling-2.6": 0.01,
   "kling-official": 0.01,
-  "veo-3.1": 0.02,
+  // "veo-3.1" now resolves to Gemini Omni Flash: about $0.10/s at 720p.
+  "veo-3.1": 0.1,
 };
 
 export function calculateGenerationCost({
