@@ -40,24 +40,21 @@ export const NANO_BANANA_CONFIG: ModelConfig = {
 
 export const NANO_BANANA_2_CONFIG: ModelConfig = {
   id: "gemini-nano-banana-2",
-  name: "Nano Banana 2",
+  name: "Nano Banana 2.1",
   provider: "Google",
   type: "image",
-  description: "Gemini 3.1 Flash Image - High-efficiency generation optimized for speed",
+  description: "Nano Banana 2.1 - High-efficiency generation optimized for speed",
   defaultAspectRatio: "1:1",
   maxResolution: 4096,
+  // Nano Banana 2.1 does not list NB2's extreme ratios (1:4, 4:1, 1:8, 8:1).
   supportedAspectRatios: [
     "1:1",
-    "1:4",
-    "1:8",
     "2:3",
     "3:2",
     "3:4",
-    "4:1",
     "4:3",
     "4:5",
     "5:4",
-    "8:1",
     "9:16",
     "16:9",
     "21:9",
@@ -73,10 +70,10 @@ export const NANO_BANANA_2_CONFIG: ModelConfig = {
 
 export const VEO_3_1_CONFIG: ModelConfig = {
   id: "veo-3.1",
-  name: "Veo 3.1",
+  name: "Gemini Omni Flash",
   provider: "google",
   type: "video",
-  description: "High quality text-to-video generation model.",
+  description: "Gemini Omni Flash - text, image and frame-to-frame video generation.",
   capabilities: {
     "text-2-video": true,
     "image-2-video": true,
@@ -85,10 +82,11 @@ export const VEO_3_1_CONFIG: ModelConfig = {
 };
 
 const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
-const GEMINI_MODEL = "gemini-3-pro-image-preview";
+const GEMINI_MODEL = "gemini-3-pro-image";
 const MAX_RETRIES = 4;
 const IMAGE_DELAY_MS = 2000;
 const GEMINI_API_TIMEOUT_MS = 120_000;
+const OMNI_API_TIMEOUT_MS = 240_000;
 const REPLICATE_FETCH_TIMEOUT_MS = 15_000;
 const MAX_CONSECUTIVE_UNAVAILABLE = 2;
 const MAX_INLINE_REFERENCE_IMAGES = 6;
@@ -98,8 +96,9 @@ const MAX_REFERENCE_DATAURL_BYTES = 25 * 1024 * 1024;
 const REFERENCE_SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 30;
 
 const GEMINI_MODEL_MAP: Record<string, string> = {
-  "gemini-nano-banana-pro": "gemini-3-pro-image-preview",
-  "gemini-nano-banana-2": "gemini-3.1-flash-image-preview",
+  "gemini-nano-banana-pro": "gemini-3-pro-image",
+  // The key stays "gemini-nano-banana-2" because stored generations carry it.
+  "gemini-nano-banana-2": "gemini-nano-banana-2.1",
 };
 
 const ASPECT_RATIO_DIMS: Record<string, { width: number; height: number }> = {
@@ -576,7 +575,9 @@ export class GeminiAdapter extends BaseModelAdapter {
     return [];
   }
 
-  // ── Video: Veo 3.1 when API key present, else Replicate Kling ───────
+  // ── Video: Gemini Omni Flash when API key present, else Replicate Kling ───
+  // The "veo-3.1" key is kept because stored generations carry it; Veo 3.1
+  // preview shuts down 2026-10-22 and Google's migration target is Omni Flash.
 
   private async generateVideo(request: GenerationRequest): Promise<GenerationResponse> {
     if (!this.apiKey) {
@@ -591,14 +592,14 @@ export class GeminiAdapter extends BaseModelAdapter {
       }
       return { ...result, error: result.error || "Video generation failed" };
     }
-    return this.generateVideoVeo(request);
+    return this.generateVideoOmni(request);
   }
 
-  private async generateVideoVeo(request: GenerationRequest): Promise<GenerationResponse> {
+  private async generateVideoOmni(request: GenerationRequest): Promise<GenerationResponse> {
     const parameters = (request as { parameters?: Record<string, unknown> }).parameters ?? {};
     const rawAspectRatio = (parameters.aspectRatio as string) ?? request.aspectRatio ?? "16:9";
-    const VEO_SUPPORTED_RATIOS = ["16:9", "9:16"];
-    const aspectRatio = VEO_SUPPORTED_RATIOS.includes(rawAspectRatio) ? rawAspectRatio : "16:9";
+    const OMNI_SUPPORTED_RATIOS = ["16:9", "9:16"];
+    const aspectRatio = OMNI_SUPPORTED_RATIOS.includes(rawAspectRatio) ? rawAspectRatio : "16:9";
     const resolutionRaw = parameters.resolution ?? request.resolution ?? 720;
     const resolution =
       typeof resolutionRaw === "number"
@@ -608,8 +609,8 @@ export class GeminiAdapter extends BaseModelAdapter {
           : String(resolutionRaw).toLowerCase() === "1080p"
             ? 1080
             : 720;
-    let duration = Math.min(8, Math.max(4, Number(parameters.duration ?? request.duration ?? 8)));
-    if (resolution === 1080 || resolution === 2160) duration = 8;
+    // Omni runs typically 3-10 s.
+    const duration = Math.min(10, Math.max(3, Number(parameters.duration ?? request.duration ?? 8)));
 
     const getDimensions = (ar: string, res: number) => {
       if (ar === "16:9") {
@@ -626,8 +627,9 @@ export class GeminiAdapter extends BaseModelAdapter {
     };
     const { width, height } = getDimensions(aspectRatio, resolution);
 
-    const modelId = "veo-3.1-generate-preview";
-    const endpoint = `${GEMINI_BASE_URL}/models/${modelId}:predictLongRunning`;
+    // Omni is Interactions API only, not predictLongRunning.
+    const modelId = "gemini-omni-1.1-flash";
+    const endpoint = `${GEMINI_BASE_URL}/interactions`;
 
     const parseImageInput = async (
       dataUrl: string | undefined,
@@ -662,94 +664,93 @@ export class GeminiAdapter extends BaseModelAdapter {
       parameters.endFrameImageUrl as string | undefined
     );
 
-    type ImageSchema = "bytesBase64Encoded" | "inlineData";
-    const buildImageObject = (base64: string, mime: string, schema: ImageSchema) =>
-      schema === "bytesBase64Encoded"
-        ? { bytesBase64Encoded: base64, mimeType: mime }
-        : { inlineData: { mimeType: mime, data: base64 } };
+    // Omni has no duration parameter (Veo's durationSeconds is gone), so the
+    // length is said in the prompt.
+    const prompt = `${request.prompt}\n\nLength: about ${duration} seconds.`;
 
-    const buildPayload = (schema: ImageSchema) => {
-      const instance: Record<string, unknown> = { prompt: request.prompt };
-      if (startFrame) {
-        instance.image = buildImageObject(
-          startFrame.bytes.toString("base64"),
-          startFrame.contentType,
-          schema
-        );
-      }
-      const payload: Record<string, unknown> = {
-        instances: [instance],
-        parameters: {
-          aspectRatio,
-          resolution: resolution === 2160 ? "4k" : resolution === 1080 ? "1080p" : "720p",
-          durationSeconds: duration,
-        },
-      };
-      if (endFrame) {
-        (payload.parameters as Record<string, unknown>).lastFrame = buildImageObject(
-          endFrame.bytes.toString("base64"),
-          endFrame.contentType,
-          schema
-        );
-      }
-      return payload;
+    // Images then text. Start and end frame together = first/last frame
+    // interpolation; a single image is read as a subject reference, not a
+    // guaranteed first frame.
+    const imageParts = [startFrame, endFrame]
+      .filter((frame): frame is { bytes: Buffer; contentType: string } => frame !== null)
+      .map((frame) => ({ type: "image", data: frame.bytes.toString("base64"), mime_type: frame.contentType }));
+    const input = imageParts.length > 0 ? [...imageParts, { type: "text", text: prompt }] : prompt;
+
+    // Inline output only holds videos under 4 MB: ask for a file at 1080p and 4K.
+    const delivery = resolution >= 1080 ? "uri" : undefined;
+    const payload = {
+      model: modelId,
+      input,
+      response_format: {
+        type: "video",
+        aspect_ratio: aspectRatio,
+        resolution: resolution === 2160 ? "4k" : resolution === 1080 ? "1080p" : "720p",
+        ...(delivery ? { delivery } : {}),
+      },
     };
 
-    const makeRequest = async (payload: Record<string, unknown>) =>
-      fetch(endpoint, {
+    const controller = new AbortController();
+    const fetchTimeout = setTimeout(() => controller.abort(), OMNI_API_TIMEOUT_MS);
+    let response: Response;
+    try {
+      response = await fetch(endpoint, {
         method: "POST",
         headers: { "x-goog-api-key": this.apiKey, "Content-Type": "application/json" },
         body: JSON.stringify(payload),
+        signal: controller.signal,
       });
-
-    const isSchemaError = (msg: string): ImageSchema | null => {
-      const m = msg.toLowerCase();
-      if (m.includes("inlinedata") && (m.includes("isn't supported") || m.includes("not supported"))) return "bytesBase64Encoded";
-      if (m.includes("bytesbase64encoded") && (m.includes("isn't supported") || m.includes("not supported"))) return "inlineData";
-      return null;
-    };
-
-    let schema: ImageSchema = "bytesBase64Encoded";
-    let response = await makeRequest(buildPayload(schema));
+    } finally {
+      clearTimeout(fetchTimeout);
+    }
     if (!response.ok) {
       const errData = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
-      const errMsg = errData?.error?.message ?? "Video generation request failed";
-      const alt = isSchemaError(errMsg);
-      if (alt && alt !== schema) {
-        schema = alt;
-        response = await makeRequest(buildPayload(schema));
-      }
-      if (!response.ok) {
-        const retryErr = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
-        throw new Error(retryErr?.error?.message ?? errMsg);
-      }
+      throw new Error(errData?.error?.message ?? `Omni video request failed (${response.status})`);
     }
 
-    const operation = (await response.json()) as { name?: string };
-    const operationName = operation.name;
-    if (!operationName) throw new Error("No operation name in Veo response");
+    const interaction = (await response.json()) as {
+      id?: string;
+      output_video?: { data?: string; mime_type?: string; uri?: string };
+    };
+    const video = interaction.output_video;
+    let url: string;
+    if (video?.data) {
+      url = `data:${video.mime_type ?? "video/mp4"};base64,${video.data}`;
+    } else if (video?.uri) {
+      url = await this.downloadOmniFile(video.uri);
+    } else {
+      throw new Error("No video in Omni response");
+    }
 
+    return {
+      id: `gen-${Date.now()}`,
+      status: "completed",
+      outputs: [{ url, width, height, duration }],
+      metadata: { model: this.config.id, apiModel: modelId, interactionId: interaction.id },
+    };
+  }
+
+  // UNVERIFIED by a live call: Google documents "poll the file until state is
+  // ACTIVE, then download" for delivery "uri"; the field names read here
+  // (state, downloadUri, mimeType) are the Files API resource's.
+  private async downloadOmniFile(fileUri: string): Promise<string> {
+    const safeFileUri = getSafeFetchUrl(fileUri);
+    if (!safeFileUri) throw new Error("Omni video file URI is not allowed for server-side fetch");
+    const headers = { "x-goog-api-key": this.apiKey };
     const maxAttempts = 30;
     for (let attempts = 0; attempts < maxAttempts; attempts++) {
-      await new Promise((r) => setTimeout(r, 10000));
-      const statusRes = await fetch(`${GEMINI_BASE_URL}/${operationName}`, {
-        headers: { "x-goog-api-key": this.apiKey },
-      });
-      if (!statusRes.ok) throw new Error("Failed to check operation status");
-      const status = (await statusRes.json()) as {
-        done?: boolean;
-        response?: { generateVideoResponse?: { generatedSamples?: Array<{ video?: { uri?: string } }> } };
-      };
-      if (!status.done) continue;
-      const generatedVideo = status.response?.generateVideoResponse?.generatedSamples?.[0];
-      if (!generatedVideo?.video?.uri) throw new Error("No video in response");
-      const videoUri = generatedVideo.video.uri;
-      return {
-        id: `gen-${Date.now()}`,
-        status: "completed",
-        outputs: [{ url: videoUri, width, height, duration }],
-        metadata: { model: this.config.id, operationName },
-      };
+      const metaRes = await fetch(safeFileUri, { headers });
+      if (!metaRes.ok) throw new Error("Failed to check Omni video file status");
+      const file = (await metaRes.json()) as { state?: string; downloadUri?: string; mimeType?: string };
+      if (file.state === "FAILED") throw new Error("Omni video file failed to process");
+      if (file.state === "ACTIVE") {
+        const downloadUrl = file.downloadUri ? getSafeFetchUrl(file.downloadUri) : null;
+        if (!downloadUrl) throw new Error("Omni video file has no usable download URI");
+        const videoRes = await fetch(downloadUrl, { headers });
+        if (!videoRes.ok) throw new Error(`Failed downloading Omni video: ${videoRes.status}`);
+        const buf = Buffer.from(await videoRes.arrayBuffer());
+        return `data:${file.mimeType ?? "video/mp4"};base64,${buf.toString("base64")}`;
+      }
+      await new Promise((r) => setTimeout(r, 5000));
     }
     throw new Error("Video generation timeout");
   }
