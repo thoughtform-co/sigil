@@ -26,6 +26,13 @@ function collectRouteFiles(dir: string, acc: string[] = []): string[] {
 const PUBLIC_ROUTES_REL = [
   "app/api/auth/check-email/route.ts",
   "app/api/workshop-registration/route.ts",
+  // The MCP server authenticates each request with a per-person sign-in token (lib/headless/auth.ts).
+  "app/api/mcp/route.ts",
+  // The OAuth endpoints of that sign-in are public by the standard; codes and tokens are their own proof.
+  "app/api/mcp/oauth/authorize/route.ts",
+  "app/api/mcp/oauth/register/route.ts",
+  "app/api/mcp/oauth/token/route.ts",
+  "app/api/mcp/oauth/revoke/route.ts",
 ];
 
 describe("API route auth coverage", () => {

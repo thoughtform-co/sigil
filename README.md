@@ -24,6 +24,8 @@ The generation suite supports multiple models (Gemini, Replicate, FAL.ai) with p
 
 **Admin dashboard.** Journey and route management, user administration.
 
+**Headless (Claude).** The same generation suite as an MCP server at `/api/mcp`. A person adds the URL to Claude as a connector, signs in with their Sigil login, and Claude draws through Sigil. Provider keys never leave the server, and nobody is handed one. See `docs/headless-sigil.md`.
+
 ## Data hierarchy
 
 | Internal model | UI term | Purpose |

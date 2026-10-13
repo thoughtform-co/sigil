@@ -10,6 +10,8 @@ const updateUserSchema = z.object({
   isDisabled: z.boolean().optional(),
   role: z.enum(["admin", "user"]).optional(),
   displayName: z.string().max(60).optional(),
+  /** Whether this person may connect Claude to Sigil (/api/mcp). Off stops their next call. */
+  mcpAccess: z.boolean().optional(),
 });
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -71,6 +73,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     data: {
       ...(parsed.data.isDisabled !== undefined && { isDisabled: parsed.data.isDisabled }),
       ...(parsed.data.role !== undefined && { role: parsed.data.role }),
+      ...(parsed.data.mcpAccess !== undefined && { mcpAccess: parsed.data.mcpAccess }),
       ...(parsed.data.displayName !== undefined && {
         displayName: normalizeDisplayNameInput(parsed.data.displayName),
       }),
