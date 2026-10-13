@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 const databaseUrl = process.env.DATABASE_URL;
 
@@ -33,26 +33,7 @@ if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-const MAX_RETRIES = 3;
-
-async function warmPrismaConnection(attempt = 0): Promise<void> {
-  try {
-    await prisma.$queryRaw(Prisma.sql`SELECT 1`);
-  } catch (error) {
-    if (attempt >= MAX_RETRIES - 1) {
-      console.error("[SIGIL] Prisma connection failed after retries", error);
-      throw error;
-    }
-    const delay = Math.min(500 * 2 ** attempt, 4000);
-    console.warn(`[SIGIL] Prisma connection failed (attempt ${attempt + 1}). Retrying in ${delay}ms.`);
-    await sleep(delay);
-    return warmPrismaConnection(attempt + 1);
-  }
-}
-
-if (process.env.NODE_ENV !== "test") {
-  warmPrismaConnection().catch((error) => {
-    console.error("[SIGIL] Prisma warmup failed. Subsequent queries may still succeed.", error);
-  });
-}
+// No warm-up query here. One used to run on module load, without being awaited. On Vercel a
+// function is frozen as soon as it has answered, so on a cold start that answers without the
+// database (a 401 from /api/mcp, a discovery document) the warm-up stopped mid-transaction and
+// held a pooler connection until the instance woke again. Prisma connects on the first query.
