@@ -60,6 +60,12 @@ const nextConfig: NextConfig = {
     ],
     formats: ["image/webp", "image/avif"],
   },
+  // sharp (image previews for the MCP server) loads libvips from a sibling package at run time,
+  // which file tracing does not follow on its own.
+  serverExternalPackages: ["sharp"],
+  outputFileTracingIncludes: {
+    "/api/mcp": ["./node_modules/@img/**/*"],
+  },
   experimental: {
     optimizePackageImports: ["@xyflow/react"],
   },
