@@ -141,7 +141,7 @@ async function markFailed(
   } catch (dbErr) {
     console.error(`[generate/process] failed to persist error for ${generationId}:`, dbErr);
   }
-  void broadcastUpdatedGeneration(sessionId, generationId);
+  await broadcastUpdatedGeneration(sessionId, generationId);
 }
 
 function startHeartbeat(generationId: string): () => void {
@@ -313,7 +313,7 @@ export async function processGeneration(generation: ProcessableGeneration): Prom
       });
     });
 
-    void broadcastUpdatedGeneration(generation.sessionId, generation.id);
+    await broadcastUpdatedGeneration(generation.sessionId, generation.id);
 
     return {
       kind: "completed",
