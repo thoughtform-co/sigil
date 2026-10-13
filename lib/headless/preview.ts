@@ -1,11 +1,15 @@
-/** A JPEG small enough to hand back inside a tool result, so Claude can look at what was drawn. */
-
-import sharp from "sharp";
+/**
+ * A JPEG small enough to hand back inside a tool result, so Claude can look at what was drawn.
+ *
+ * sharp is loaded when a preview is made, not when the module is: it is a native library, and if
+ * its binary is missing from a deployment the draw must still come back with its links.
+ */
 
 const LONG_EDGE = 1280;
 
 export async function makeImagePreview(url: string): Promise<{ data: string; mimeType: string } | null> {
   try {
+    const { default: sharp } = await import("sharp");
     const res = await fetch(url);
     if (!res.ok) return null;
     const input = Buffer.from(await res.arrayBuffer());
