@@ -212,8 +212,15 @@ export class GeminiAdapter extends BaseModelAdapter {
 
   private async generateImage(request: GenerationRequest): Promise<GenerationResponse> {
     const numImages = request.numOutputs || 1;
+    // `allowFallback: false` (the MCP server sends it): the picture comes from the model that was
+    // asked for, or the draw fails and says so. Never a quiet switch to the Replicate backup.
+    const allowFallback =
+      ((request as { parameters?: Record<string, unknown> }).parameters ?? {}).allowFallback !== false;
 
     if (!this.apiKey) {
+      if (!allowFallback) {
+        throw new Error(`${this.config.name} is not available on this server right now (no Google key is configured).`);
+      }
       console.log("[Gemini] No GEMINI_API_KEY, using Replicate fallback");
       return this.generateAllViaReplicate(request, numImages);
     }
@@ -230,7 +237,7 @@ export class GeminiAdapter extends BaseModelAdapter {
         lastError = err instanceof Error ? err.message : "Unknown error";
         console.error(`[Gemini] Image ${i + 1}/${numImages} failed: ${lastError}`);
 
-        if (this.replicateKey) {
+        if (this.replicateKey && allowFallback) {
           console.log(`[Gemini] Attempting Replicate fallback for image ${i + 1}`);
           try {
             const fallback = await this.generateImageReplicate(request);
@@ -311,16 +318,42 @@ export class GeminiAdapter extends BaseModelAdapter {
     throw lastError || new Error("Generation failed after retries");
   }
 
+  /**
+   * The final render of a Gemini image reply (ported from Vesper).
+   *
+   * Gemini 3 image models think: before the finished picture they emit up to two interim
+   * "thought images", hazy composition drafts, as image parts of the same reply. Taking the first
+   * image part returns a draft. Google's documented order: the last image part not flagged
+   * `thought`, else the last one carrying a thought signature (only the final has one), else the
+   * last image part.
+   * Docs: https://ai.google.dev/gemini-api/docs/image-generation (Thinking process)
+   */
+  private selectFinalImagePart(parts: unknown): { inlineData: { mimeType: string; data: string } } | null {
+    if (!Array.isArray(parts)) return null;
+    type Part = { inlineData?: { mimeType?: string; data?: string }; thought?: boolean; thoughtSignature?: string; thought_signature?: string };
+    const images = (parts as Part[]).filter(
+      (part) => typeof part?.inlineData?.mimeType === "string" && part.inlineData.mimeType.startsWith("image/") && part.inlineData.data,
+    );
+    if (images.length === 0) return null;
+    const finished = images.filter((part) => part.thought !== true);
+    const signed = images.filter((part) => part.thoughtSignature || part.thought_signature);
+    const chosen = finished.at(-1) ?? signed.at(-1) ?? images.at(-1)!;
+    return chosen as { inlineData: { mimeType: string; data: string } };
+  }
+
   private async callGeminiAPI(
     request: GenerationRequest,
   ): Promise<{ url: string; width: number; height: number }> {
     const geminiModel = GEMINI_MODEL_MAP[this.config.id] || GEMINI_MODEL;
     const endpoint = `${GEMINI_BASE_URL}/models/${geminiModel}:generateContent`;
-    const parts: Array<Record<string, unknown>> = [{ text: request.prompt }];
     const parameters = ((request as { parameters?: Record<string, unknown> }).parameters ?? {}) as Record<
       string,
       unknown
     >;
+    // The web app sends the prompt, then the references. A caller that asks for
+    // `referencesFirst` (the MCP server) gets the references, then the prompt.
+    const referencesFirst = parameters.referencesFirst === true;
+    const parts: Array<Record<string, unknown>> = referencesFirst ? [] : [{ text: request.prompt }];
 
     const refImagesRaw = collectReferenceImages(request, parameters);
     const refImages = refImagesRaw.slice(0, MAX_INLINE_REFERENCE_IMAGES);
@@ -370,6 +403,8 @@ export class GeminiAdapter extends BaseModelAdapter {
       }
     }
 
+    if (referencesFirst) parts.push({ text: request.prompt });
+
     const aspectRatio = request.aspectRatio || "1:1";
     const resolution = Number(request.resolution) || 1024;
     const imageSize = resolution >= 4096 ? "4K" : resolution >= 2048 ? "2K" : "1K";
@@ -418,13 +453,7 @@ export class GeminiAdapter extends BaseModelAdapter {
       throw new Error("No candidates returned. The prompt may have been filtered. Try rephrasing.");
     }
 
-    const imagePart = candidates[0]?.content?.parts?.find(
-      (p: Record<string, unknown>) =>
-        typeof p.inlineData === "object" &&
-        p.inlineData !== null &&
-        typeof (p.inlineData as Record<string, unknown>).mimeType === "string" &&
-        ((p.inlineData as Record<string, unknown>).mimeType as string).startsWith("image/"),
-    );
+    const imagePart = this.selectFinalImagePart(candidates[0]?.content?.parts);
 
     if (!imagePart?.inlineData?.data) {
       throw new Error(
@@ -580,6 +609,9 @@ export class GeminiAdapter extends BaseModelAdapter {
 
   private async generateVideo(request: GenerationRequest): Promise<GenerationResponse> {
     if (!this.apiKey) {
+      if (((request as { parameters?: Record<string, unknown> }).parameters ?? {}).allowFallback === false) {
+        throw new Error(`${this.config.name} is not available on this server right now (no Google key is configured).`);
+      }
       const { KLING_2_6_CONFIG, ReplicateAdapter } = await import("@/lib/models/adapters/replicate");
       const delegate = new ReplicateAdapter(KLING_2_6_CONFIG);
       const result = await delegate.generate(request);
@@ -685,8 +717,9 @@ export class GeminiAdapter extends BaseModelAdapter {
           durationSeconds: duration,
         },
       };
+      // lastFrame lives in the instance beside prompt and image, not in parameters (as in Vesper).
       if (endFrame) {
-        (payload.parameters as Record<string, unknown>).lastFrame = buildImageObject(
+        instance.lastFrame = buildImageObject(
           endFrame.bytes.toString("base64"),
           endFrame.contentType,
           schema

@@ -44,6 +44,25 @@ const VIDEO_MODEL_SPECS: Record<string, VideoModelSpec> = {
     durations: ["5", "10"],
     supportsEndFrame: false,
   },
+  "kling-3": {
+    aspectRatios: ["16:9", "9:16", "1:1"],
+    resolutions: [
+      { value: "720p", label: "720p" },
+      { value: "1080p", label: "1080p" },
+      { value: "4k", label: "4K" },
+    ],
+    durations: ["5", "10", "15"],
+    supportsEndFrame: true,
+  },
+  "seedance-2.5": {
+    aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"],
+    resolutions: [
+      { value: "480p", label: "480p" },
+      { value: "720p", label: "720p" },
+    ],
+    durations: ["5", "10", "15", "20", "30"],
+    supportsEndFrame: true,
+  },
   "kling-official": {
     aspectRatios: ["16:9", "9:16", "1:1"],
     resolutions: [{ value: "1080p", label: "1080p" }],

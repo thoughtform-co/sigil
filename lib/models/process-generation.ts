@@ -158,6 +158,15 @@ function startHeartbeat(generationId: string): () => void {
   return () => clearInterval(timer);
 }
 
+function needsGoogleKey(url: string): boolean {
+  if (url.startsWith("gs://")) return true;
+  try {
+    return new URL(url).hostname === "generativelanguage.googleapis.com";
+  } catch {
+    return false;
+  }
+}
+
 export async function processGeneration(generation: ProcessableGeneration): Promise<ProcessOutcome> {
   const lock = await prisma.generation.updateMany({
     where: { id: generation.id, status: "processing" },
@@ -172,6 +181,14 @@ export async function processGeneration(generation: ProcessableGeneration): Prom
 
   try {
     const routed = routeModel(generation.modelId);
+    const storedParameters = (generation.parameters as Record<string, unknown> | null) ?? {};
+    // A caller that refuses a fallback gets the model it asked for or a plain failure.
+    if (routed.routed && storedParameters.allowFallback === false) {
+      stopHeartbeat();
+      const error = `${generation.modelId} is not available on this server right now, and this draw does not accept another model in its place.`;
+      await markFailed(generation.id, generation.sessionId, new Error(error));
+      return { kind: "adapter_failed", error };
+    }
     const adapter = getModel(routed.modelId);
     if (!adapter) {
       stopHeartbeat();
@@ -239,8 +256,9 @@ export async function processGeneration(generation: ProcessableGeneration): Prom
           return { ...output, url: platformUrl };
         }
 
+        // A Veo video is a Google file link that only opens with the API key (as in Vesper).
         const fetchHeaders =
-          output.url.startsWith("gs://") && process.env.GEMINI_API_KEY
+          needsGoogleKey(output.url) && process.env.GEMINI_API_KEY
             ? { "x-goog-api-key": process.env.GEMINI_API_KEY }
             : undefined;
         try {
@@ -255,6 +273,10 @@ export async function processGeneration(generation: ProcessableGeneration): Prom
           return { ...output, url: platformUrl };
         } catch (error) {
           const reason = error instanceof Error ? error.message : String(error);
+          // A link that needs the server's key is no use to anyone else: fail rather than keep it.
+          if (needsGoogleKey(output.url)) {
+            throw new Error(`The video was made but could not be stored: ${reason}`);
+          }
           console.warn(
             `[generate/process] Storage upload failed for output ${index}, keeping provider URL: ${reason}`,
           );

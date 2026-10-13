@@ -19,6 +19,8 @@ const IMAGE_MODEL_COST: Record<string, number> = {
 const VIDEO_PER_SECOND_COST: Record<string, number> = {
   "kling-2.6": 0.01,
   "kling-official": 0.01,
+  // Kling 3.0 at 1080p with audio, Replicate's price on 2026-10-12 (from Vesper's pricing).
+  "kling-3": 0.336,
   "veo-3.1": 0.02,
 };
 
