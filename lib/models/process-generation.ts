@@ -239,6 +239,9 @@ export async function processGeneration(generation: ProcessableGeneration): Prom
             outputCount: outputs.length,
             predictTimeSeconds: result.metrics?.predictTime,
             outputHasVideo: outputs.some((output) => Boolean(output.duration)),
+            videoSeconds: outputs.reduce((sum, output) => sum + (output.duration ?? 0), 0) || undefined,
+            resolution: hydratedGenerationParameters.resolution,
+            generateAudio: hydratedGenerationParameters.generateAudio !== false,
           })
         : undefined;
 
