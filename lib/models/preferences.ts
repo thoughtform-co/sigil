@@ -6,7 +6,7 @@ type ModelLike = {
 
 const PREFERRED_MODEL_IDS: Record<ModelMode, string[]> = {
   image: ["gemini-nano-banana-2", "gemini-nano-banana-pro", "nano-banana-backup"],
-  video: ["kling-official", "veo-3.1", "gemini-veo-3.1", "kling-2.6", "replicate-kling-2.6"],
+  video: ["kling-official", "veo-3.1", "gemini-veo-3.1", "kling-2.6", "replicate-kling-2.6", "kling-3", "seedance-2.5"],
   canvas: [],
 };
 

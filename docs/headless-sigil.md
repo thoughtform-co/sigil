@@ -40,6 +40,21 @@ Image calls can take close to a minute; a client with a 60-second tool timeout s
 Every draw is a normal `Generation` row with `source = "mcp"`, in the person's own project
 "Claude", so it also shows up in the web app.
 
+## The model that was asked for, or a plain failure
+
+In the web app a Gemini draw that fails switches quietly to a backup model on Replicate. Through
+Claude it does not: every draw is sent with `allowFallback: false`, so the picture comes from the
+model that was asked for, or the tool says in words that it failed. References go to Gemini
+before the prompt (`referencesFirst`); the web app keeps prompt first. Sigil adds nothing to a
+prompt on this path: no enhancement, no system prompt.
+
+A draw still running after eight minutes was cut off with its function. `get_generation_status`
+then marks it failed, says so, and it stops counting against the allowance.
+
+Video models: `veo-3.1` (default), `kling-3` (3 to 15 seconds, 720p to 4K, start and end frame),
+`seedance-2.5`, `kling-2.6`, `kling-official`. A long or high-resolution clip can run past the
+300 seconds a function gets; keep clips short until long renders are collected in the background.
+
 ## Who may connect
 
 Anyone with an active Sigil account: being on the access list is the gate. An admin can turn

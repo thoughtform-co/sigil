@@ -2,9 +2,11 @@ import { BaseModelAdapter, ModelConfig } from "@/lib/models/base";
 import { GeminiAdapter, NANO_BANANA_CONFIG, NANO_BANANA_2_CONFIG, VEO_3_1_CONFIG } from "@/lib/models/adapters/gemini";
 import {
   KLING_2_6_CONFIG,
+  KLING_3_CONFIG,
   NANO_BANANA_BACKUP_CONFIG,
   REVE_CONFIG,
   ReplicateAdapter,
+  SEEDANCE_2_5_CONFIG,
   SEEDREAM_4_CONFIG,
 } from "@/lib/models/adapters/replicate";
 import { KLING_OFFICIAL_CONFIG, KlingOfficialAdapter } from "@/lib/models/adapters/kling";
@@ -28,6 +30,8 @@ class ModelRegistry {
     this.register(SEEDREAM_4_CONFIG, ReplicateAdapter);
     this.register(REVE_CONFIG, ReplicateAdapter);
     this.register(KLING_2_6_CONFIG, ReplicateAdapter);
+    this.register(KLING_3_CONFIG, ReplicateAdapter);
+    this.register(SEEDANCE_2_5_CONFIG, ReplicateAdapter);
     this.register(NANO_BANANA_BACKUP_CONFIG, ReplicateAdapter);
 
     this.register(KLING_OFFICIAL_CONFIG, KlingOfficialAdapter);

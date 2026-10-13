@@ -26,6 +26,17 @@ const HIDDEN_MODELS = new Set(["nano-banana-backup"]);
 const MAX_IMAGES_PER_CALL = 4;
 const MAX_REFERENCES = 8;
 const MAX_UPLOADS_PER_CALL = 8;
+/**
+ * A draw through Claude comes from the model that was asked for, or it fails and says so. The
+ * web app's quiet switch to a backup model would put pictures from another model in a student's
+ * batch without anyone knowing.
+ */
+const STRICT = { allowFallback: false } as const;
+/**
+ * A draw still "processing" after this long was cut off with its function (300 seconds) and
+ * will never finish: say so, and stop it counting against the allowance.
+ */
+const STALE_AFTER_MS = 8 * 60 * 1000;
 /** How long an image call waits before handing back an id to collect later. */
 export const INLINE_WAIT_MS = 50_000;
 
@@ -395,6 +406,8 @@ const generateImage: McpTool = {
       prompt,
       parameters: {
         numOutputs: count,
+        ...STRICT,
+        referencesFirst: true,
         ...(aspectRatio ? { aspectRatio } : {}),
         ...(references.urls.length > 0
           ? { referenceImages: references.urls, referenceImagePaths: references.paths, referenceImageUrl: references.urls[0] }
@@ -449,7 +462,8 @@ const generateVideo: McpTool = {
       prompt: { type: "string", description: "What happens in the shot, in full." },
       model: { type: "string", description: `A video model id from list_models. Default: ${DEFAULT_VIDEO_MODEL}.` },
       aspectRatio: { type: "string", description: "16:9 or 9:16 for most models." },
-      durationSeconds: { type: "integer", minimum: 2, maximum: 12, description: "Length of the clip, where the model lets you choose." },
+      durationSeconds: { type: "integer", minimum: 3, maximum: 15, description: "Length of the clip in seconds. Veo 3.1 takes 4, 6 or 8; Kling 3.0 takes 3 to 15; Seedance 2.5 takes 4 to 15 here." },
+      resolution: { type: "string", enum: ["720p", "1080p", "4k"], description: "Where the model offers a choice. Default: the model's own." },
       startImage: {
         type: "string",
         description: "The first frame: a `ref` from create_upload_urls, or the URL of an image Sigil drew earlier.",
@@ -465,8 +479,12 @@ const generateVideo: McpTool = {
     const model = pickModel(args, "video");
     const aspectRatio = pickAspectRatio(args, model.supportedAspectRatios);
     const duration = args.durationSeconds === undefined ? undefined : Number(args.durationSeconds);
-    if (duration !== undefined && (!Number.isInteger(duration) || duration < 2 || duration > 12)) {
-      throw new ToolInputError("`durationSeconds` must be a whole number from 2 to 12.");
+    if (duration !== undefined && (!Number.isInteger(duration) || duration < 3 || duration > 15)) {
+      throw new ToolInputError("`durationSeconds` must be a whole number from 3 to 15.");
+    }
+    const resolution = str(args, "resolution");
+    if (resolution && !["720p", "1080p", "4k"].includes(resolution)) {
+      throw new ToolInputError("`resolution` is 720p, 1080p or 4k.");
     }
     const start = str(args, "startImage");
     const references = await resolveReferences(start ? [start] : undefined, ctx.principal.ownerId, ctx.env);
@@ -481,8 +499,10 @@ const generateVideo: McpTool = {
       prompt,
       parameters: {
         numOutputs: 1,
+        ...STRICT,
         ...(aspectRatio ? { aspectRatio } : {}),
         ...(duration ? { duration } : {}),
+        ...(resolution ? { resolution } : {}),
         ...(references.urls.length > 0
           ? { referenceImageUrl: references.urls[0], referenceImagePath: references.paths[0] }
           : {}),
@@ -528,6 +548,7 @@ const getGenerationStatus: McpTool = {
         status: true,
         modelId: true,
         errorMessage: true,
+        createdAt: true,
         outputs: {
           orderBy: { createdAt: "asc" },
           select: { fileUrl: true, fileType: true, width: true, height: true, duration: true },
@@ -537,6 +558,21 @@ const getGenerationStatus: McpTool = {
     if (!generation) return refusal("No draw with that id was made through this connection.");
     if (generation.status === "failed") {
       return { ...refusal(`The draw failed: ${generation.errorMessage ?? "no reason was recorded"}`), modelId: generation.modelId };
+    }
+    if (generation.status !== "completed" && Date.now() - generation.createdAt.getTime() > STALE_AFTER_MS) {
+      await prisma.generation.updateMany({
+        where: { id: generationId, status: { in: ["processing", "processing_locked"] } },
+        data: {
+          status: "failed",
+          errorMessage: "The model took longer than Sigil waits for a result.",
+          errorCategory: "timeout",
+          errorRetryable: true,
+        },
+      });
+      return {
+        ...refusal("The draw took longer than Sigil waits for a result and was stopped. It does not count against the allowance. Try it again, shorter or at a lower resolution."),
+        modelId: generation.modelId,
+      };
     }
     if (generation.status !== "completed") {
       return {
