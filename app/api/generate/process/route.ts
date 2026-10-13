@@ -1,130 +1,13 @@
 import { NextResponse } from "next/server";
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getAuthedUser } from "@/lib/auth/server";
 import { projectAccessFilter } from "@/lib/auth/project-access";
-import { getModel, getModelConfig } from "@/lib/models/registry";
-import { routeModel } from "@/lib/models/routing";
-import { calculateGenerationCost } from "@/lib/cost/calculator";
-import { uploadProviderOutput, uploadDataUriOutput } from "@/lib/supabase/storage";
-import { broadcastGenerationUpdate } from "@/lib/supabase/realtime";
-
 import { processRequestSchema } from "@/lib/models/contracts";
-import { normalizeGenerationRequest } from "@/lib/models/request-builder";
 import { isProcessable } from "@/lib/models/generation-status";
-import { observeGeneration } from "@/lib/observability/generation";
-import { classifyError, userFacingMessage } from "@/lib/errors/classification";
+import { processGeneration } from "@/lib/models/process-generation";
 import { unauthorized, notFound, badRequest } from "@/lib/api/errors";
-import { json } from "@/lib/api/responses";
-import { hasEphemeralReferenceUrls, hydrateReferenceParameters } from "@/lib/reference-images";
 
 export const maxDuration = 300;
-
-const HEARTBEAT_INTERVAL_MS = 30_000;
-
-async function broadcastUpdatedGeneration(sessionId: string, generationId: string): Promise<void> {
-  try {
-    const gen = await prisma.generation.findUnique({
-      where: { id: generationId },
-      select: {
-        id: true,
-        prompt: true,
-        negativePrompt: true,
-        parameters: true,
-        status: true,
-        modelId: true,
-        createdAt: true,
-        user: {
-          select: {
-            id: true,
-            username: true,
-            displayName: true,
-          },
-        },
-        errorMessage: true,
-        errorCategory: true,
-        errorRetryable: true,
-        outputs: {
-          select: {
-            id: true,
-            fileUrl: true,
-            fileType: true,
-            isApproved: true,
-            width: true,
-            height: true,
-            duration: true,
-          },
-        },
-      },
-    });
-    if (!gen) return;
-    const hydratedParameters = await hydrateReferenceParameters(
-      (gen.parameters as Record<string, unknown>) ?? {},
-    );
-    broadcastGenerationUpdate({
-      sessionId,
-      generation: {
-        id: gen.id,
-        user: gen.user
-          ? {
-              id: gen.user.id,
-              username: gen.user.username,
-              displayName: gen.user.displayName,
-            }
-          : undefined,
-        prompt: gen.prompt,
-        negativePrompt: gen.negativePrompt,
-        parameters: hydratedParameters,
-        status: gen.status,
-        modelId: gen.modelId,
-        createdAt: gen.createdAt.toISOString(),
-        errorMessage: gen.errorMessage,
-        errorCategory: gen.errorCategory,
-        errorRetryable: gen.errorRetryable,
-        outputs: gen.outputs,
-      },
-    });
-  } catch {
-    // ignore broadcast failures
-  }
-}
-
-async function markFailed(
-  generationId: string,
-  sessionId: string,
-  err: unknown,
-): Promise<void> {
-  const classified = classifyError(err);
-  const friendlyMessage = userFacingMessage(classified);
-  try {
-    await prisma.generation.update({
-      where: { id: generationId },
-      data: {
-        status: "failed",
-        errorMessage: friendlyMessage,
-        errorCategory: classified.category,
-        errorRetryable: classified.isRetryable,
-      },
-    });
-  } catch (dbErr) {
-    console.error(`[generate/process] failed to persist error for ${generationId}:`, dbErr);
-  }
-  void broadcastUpdatedGeneration(sessionId, generationId);
-}
-
-function startHeartbeat(generationId: string): () => void {
-  const timer = setInterval(async () => {
-    try {
-      await prisma.generation.updateMany({
-        where: { id: generationId, status: { in: ["processing", "processing_locked"] } },
-        data: { lastHeartbeatAt: new Date() },
-      });
-    } catch {
-      // heartbeat is best-effort
-    }
-  }, HEARTBEAT_INTERVAL_MS);
-  return () => clearInterval(timer);
-}
 
 export async function POST(request: Request) {
   const user = await getAuthedUser();
@@ -162,157 +45,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Generation already processed", id: generation.id });
   }
 
-  const lock = await prisma.generation.updateMany({
-    where: { id: generation.id, status: "processing" },
-    data: { status: "processing_locked", lastHeartbeatAt: new Date() },
-  });
-
-  if (lock.count === 0) {
-    return NextResponse.json({ message: "Generation already claimed", id: generation.id });
-  }
-
-  const stopHeartbeat = startHeartbeat(generation.id);
-
-  try {
-    const routed = routeModel(generation.modelId);
-    const adapter = getModel(routed.modelId);
-    if (!adapter) {
-      stopHeartbeat();
-      await markFailed(generation.id, generation.sessionId, new Error(`Unknown model: ${routed.modelId}`));
-      return NextResponse.json({ error: `Unknown model: ${routed.modelId}` }, { status: 400 });
-    }
-
-    const hydratedGenerationParameters = await hydrateReferenceParameters(
-      (generation.parameters as Record<string, unknown>) ?? {},
-    );
-    if (hasEphemeralReferenceUrls(hydratedGenerationParameters)) {
-      stopHeartbeat();
-      const message =
-        "Generation references were stored as browser-local URLs and cannot be processed. Reattach the reference images and try again.";
-      await markFailed(generation.id, generation.sessionId, new Error(message));
-      return NextResponse.json({ id: generation.id, status: "failed", error: message }, { status: 400 });
-    }
-    const requestPayload = normalizeGenerationRequest(
-      generation.prompt,
-      generation.negativePrompt,
-      hydratedGenerationParameters,
-    );
-
-    observeGeneration({ type: "start", generationId: generation.id, modelId: routed.modelId });
-    const result = await adapter.generate(requestPayload);
-
-    if (result.status !== "completed" || !result.outputs?.length) {
-      stopHeartbeat();
-      const adapterError = result.error ?? "Generation did not produce outputs";
-      observeGeneration({
-        type: "adapter_failed",
-        generationId: generation.id,
-        modelId: routed.modelId,
-        error: adapterError,
-      });
-      await markFailed(generation.id, generation.sessionId, new Error(adapterError));
+  const outcome = await processGeneration(generation);
+  switch (outcome.kind) {
+    case "claimed":
+      return NextResponse.json({ message: "Generation already claimed", id: generation.id });
+    case "unknown_model":
+      return NextResponse.json({ error: `Unknown model: ${outcome.modelId}` }, { status: 400 });
+    case "ephemeral_references":
+      return NextResponse.json({ id: generation.id, status: "failed", error: outcome.message }, { status: 400 });
+    case "adapter_failed":
+      return NextResponse.json({ id: generation.id, status: "failed", error: outcome.error });
+    case "error":
+      return NextResponse.json({ id: generation.id, status: "failed", error: outcome.message }, { status: 500 });
+    case "completed":
       return NextResponse.json({
         id: generation.id,
-        status: "failed",
-        error: adapterError,
+        status: "completed",
+        outputCount: outcome.outputs.length,
+        modelId: outcome.modelId,
+        routed: outcome.routed,
+        routeReason: outcome.routeReason,
       });
-    }
-
-    stopHeartbeat();
-
-    const outputs = result.outputs;
-    const modelConfig = getModelConfig(routed.modelId);
-    const computedCost =
-      modelConfig
-        ? calculateGenerationCost({
-            model: modelConfig,
-            outputCount: outputs.length,
-            predictTimeSeconds: result.metrics?.predictTime,
-            outputHasVideo: outputs.some((output) => Boolean(output.duration)),
-          })
-        : undefined;
-
-    const persistedOutputs = await Promise.all(
-      outputs.map(async (output, index) => {
-        const fileType = output.duration ? "video" : "image";
-
-        if (output.url.startsWith("data:")) {
-          const platformUrl = await uploadDataUriOutput({
-            dataUri: output.url,
-            userId: generation.userId,
-            generationId: generation.id,
-            outputIndex: index,
-          });
-          return { ...output, url: platformUrl };
-        }
-
-        const fetchHeaders =
-          output.url.startsWith("gs://") && process.env.GEMINI_API_KEY
-            ? { "x-goog-api-key": process.env.GEMINI_API_KEY }
-            : undefined;
-        try {
-          const platformUrl = await uploadProviderOutput({
-            sourceUrl: output.url,
-            userId: generation.userId,
-            generationId: generation.id,
-            outputIndex: index,
-            fileType,
-            fetchHeaders,
-          });
-          return { ...output, url: platformUrl };
-        } catch (error) {
-          const reason = error instanceof Error ? error.message : String(error);
-          console.warn(
-            `[generate/process] Storage upload failed for output ${index}, keeping provider URL: ${reason}`,
-          );
-          return output;
-        }
-      }),
-    );
-
-    await prisma.$transaction(async (tx) => {
-      await tx.generation.update({
-        where: { id: generation.id },
-        data: {
-          status: "completed",
-          modelId: routed.modelId,
-          cost: typeof computedCost === "number" ? new Prisma.Decimal(computedCost) : undefined,
-          errorMessage: null,
-          errorCategory: null,
-          errorRetryable: null,
-        },
-      });
-
-      await tx.output.createMany({
-        data: persistedOutputs.map((output) => ({
-          generationId: generation.id,
-          fileUrl: output.url,
-          fileType: output.duration ? "video" : "image",
-          width: output.width,
-          height: output.height,
-          duration: output.duration,
-        })),
-      });
-    });
-
-    void broadcastUpdatedGeneration(generation.sessionId, generation.id);
-
-    return NextResponse.json({
-      id: generation.id,
-      status: "completed",
-      outputCount: persistedOutputs.length,
-      modelId: routed.modelId,
-      routed: routed.routed,
-      routeReason: routed.reason,
-    });
-  } catch (err) {
-    stopHeartbeat();
-    console.error(`[generate/process] ${generation.id} failed:`, err);
-    await markFailed(generation.id, generation.sessionId, err);
-    const message = err instanceof Error ? err.message : "Processing failed";
-    return NextResponse.json(
-      { id: generation.id, status: "failed", error: message },
-      { status: 500 },
-    );
   }
 }

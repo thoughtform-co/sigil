@@ -39,5 +39,6 @@ The app uses a remote Supabase-hosted PostgreSQL database. `DATABASE_URL` and `D
 
 - **Layers**: `lib/**` must not import `components/**`. Shared DTOs live in `lib/types/` (generation, dashboard, auth snapshots). Prefetch and server code import from there only.
 - **API auth**: `middleware.ts` does **not** protect `/api/*`. Each `app/api/**/route.ts` must call `getAuthedUser()` or `requireAdmin()`, or be an intentional public endpoint. Public routes must be allowlisted in `tests/contracts/api-route-auth-coverage.test.ts` with a brief comment in the handler.
+- **Headless (MCP)**: `/api/mcp` lets Claude draw through Sigil with a per-person sign-in instead of a session cookie; it and `/api/mcp/oauth/*` are intentionally public routes gated by `lib/headless/auth.ts`. Never add a tool that returns, accepts or logs a provider key. See `docs/headless-sigil.md`.
 - **Production env**: `instrumentation.ts` runs `assertServerEnv()` when `NODE_ENV === "production"` so missing `DATABASE_URL` / Supabase URL keys fail fast.
 - **Cursor skill**: For component and API conventions when adding UI, use the project skill at `.cursor/skills/sigil-component-guardrails/SKILL.md` (defaults + allowed exceptions).

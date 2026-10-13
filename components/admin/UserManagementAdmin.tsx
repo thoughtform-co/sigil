@@ -19,6 +19,7 @@ type UserRow = {
   avatarUrl: string | null;
   role: string;
   isDisabled: boolean;
+  mcpAccess?: boolean;
   createdAt: string;
   lockedWorkspaceProjectId?: string | null;
   workspaceProjectMembers: Array<{
@@ -290,6 +291,24 @@ export function UserManagementAdmin() {
     void loadUsers();
   }
 
+  async function toggleClaudeAccess(user: UserRow) {
+    if (savingUserId) return;
+    setSavingUserId(user.id);
+    setUsersError(null);
+    const res = await fetch(`/api/admin/users/${user.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mcpAccess: !(user.mcpAccess ?? true) }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSavingUserId(null);
+    if (!res.ok) {
+      setUsersError((data as { error?: string }).error ?? "Failed to change Claude access.");
+      return;
+    }
+    void loadUsers();
+  }
+
   const journeysLoading = wpLoading;
   const journeys = workspaceProjects;
 
@@ -538,6 +557,7 @@ other@example.com"
                     <th>Email</th>
                     <th>Role</th>
                     <th>Workshop lock</th>
+                    <th>Claude</th>
                     <th>Status</th>
                   </tr>
                 </thead>
@@ -605,6 +625,18 @@ other@example.com"
                         {u.lockedWorkspaceProjectId
                           ? (journeys.find((j) => j.id === u.lockedWorkspaceProjectId)?.name ?? u.lockedWorkspaceProjectId.slice(0, 8))
                           : "—"}
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="admin-btn"
+                          onClick={() => void toggleClaudeAccess(u)}
+                          disabled={savingUserId === u.id || u.isDisabled}
+                          style={{ padding: "4px 8px", fontSize: "10px" }}
+                          title="Whether this person may connect Claude to Sigil"
+                        >
+                          {(u.mcpAccess ?? true) ? "On" : "Off"}
+                        </button>
                       </td>
                       <td style={{ color: "var(--dawn-40)", fontSize: "11px" }}>
                         {u.isDisabled ? "Disabled" : "Active"}

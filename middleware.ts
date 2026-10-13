@@ -6,9 +6,10 @@ import { withCorrelationId } from "@/lib/api/correlation";
 /**
  * Auth contract: HTML routes are session-gated below. `/api/*` is NOT authenticated here — each
  * `route.ts` must call `getAuthedUser()` / `requireAdmin()` or be intentionally public (e.g.
- * `POST /api/auth/check-email`). See `AGENTS.md` and contract tests under `tests/contracts/`.
+ * `POST /api/auth/check-email`; `/api/mcp` and `/api/mcp/oauth/*`, which carry their own
+ * sign-in). `/.well-known/*` holds the OAuth discovery documents and is public. See `AGENTS.md` and contract tests under `tests/contracts/`.
  */
-const PUBLIC_PREFIXES = ["/auth/", "/api/auth/", "/events/"];
+const PUBLIC_PREFIXES = ["/auth/", "/api/auth/", "/events/", "/.well-known/"];
 
 function isPublicPath(pathname: string): boolean {
   if (pathname === "/login") return true;
@@ -78,6 +79,11 @@ export async function middleware(request: NextRequest) {
   if (!session?.user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
+    url.search = "";
+    // The Claude sign-in (/connect) has to come back to the same signed request after login.
+    if (pathname === "/connect") {
+      url.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
+    }
     return NextResponse.redirect(url);
   }
 

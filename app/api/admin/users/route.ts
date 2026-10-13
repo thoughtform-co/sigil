@@ -18,6 +18,7 @@ export async function GET() {
         avatarUrl: true,
         role: true,
         isDisabled: true,
+        mcpAccess: true,
         createdAt: true,
         lockedWorkspaceProjectId: true,
         workspaceProjectMembers: {
