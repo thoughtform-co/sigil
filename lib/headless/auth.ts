@@ -80,8 +80,9 @@ export async function verifyMcpRequest(request: Request): Promise<VerifyResult> 
     };
   }
 
-  // Best-effort: lets an admin spot connections nobody uses any more.
-  prisma.headlessCredential
+  // Lets an admin spot connections nobody uses any more. Awaited, never left running after the
+  // response: a write frozen with the function holds a database connection.
+  await prisma.headlessCredential
     .update({ where: { id: credential.id }, data: { lastUsedAt: new Date() } })
     .catch(() => undefined);
 

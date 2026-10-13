@@ -140,7 +140,9 @@ export async function dispatch(
           waitUntil: deps.waitUntil ?? (() => undefined),
           env: deps.env ?? process.env,
         });
-        void recordUsage({
+        // Awaited on purpose: a write still open when the response goes out is frozen with the
+        // function, mid-transaction, and holds a database connection until the pooler gives up.
+        await recordUsage({
           ...base,
           modelId,
           status: wire.isError ? "refused" : "success",
@@ -150,7 +152,7 @@ export async function dispatch(
         return rpcSuccess(id, wire);
       } catch (err) {
         const message = err instanceof Error ? err.message : "Tool execution failed";
-        void recordUsage({
+        await recordUsage({
           ...base,
           status: "error",
           errorCategory: isToolInputError(err) ? "invalid_input" : classifyError(err).category,
