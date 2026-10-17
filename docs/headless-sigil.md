@@ -124,3 +124,4 @@ are not limited. A refusal says how many were used and when the next one frees u
 | `lib/models/process-generation.ts` | The generation worker, shared with `/api/generate/process` |
 | `lib/models/meshy.ts`, `lib/headless/three-d.ts`, `lib/headless/glb.ts` | 3D models: Meshy's client, the job's stages, finishing the file |
 | `tests/headless/` | The sign-in flow over an in-memory store, the dispatcher, the allowance, the 3D stages and the GLB finish |
+| `scripts/meshy-chain.ts`, `scripts/finish-glb.ts` | The 3D chain run by hand on views on disk (no database; `MESHY_API_KEY` in the environment), and the finish on a GLB on disk: for checking Meshy's real answers and for a teacher's sample model |
