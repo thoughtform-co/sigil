@@ -33,6 +33,7 @@ Image calls can take close to a minute; a client with a 60-second tool timeout s
 |---|---|
 | `generate_image` | One to four images from a prompt, optionally with references. Answers inline with links and JPEG previews Claude can read. |
 | `generate_video` | One clip from a prompt, optionally from a start image. Returns a `generationId`. |
+| `generate_3d` | A 3D model (GLB) from one to four views, front first, on Meshy; `rig: true` adds a 24-joint skeleton with an idle and a wave for a humanoid in an A-pose. Returns a `generationId`. |
 | `get_generation_status` | Collects a draw started earlier. Only the caller's own draws made through Claude. |
 | `create_upload_urls` | One upload URL per reference image on the person's disk; the returned `ref` goes into `references` or `startImage`. |
 | `list_models` | The models and the aspect ratios each takes. |
@@ -50,6 +51,18 @@ prompt on this path: no enhancement, no system prompt.
 
 A draw still running after eight minutes was cut off with its function. `get_generation_status`
 then marks it failed, says so, and it stops counting against the allowance.
+
+A 3D model is a job of stages (mesh, rig, animate, finish), each a Meshy task whose id is kept
+in the generation's `parameters.threeD`, since the chain (3 to 8 minutes for the mesh, then the
+rig and the clips) outlasts the 300 seconds one function gets. The call that starts it keeps
+moving it on for 270 seconds; after that every `get_generation_status` moves it on by what Meshy
+has finished. A lock on the status keeps two collects from starting the same stage twice. The
+finish step slims the file (every texture re-encoded to a JPEG of at most 1536 px, since rigging
+triples a Meshy file), switches off the emission Meshy wires in, and copies it to the outputs
+bucket, because Meshy's links expire. The generation's one `Output` is the model's front view, so
+the web app shows a picture; the GLB is the link Claude hands over. When the rig cannot read the
+figure, the model is delivered unrigged with a note saying why. Code: `lib/models/meshy.ts`,
+`lib/headless/three-d.ts`, `lib/headless/glb.ts`.
 
 Video models: `veo-3.1` (default), `kling-3` (3 to 15 seconds, 720p to 4K, start and end frame),
 `seedance-2.5`, `kling-2.6`, `kling-official`. A long or high-resolution clip can run past the
@@ -74,6 +87,8 @@ are not limited. A refusal says how many were used and when the next one frees u
 | `MCP_OAUTH_ENABLED` | `0` switches the sign-in off. |
 | `MCP_DAILY_IMAGES` | Images per person per 24 hours. Default 60. |
 | `MCP_DAILY_VIDEOS` | Videos per person per 24 hours. Default 4. |
+| `MCP_DAILY_3D` | 3D models per person per 24 hours. Default 3. A rigged, animated model is about 41 Meshy credits (mesh 30, rig 5, two clips 6). |
+| `MESHY_API_KEY` | Meshy's API key, for `generate_3d`. Without it the tool says 3D is not configured and nothing else changes. |
 | `MCP_RESOURCE_ALIASES` | Other URLs this server answers to, comma-separated (a second domain in front of the same app). |
 | `MCP_OAUTH_REDIRECT_ALLOWLIST` | Extra redirect URIs, exact match. Claude's callbacks and loopback addresses are built in. |
 
@@ -107,4 +122,5 @@ are not limited. A refusal says how many were used and when the next one frees u
 | `lib/oauth/`, `app/api/mcp/oauth/`, `app/.well-known/` | The sign-in (ported from Vesper as it is) |
 | `app/connect/page.tsx` | The consent page |
 | `lib/models/process-generation.ts` | The generation worker, shared with `/api/generate/process` |
-| `tests/headless/` | The sign-in flow over an in-memory store, the dispatcher, the allowance |
+| `lib/models/meshy.ts`, `lib/headless/three-d.ts`, `lib/headless/glb.ts` | 3D models: Meshy's client, the job's stages, finishing the file |
+| `tests/headless/` | The sign-in flow over an in-memory store, the dispatcher, the allowance, the 3D stages and the GLB finish |

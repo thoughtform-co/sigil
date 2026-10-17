@@ -28,9 +28,10 @@ export const SERVER_INSTRUCTIONS =
   "claude.ai shows the person a picture only when your reply carries it as a markdown image; every image result gives you the exact lines to put in your reply, one per picture. Always put them in. " +
   "Where a folder is connected (Cowork, Claude Code), also download each file into it under the name the work calls for. Sigil cannot write to a disk, you do. " +
   "To draw from a photograph or another picture on disk, call create_upload_urls, send the file to the URL it gives, and pass the `ref` as a reference. " +
+  "generate_3d makes a 3D model (GLB) from one to four views, front first; for a character in an A-pose set rig to true for a skeleton, an idle and a wave. It takes minutes: collect it with get_generation_status about once a minute. " +
   "list_models names the models. " +
   'Every draw is saved in the person\'s Sigil project "Claude". ' +
-  "Images and videos made through Claude count against a daily allowance per person; a refusal says how many were used and when the next one frees up, and nothing is paid for.";
+  "Images, videos and 3D models made through Claude count against a daily allowance per person; a refusal says how many were used and when the next one frees up, and nothing is paid for.";
 
 interface JsonRpcRequest {
   jsonrpc: "2.0";

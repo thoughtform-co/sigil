@@ -18,6 +18,8 @@ import { checkAllowance, type AllowanceKind } from "./allowance";
 import type { HeadlessPrincipal } from "./auth";
 import { makeImagePreview } from "./preview";
 import { ensureClaudeSession } from "./workspace";
+import { createMeshTask, hasMeshyKey, MESH_SETTINGS, MeshyError } from "@/lib/models/meshy";
+import { advanceThreeD, driveThreeD, newThreeDState, threeDStateOf, type ThreeDState } from "./three-d";
 
 export const DEFAULT_IMAGE_MODEL = "gemini-nano-banana-pro";
 export const DEFAULT_VIDEO_MODEL = "veo-3.1";
@@ -26,6 +28,9 @@ const HIDDEN_MODELS = new Set(["nano-banana-backup"]);
 const MAX_IMAGES_PER_CALL = 4;
 const MAX_REFERENCES = 8;
 const MAX_UPLOADS_PER_CALL = 8;
+const MAX_VIEWS = 4;
+/** How long the call that starts a 3D job keeps moving it on (its function has 300 seconds). */
+const THREE_D_DRIVE_MS = 270_000;
 /**
  * A draw through Claude comes from the model that was asked for, or it fails and says so. The
  * web app's quiet switch to a backup model would put pictures from another model in a student's
@@ -152,7 +157,7 @@ async function resolveReferences(
 
 async function createGeneration(input: {
   ownerId: string;
-  type: "image" | "video";
+  type: "image" | "video" | "3d";
   modelId: string;
   prompt: string;
   parameters: Record<string, unknown>;
@@ -521,14 +526,118 @@ const generateVideo: McpTool = {
   },
 };
 
-const getGenerationStatus: McpTool = {
-  name: "get_generation_status",
-  title: "Collect a draw",
-  description: "Whether an image or video started earlier is done, and its files when it is.",
+/** What Claude gets for a finished 3D model: the link to keep, the front view to look at, what to know. */
+async function describeThreeD(generationId: string, state: ThreeDState, picture: string | null, previews: boolean): Promise<ToolResult> {
+  const short = generationId.slice(0, 8);
+  const r = state.report;
+  const rigged = Boolean(r?.skinned);
+  const size = r ? `${(r.bytesAfter / 1_048_576).toFixed(1)} MB` : "";
+  const lines = [
+    `Made the 3D model "${state.name}" (model ${short}): ${rigged ? `rigged, with ${r?.animations ?? 0} animation${r?.animations === 1 ? "" : "s"} (an idle and a wave)` : "not rigged"}${size ? `, ${size}` : ""}, ${state.credits} Meshy credits.`,
+    `The model (GLB): ${state.glbUrl}`,
+    "Where a folder is connected (Cowork, Claude Code), download it into the folder the work calls for. Sigil cannot write to a disk, you do. Open it in any GLB viewer, or a page with <model-viewer>, to turn it round.",
+    ...(picture ? [`Its front view, for your reply: ![${state.name}, front view](${picture})`] : []),
+    ...state.notes,
+  ];
+  const content: Content[] = [text(lines.join("\n"))];
+  if (previews && picture) {
+    const preview = await makeImagePreview(picture);
+    if (preview) content.push(text("The front view Meshy rendered of the model, for reading:"), { type: "image", ...preview });
+  }
+  return {
+    content,
+    structuredContent: {
+      generationId,
+      status: "completed",
+      modelId: MESH_SETTINGS.ai_model,
+      model: { url: state.glbUrl, rigged, animations: r?.animations ?? 0, bytes: r?.bytesAfter ?? null, credits: state.credits },
+      outputs: [{ url: state.glbUrl, type: "model" }, ...(picture ? [{ url: picture, type: "image" }] : [])],
+      notes: state.notes,
+    },
+  };
+}
+
+function threeDProgressText(state: ThreeDState, generationId: string): string {
+  const step = { mesh: "making the model", rig: "fitting the skeleton", animate: "adding the idle and the wave", finish: "finishing the file", done: "done" }[state.stage];
+  return `Still working on the 3D model (model ${generationId.slice(0, 8)}): ${step}${state.stage === "mesh" ? `, ${state.progress}%` : ""}. Call get_generation_status again in about a minute; do not start it again.`;
+}
+
+const generate3d: McpTool = {
+  name: "generate_3d",
+  title: "Make a 3D model",
+  description:
+    `Make a 3D model (a GLB file) of a character or an object from one to ${MAX_VIEWS} views of it, with Sigil's own model access (no API key is needed or accepted). Views in order: front, right, back, left, each the whole figure on a plain light background, evenly lit, the same subject in every view. For a humanoid character standing in an A-pose (arms clear of the body, feet visible, no cape or long coat), set rig to true: it also gets a 24-joint skeleton with an idle and a wave. A model takes about 5 to 10 minutes: this returns a generationId at once, to collect with get_generation_status about once a minute. Each call counts against the person's daily 3D allowance.`,
   inputSchema: {
     type: "object",
     properties: {
-      generationId: { type: "string", description: "The id generate_image or generate_video returned." },
+      views: {
+        type: "array",
+        minItems: 1,
+        maxItems: MAX_VIEWS,
+        items: { type: "string" },
+        description: "The views, front first: a `ref` from create_upload_urls, or the URL of an image Sigil drew earlier.",
+      },
+      rig: { type: "boolean", description: "A humanoid character: add a skeleton, an idle and a wave. Default false." },
+      name: { type: "string", description: "What the model is, for the person's records, for example \"Ada, the shopkeeper\"." },
+    },
+    required: ["views"],
+    additionalProperties: false,
+  },
+  annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
+  async run(args, ctx) {
+    if (!hasMeshyKey(ctx.env)) return refusal("Sigil has no 3D model access configured yet, so nothing was made. Tell your teacher.");
+    if (!Array.isArray(args.views) || args.views.length < 1 || args.views.length > MAX_VIEWS) {
+      throw new ToolInputError(`\`views\` takes one to ${MAX_VIEWS} images, front first.`);
+    }
+    let views: { urls: string[]; paths: string[] };
+    try {
+      views = await resolveReferences(args.views, ctx.principal.ownerId, ctx.env);
+    } catch (err) {
+      if (err instanceof ToolInputError) throw new ToolInputError(err.message.replace("`references`", "`views`"));
+      throw err;
+    }
+    const rig = args.rig === true;
+    const name = (str(args, "name") ?? (rig ? "Character" : "Model")).slice(0, 120);
+
+    const refused = await allowanceRefusal(ctx, "3d", 1);
+    if (refused) return { ...refused, modelId: MESH_SETTINGS.ai_model };
+
+    let meshTaskId: string;
+    try {
+      meshTaskId = await createMeshTask(ctx.env, views.urls);
+    } catch (err) {
+      const status = err instanceof MeshyError ? err.status : null;
+      const why = status === 402 ? "Sigil's 3D credits have run out. Tell your teacher." : err instanceof Error ? err.message : "unknown error";
+      return { ...refusal(`The model could not be started: ${why}`), modelId: MESH_SETTINGS.ai_model };
+    }
+    const generation = await createGeneration({
+      ownerId: ctx.principal.ownerId,
+      type: "3d",
+      modelId: MESH_SETTINGS.ai_model,
+      prompt: name,
+      parameters: { numOutputs: 1, viewPaths: views.paths, threeD: newThreeDState({ meshTaskId, rig, name }) },
+    });
+    ctx.waitUntil(driveThreeD(generation.id, ctx.env, THREE_D_DRIVE_MS).catch(() => undefined));
+    return {
+      modelId: MESH_SETTINGS.ai_model,
+      content: [
+        text(
+          `The 3D model is being made (model ${generation.id.slice(0, 8)})${rig ? ", then rigged and animated" : ""}; it takes about 5 to 10 minutes. Call get_generation_status with generationId ${generation.id} in about two minutes, then about once a minute until it is done; do not start it again.`,
+        ),
+      ],
+      structuredContent: { generationId: generation.id, status: "processing", modelId: MESH_SETTINGS.ai_model },
+    };
+  },
+};
+
+const getGenerationStatus: McpTool = {
+  name: "get_generation_status",
+  title: "Collect a draw",
+  description: "Whether an image, video or 3D model started earlier is done, and its files when it is.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      generationId: { type: "string", description: "The id generate_image, generate_video or generate_3d returned." },
       previews: { type: "boolean", description: "Send a small copy of each image back to look at. Default true." },
     },
     required: ["generationId"],
@@ -549,6 +658,7 @@ const getGenerationStatus: McpTool = {
         modelId: true,
         errorMessage: true,
         createdAt: true,
+        parameters: true,
         outputs: {
           orderBy: { createdAt: "asc" },
           select: { fileUrl: true, fileType: true, width: true, height: true, duration: true },
@@ -556,6 +666,27 @@ const getGenerationStatus: McpTool = {
       },
     });
     if (!generation) return refusal("No draw with that id was made through this connection.");
+    // A 3D model job moves on when it is collected: Meshy's stages outlast any one function.
+    if (threeDStateOf(generation.parameters)) {
+      if (generation.status === "failed") {
+        return { ...refusal(`The model failed: ${generation.errorMessage ?? "no reason was recorded"}. It does not count against the allowance.`), modelId: generation.modelId };
+      }
+      const result = await advanceThreeD(generationId, ctx.env);
+      if (result.status === "failed") {
+        return { ...refusal(`The model failed: ${result.message} It does not count against the allowance.`), modelId: generation.modelId };
+      }
+      if (result.status === "completed") {
+        const picture = await prisma.output.findFirst({ where: { generationId, fileType: "image" }, select: { fileUrl: true } });
+        const described = await describeThreeD(generationId, result.state, picture?.fileUrl ?? null, args.previews !== false);
+        return { ...described, modelId: generation.modelId };
+      }
+      const state = result.status === "processing" ? result.state : threeDStateOf(generation.parameters)!;
+      return {
+        modelId: generation.modelId,
+        content: [text(threeDProgressText(state, generationId))],
+        structuredContent: { generationId, status: "processing", stage: state.stage, progress: state.progress, modelId: generation.modelId },
+      };
+    }
     if (generation.status === "failed") {
       return { ...refusal(`The draw failed: ${generation.errorMessage ?? "no reason was recorded"}`), modelId: generation.modelId };
     }
@@ -597,7 +728,7 @@ const getGenerationStatus: McpTool = {
   },
 };
 
-export const MCP_TOOLS: McpTool[] = [generateImage, generateVideo, getGenerationStatus, createUploadUrls, listModels];
+export const MCP_TOOLS: McpTool[] = [generateImage, generateVideo, generate3d, getGenerationStatus, createUploadUrls, listModels];
 
 export function findMcpTool(name: string): McpTool | undefined {
   return MCP_TOOLS.find((tool) => tool.name === name);

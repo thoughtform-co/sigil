@@ -1,14 +1,15 @@
 /**
  * Where work made through Claude is kept: the person's own project "Claude", with one image
- * session and one video session, so every draw also shows up in the Sigil web app.
+ * session, one video session and one 3D session, so every draw also shows up in the Sigil web
+ * app (a 3D model shows there as its front view; the model itself is a link Claude hands over).
  */
 
 import { prisma } from "@/lib/prisma";
 
 export const CLAUDE_PROJECT_NAME = "Claude";
-const SESSION_NAMES = { image: "Claude · images", video: "Claude · video" } as const;
+const SESSION_NAMES = { image: "Claude · images", video: "Claude · video", "3d": "Claude · 3D" } as const;
 
-export async function ensureClaudeSession(userId: string, type: "image" | "video"): Promise<string> {
+export async function ensureClaudeSession(userId: string, type: "image" | "video" | "3d"): Promise<string> {
   const profile = await prisma.profile.findUnique({
     where: { id: userId },
     select: { role: true, lockedWorkspaceProjectId: true },

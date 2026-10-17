@@ -17,6 +17,7 @@ const ALLOWED_HOST_SUFFIXES = [
   ".replicate.delivery",
   ".fal.media",
   ".klingai.com",
+  ".meshy.ai",
 ];
 
 const PRIVATE_IPV4_PREFIXES = [

@@ -160,6 +160,33 @@ export async function uploadDataUriOutput(params: {
   return data.publicUrl;
 }
 
+/**
+ * A file Sigil made itself (a finished 3D model) into the outputs bucket, under the generation's
+ * folder by name; returns its public URL.
+ */
+export async function uploadOutputBuffer(params: {
+  userId: string;
+  generationId: string;
+  name: string;
+  buffer: Buffer;
+  contentType: string;
+}): Promise<string> {
+  const admin = createAdminClient();
+  outputsBucketReady ??= ensureOutputsBucketExists(admin);
+  await outputsBucketReady;
+  const safeName = params.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const path = `${params.userId}/${params.generationId}/${safeName}`;
+  const uploaded = await admin.storage.from("outputs").upload(path, params.buffer, {
+    upsert: true,
+    contentType: params.contentType,
+    cacheControl: "31536000",
+  });
+  if (uploaded.error) throw new Error(`Supabase upload failed: ${uploaded.error.message}`);
+  const { data } = admin.storage.from("outputs").getPublicUrl(path);
+  if (!data.publicUrl) throw new Error("Supabase public URL generation failed");
+  return data.publicUrl;
+}
+
 export async function uploadProviderOutput(params: {
   sourceUrl: string;
   userId: string;

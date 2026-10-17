@@ -4,16 +4,18 @@
  *
  *   MCP_DAILY_IMAGES   images a person may draw through Claude in 24 hours (default 60)
  *   MCP_DAILY_VIDEOS   videos a person may make through Claude in 24 hours (default 4)
+ *   MCP_DAILY_3D       3D models a person may make through Claude in 24 hours (default 3)
  *
  * Admins are not limited. A failed draw does not count.
  */
 
 import { prisma } from "@/lib/prisma";
 
-export type AllowanceKind = "image" | "video";
+export type AllowanceKind = "image" | "video" | "3d";
 
-const DEFAULTS: Record<AllowanceKind, number> = { image: 60, video: 4 };
-const ENV_NAMES: Record<AllowanceKind, string> = { image: "MCP_DAILY_IMAGES", video: "MCP_DAILY_VIDEOS" };
+const DEFAULTS: Record<AllowanceKind, number> = { image: 60, video: 4, "3d": 3 };
+const ENV_NAMES: Record<AllowanceKind, string> = { image: "MCP_DAILY_IMAGES", video: "MCP_DAILY_VIDEOS", "3d": "MCP_DAILY_3D" };
+const NOUNS: Record<AllowanceKind, string> = { image: "images", video: "videos", "3d": "3D models" };
 const WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export interface UsedRow {
@@ -48,7 +50,7 @@ export function decideAllowance(input: {
   const minutes = freesAt ? Math.max(1, Math.ceil((freesAt.getTime() - input.now.getTime()) / 60_000)) : null;
   const wait =
     minutes === null ? "" : minutes >= 90 ? ` The next one frees up in about ${Math.round(minutes / 60)} hours.` : ` The next one frees up in about ${minutes} minutes.`;
-  const noun = input.kind === "image" ? "images" : "videos";
+  const noun = NOUNS[input.kind];
   return {
     ok: false,
     used,

@@ -36,6 +36,7 @@ describe("the MCP protocol", () => {
     expect(tools.map((t) => t.name)).toEqual([
       "generate_image",
       "generate_video",
+      "generate_3d",
       "get_generation_status",
       "create_upload_urls",
       "list_models",

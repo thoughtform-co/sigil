@@ -16,6 +16,8 @@ export async function POST() {
     where: {
       status: { in: ["processing", "processing_locked"] },
       createdAt: { lt: cutoff },
+      // a 3D model job advances on each collect, across many functions; its stages time out on their own
+      NOT: { modelId: { startsWith: "meshy" } },
       OR: [
         { lastHeartbeatAt: null },
         { lastHeartbeatAt: { lt: heartbeatCutoff } },
