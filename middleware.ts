@@ -7,12 +7,14 @@ import { withCorrelationId } from "@/lib/api/correlation";
  * Auth contract: HTML routes are session-gated below. `/api/*` is NOT authenticated here — each
  * `route.ts` must call `getAuthedUser()` / `requireAdmin()` or be intentionally public (e.g.
  * `POST /api/auth/check-email`; `/api/mcp` and `/api/mcp/oauth/*`, which carry their own
- * sign-in). `/.well-known/*` holds the OAuth discovery documents and is public. See `AGENTS.md` and contract tests under `tests/contracts/`.
+ * sign-in). `/.well-known/*` holds the OAuth discovery documents and is public. `/expo/*` is Expo
+ * City, the course's world fair (a static game in `public/expo/`), public on purpose. See `AGENTS.md`
+ * and contract tests under `tests/contracts/`.
  */
-const PUBLIC_PREFIXES = ["/auth/", "/api/auth/", "/events/", "/.well-known/"];
+const PUBLIC_PREFIXES = ["/auth/", "/api/auth/", "/events/", "/.well-known/", "/expo/"];
 
 function isPublicPath(pathname: string): boolean {
-  if (pathname === "/login") return true;
+  if (pathname === "/login" || pathname === "/expo") return true;
   return PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
 }
 

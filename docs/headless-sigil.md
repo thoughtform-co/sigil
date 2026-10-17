@@ -37,9 +37,28 @@ Image calls can take close to a minute; a client with a 60-second tool timeout s
 | `get_generation_status` | Collects a draw started earlier. Only the caller's own draws made through Claude. |
 | `create_upload_urls` | One upload URL per reference image on the person's disk; the returned `ref` goes into `references` or `startImage`. |
 | `list_models` | The models and the aspect ratios each takes. |
+| `expo_my_area` | Expo City: the caller's own plot, the catalogue, the plot's frame and limits, the live link. |
+| `expo_edit` | Expo City: place, move, remove and set things on the caller's own plot; saved as a new version. |
+| `expo_undo` | Expo City: back one change. |
+| `expo_assign` | Expo City, admins only: give a plot to a student's account by the address they sign in with, or clear it. |
 
 Every draw is a normal `Generation` row with `source = "mcp"`, in the person's own project
 "Claude", so it also shows up in the web app.
+
+## Expo City
+
+The AI storytelling course's world fair is a static game served from `public/expo/` at `/expo`
+(public; built from the course repo with `npm run build:sigil`). Each student's plot is a JSON
+document in the public outputs bucket, `expo/plots/N07.json` (cached two seconds), each version
+kept beside it under `expo/plots/N07/` for undo; who holds which plot is `expo/assignments.json`
+in the private references bucket. The game polls `GET /api/expo/state` (public, CORS-open, edge
+cached two seconds, ETag) and rebuilds a plot when its version moves.
+
+A student only ever touches the plot assigned to their own account: the tools take the plot from
+the signed-in principal; only an admin may name another. An edit is checked before it is saved:
+inside the plot, never on the venue hall or its approach (the way into the room), clear of the
+monument's plaza, at most twenty things from the catalogue, text short and shown as text, an avatar
+or a hung work only a file Sigil made. No schema change: it is all files.
 
 ## The model that was asked for, or a plain failure
 
@@ -123,5 +142,6 @@ are not limited. A refusal says how many were used and when the next one frees u
 | `app/connect/page.tsx` | The consent page |
 | `lib/models/process-generation.ts` | The generation worker, shared with `/api/generate/process` |
 | `lib/models/meshy.ts`, `lib/headless/three-d.ts`, `lib/headless/glb.ts` | 3D models: Meshy's client, the job's stages, finishing the file |
-| `tests/headless/` | The sign-in flow over an in-memory store, the dispatcher, the allowance, the 3D stages and the GLB finish |
+| `lib/headless/expo.ts`, `lib/headless/expo-tools.ts`, `app/api/expo/state/route.ts` | Expo City's areas: the document and its limits, the four tools, the public state |
+| `tests/headless/` | The sign-in flow over an in-memory store, the dispatcher, the allowance, the 3D stages and the GLB finish, Expo City's operations and tools over a memory store |
 | `scripts/meshy-chain.ts`, `scripts/finish-glb.ts` | The 3D chain run by hand on views on disk (no database; `MESHY_API_KEY` in the environment), and the finish on a GLB on disk: for checking Meshy's real answers and for a teacher's sample model |

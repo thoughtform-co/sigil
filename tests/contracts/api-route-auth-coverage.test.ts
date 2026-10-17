@@ -33,6 +33,8 @@ const PUBLIC_ROUTES_REL = [
   "app/api/mcp/oauth/register/route.ts",
   "app/api/mcp/oauth/token/route.ts",
   "app/api/mcp/oauth/revoke/route.ts",
+  // Expo City's live state: every plot's public document, read by the hosted game; changing one needs the MCP sign-in.
+  "app/api/expo/state/route.ts",
 ];
 
 describe("API route auth coverage", () => {

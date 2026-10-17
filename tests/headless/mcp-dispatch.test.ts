@@ -40,6 +40,10 @@ describe("the MCP protocol", () => {
       "get_generation_status",
       "create_upload_urls",
       "list_models",
+      "expo_my_area",
+      "expo_edit",
+      "expo_undo",
+      "expo_assign",
     ]);
     for (const tool of tools) {
       expect(tool.inputSchema).toMatchObject({ type: "object", additionalProperties: false });

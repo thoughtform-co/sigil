@@ -11,7 +11,7 @@ function contentSecurityPolicy(): string | undefined {
   return [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline'",
-    "style-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' data: blob: https:",
     "media-src 'self' data: blob: https:",
     "font-src 'self' https://fonts.gstatic.com",
@@ -82,6 +82,13 @@ const nextConfig: NextConfig = {
       };
     }
     return config;
+  },
+  // Expo City (public/expo/) is a built static game: its folder opens on its index.
+  async rewrites() {
+    return [
+      { source: "/expo", destination: "/expo/index.html" },
+      { source: "/expo/", destination: "/expo/index.html" },
+    ];
   },
   async headers() {
     const baseHeaders = [

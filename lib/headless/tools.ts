@@ -20,6 +20,8 @@ import { makeImagePreview } from "./preview";
 import { ensureClaudeSession } from "./workspace";
 import { createMeshTask, hasMeshyKey, MESH_SETTINGS, MeshyError } from "@/lib/models/meshy";
 import { advanceThreeD, driveThreeD, newThreeDState, threeDStateOf, type ThreeDState } from "./three-d";
+import { EXPO_TOOLS } from "./expo-tools";
+import { ExpoInputError } from "./expo";
 
 export const DEFAULT_IMAGE_MODEL = "gemini-nano-banana-pro";
 export const DEFAULT_VIDEO_MODEL = "veo-3.1";
@@ -728,12 +730,12 @@ const getGenerationStatus: McpTool = {
   },
 };
 
-export const MCP_TOOLS: McpTool[] = [generateImage, generateVideo, generate3d, getGenerationStatus, createUploadUrls, listModels];
+export const MCP_TOOLS: McpTool[] = [generateImage, generateVideo, generate3d, getGenerationStatus, createUploadUrls, listModels, ...EXPO_TOOLS];
 
 export function findMcpTool(name: string): McpTool | undefined {
   return MCP_TOOLS.find((tool) => tool.name === name);
 }
 
 export function isToolInputError(err: unknown): boolean {
-  return err instanceof ToolInputError;
+  return err instanceof ToolInputError || err instanceof ExpoInputError;
 }
