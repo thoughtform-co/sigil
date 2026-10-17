@@ -71,7 +71,7 @@ describe("the mesh request", () => {
 
 describe("the 3D allowance", () => {
   it("defaults to three models a day and says so in its own words", () => {
-    expect(dailyLimit("3d", {})).toBe(3);
+    expect(dailyLimit("3d", {} as NodeJS.ProcessEnv)).toBe(3);
     const d = decideAllowance({ kind: "3d", requested: 1, rows: [1, 2, 3].map(() => ({ createdAt: now, count: 1 })), limit: 3, now });
     expect(d.ok).toBe(false);
     expect(!d.ok && d.message).toContain("3D models");
