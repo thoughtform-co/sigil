@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({ prisma: {} }));
 
-import { applyOps, emptyPlot, ExpoInputError, setExpoStore, stateOf, type Assignments, type ExpoStore, type PlotDoc } from "@/lib/headless/expo";
+import { applyOps, emptyPlot, ExpoInputError, setExpoStore, stateOf, type Assignments, type ExpoStore, type PlotDoc, type PostRecord } from "@/lib/headless/expo";
 import { EXPO_TOOLS } from "@/lib/headless/expo-tools";
 import type { ToolContext } from "@/lib/headless/tools";
 import { GET } from "@/app/api/expo/state/route";
@@ -13,10 +13,16 @@ const tool = (name: string) => EXPO_TOOLS.find((t) => t.name === name)!;
 const ctx = (ownerId: string, ownerRole = "user"): ToolContext => ({ principal: { credentialId: "c", ownerId, ownerRole }, waitUntil: () => undefined, env });
 const textOf = (r: { content: { type: string; text?: string }[] }) => r.content.map((c) => c.text ?? "").join("\n");
 
-function memoryStore(users: Record<string, string> = {}): ExpoStore & { files: Map<string, PlotDoc>; assignments: Assignments } {
+function memoryStore(users: Record<string, string> = {}): ExpoStore & { files: Map<string, PlotDoc>; assignments: Assignments; posts: Map<string, PostRecord> } {
   const files = new Map<string, PlotDoc>();
+  const posts = new Map<string, PostRecord>();
   let assignments: Assignments = {};
   return {
+    posts,
+    readPost: async (p) => structuredClone(posts.get(p) ?? {}),
+    async writePost(p, r) {
+      posts.set(p, structuredClone(r));
+    },
     files,
     get assignments() {
       return assignments;
@@ -127,6 +133,40 @@ describe("the expo tools", () => {
     await tool("expo_undo").run({}, ctx("owner-ida"));
     expect(s.files.get("N07")?.items).toEqual([]);
     expect(textOf(await tool("expo_undo").run({}, ctx("owner-ida")))).toMatch(/no changes to undo/);
+  });
+});
+
+describe("the drone post", () => {
+  let s: ReturnType<typeof memoryStore>;
+  beforeEach(() => {
+    s = memoryStore({ "ida@student.test": "owner-ida" });
+    setExpoStore(s);
+  });
+  afterEach(() => setExpoStore(null));
+
+  it("posts a hand-in on the student's own plot: the module public, the link private", async () => {
+    await tool("expo_assign").run({ plot: "N07", email: "ida@student.test" }, ctx("teacher", "admin"));
+    const r = await tool("expo_post").run({ module: 3, url: "https://claude.ai/artifact/AbCdEf123456" }, ctx("owner-ida"));
+    expect(textOf(r)).toMatch(/Canvas is the hand-in that counts/);
+    expect(s.files.get("N07")?.posted?.map((p) => p.module)).toEqual([3]);
+    expect(JSON.stringify(s.files.get("N07"))).not.toContain("claude.ai/artifact");
+    expect(s.posts.get("N07")?.["3"]?.url).toBe("https://claude.ai/artifact/AbCdEf123456");
+    // posting again replaces, never doubles
+    await tool("expo_post").run({ module: 3, url: "https://claude.ai/artifact/ZzZz9999" }, ctx("owner-ida"));
+    expect(s.files.get("N07")?.posted).toHaveLength(1);
+  });
+
+  it("takes only a claude.ai artifact link, and only on the student's own plot", async () => {
+    await tool("expo_assign").run({ plot: "N07", email: "ida@student.test" }, ctx("teacher", "admin"));
+    await expect(tool("expo_post").run({ module: 3, url: "https://example.com/my-page" }, ctx("owner-ida"))).rejects.toThrow(/artifact link/);
+    expect((await tool("expo_post").run({ module: 3, url: "https://claude.ai/artifact/AbCdEf123456", plot: "N08" }, ctx("owner-ida"))).isError).toBe(true);
+  });
+
+  it("opens the mailroom to the teacher only", async () => {
+    await tool("expo_assign").run({ plot: "N07", email: "ida@student.test", label: "Ida" }, ctx("teacher", "admin"));
+    await tool("expo_post").run({ module: 2, url: "https://claude.ai/artifact/AbCdEf123456" }, ctx("owner-ida"));
+    expect((await tool("expo_mailroom").run({}, ctx("owner-ida"))).isError).toBe(true);
+    expect(textOf(await tool("expo_mailroom").run({ module: 2 }, ctx("teacher", "admin")))).toContain("N07 (Ida)");
   });
 });
 

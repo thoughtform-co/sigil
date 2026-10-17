@@ -9,6 +9,11 @@
  *
  * The document is public: it carries what the student chose to show and nothing about who they
  * are beyond the first name they gave. Text is shown as text only, never as markup.
+ *
+ * The drone post (r06): a student posts each week's hand-in through Claude; the public document
+ * gets only the module and when (`posted`), so the city flies the parcel; the hand-in's artifact
+ * link is kept privately for the teacher (`expo/post/N07.json` in the references bucket). It mirrors
+ * Canvas, which stays the hand-in that counts.
  */
 
 import { z } from "zod";
@@ -95,6 +100,8 @@ export const PlotDocSchema = z
     items: z.array(ItemSchema).max(LIMITS.items),
     avatar: z.string().url().optional(),
     works: z.array(z.object({ src: z.string().url(), title: TEXT(LIMITS.text.title).optional() }).strict()).max(LIMITS.works),
+    /** The modules whose hand-in was posted at the drone post, and when. */
+    posted: z.array(z.object({ module: z.number().int().min(1).max(8), at: z.string() }).strict()).max(8).optional(),
   })
   .strict();
 export type PlotDoc = z.infer<typeof PlotDocSchema>;
@@ -268,6 +275,11 @@ export function applyOps(doc: PlotDoc, ops: ExpoOp[], outputs: string): { doc: P
   return { doc: checked.data, changes };
 }
 
+/** A hand-in's artifact link, as the teacher opens it: claude.ai's own artifact pages only. */
+export const ARTIFACT_LINK = /^https:\/\/claude\.ai\/(?:code\/)?artifact\/[A-Za-z0-9-]{6,80}\/?(?:[?#].*)?$/;
+/** The links behind a plot's parcels, private: module number to link and time. */
+export type PostRecord = Record<string, { url: string; at: string }>;
+
 export interface Assignment {
   ownerId: string;
   /** Who it is for, for the teacher's own reading (an address or a first name); never published. */
@@ -287,12 +299,15 @@ export interface ExpoStore {
   writeAssignments(a: Assignments): Promise<void>;
   /** The Sigil account behind an address, or null. */
   findOwnerByEmail(email: string): Promise<string | null>;
+  readPost(plot: string): Promise<PostRecord>;
+  writePost(plot: string, record: PostRecord): Promise<void>;
 }
 
 const OUTPUTS = "outputs";
 const plotPath = (plot: string) => `expo/plots/${plot}.json`;
 const versionPath = (plot: string, v: number) => `expo/plots/${plot}/v${v}.json`;
 const ASSIGNMENTS = "expo/assignments.json";
+const postPath = (plot: string) => `expo/post/${plot}.json`;
 
 function parsePlot(text: string | null): PlotDoc | null {
   if (!text) return null;
@@ -340,6 +355,16 @@ export function supabaseExpoStore(): ExpoStore {
       }
     },
     writeAssignments: (a) => write(REFERENCES_BUCKET, ASSIGNMENTS, JSON.stringify(a, null, 1), "0"),
+    async readPost(plot) {
+      const text = await read(REFERENCES_BUCKET, postPath(plot));
+      if (!text) return {};
+      try {
+        return JSON.parse(text) as PostRecord;
+      } catch {
+        return {};
+      }
+    },
+    writePost: (plot, record) => write(REFERENCES_BUCKET, postPath(plot), JSON.stringify(record, null, 1), "0"),
     async findOwnerByEmail(email) {
       const want = email.trim().toLowerCase();
       for (let page = 1; page <= 20; page++) {

@@ -44,6 +44,8 @@ describe("the MCP protocol", () => {
       "expo_edit",
       "expo_undo",
       "expo_assign",
+      "expo_post",
+      "expo_mailroom",
     ]);
     for (const tool of tools) {
       expect(tool.inputSchema).toMatchObject({ type: "object", additionalProperties: false });

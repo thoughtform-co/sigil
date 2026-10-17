@@ -30,7 +30,7 @@ export const SERVER_INSTRUCTIONS =
   "To draw from a photograph or another picture on disk, call create_upload_urls, send the file to the URL it gives, and pass the `ref` as a reference. " +
   "generate_3d makes a 3D model (GLB) from one to four views, front first; for a character in an A-pose set rig to true for a skeleton, an idle and a wave. It takes minutes: collect it with get_generation_status about once a minute. " +
   "list_models names the models. " +
-  "For the AI storytelling course's Expo City: expo_my_area shows the student's own plot, the catalogue and its limits; expo_edit changes it (place, move, remove, set); expo_undo takes back the last change; it shows in the live city within seconds. " +
+  "For the AI storytelling course's Expo City: expo_my_area shows the student's own plot, the catalogue and its limits; expo_edit changes it (place, move, remove, set); expo_undo takes back the last change; expo_post posts the week's hand-in (its artifact link) at the drone post, as well as Canvas, never instead; it shows in the live city within seconds. " +
   'Every draw is saved in the person\'s Sigil project "Claude". ' +
   "Images, videos and 3D models made through Claude count against a daily allowance per person; a refusal says how many were used and when the next one frees up, and nothing is paid for.";
 

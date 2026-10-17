@@ -41,6 +41,8 @@ Image calls can take close to a minute; a client with a 60-second tool timeout s
 | `expo_edit` | Expo City: place, move, remove and set things on the caller's own plot; saved as a new version. |
 | `expo_undo` | Expo City: back one change. |
 | `expo_assign` | Expo City, admins only: give a plot to a student's account by the address they sign in with, or clear it. |
+| `expo_post` | Expo City's drone post: the week's hand-in (its claude.ai artifact link) for a module, on the caller's own plot. The city flies the parcel; it mirrors Canvas, never replaces it. |
+| `expo_mailroom` | Expo City, admins only: who posted what, per module, with the links. |
 
 Every draw is a normal `Generation` row with `source = "mcp"`, in the person's own project
 "Claude", so it also shows up in the web app.
@@ -58,7 +60,9 @@ A student only ever touches the plot assigned to their own account: the tools ta
 the signed-in principal; only an admin may name another. An edit is checked before it is saved:
 inside the plot, never on the venue hall or its approach (the way into the room), clear of the
 monument's plaza, at most twenty things from the catalogue, text short and shown as text, an avatar
-or a hung work only a file Sigil made. No schema change: it is all files.
+or a hung work only a file Sigil made. No schema change: it is all files. A posted hand-in puts only the module and the time in
+the public document (`posted`); its artifact link is kept privately in `expo/post/N07.json` in the
+references bucket, for the teacher's `expo_mailroom`.
 
 ## The model that was asked for, or a plain failure
 

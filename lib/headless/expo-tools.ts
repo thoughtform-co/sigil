@@ -7,6 +7,7 @@
 
 import type { McpTool, ToolContext, ToolResult } from "./tools";
 import {
+  ARTIFACT_LINK,
   CATALOGUE,
   ExpoInputError,
   LIMITS,
@@ -56,6 +57,7 @@ function describe(doc: PlotDoc, link: string): string {
     `Shown: ${[doc.student && `student "${doc.student}"`, doc.invention && `invention "${doc.invention}"`, doc.tagline && `tagline "${doc.tagline}"`, doc.hue && `colour ${doc.hue}`, doc.venue && `venue ${doc.venue}`].filter(Boolean).join(", ") || "nothing set yet"}.`,
     `Monument: ${doc.monument ? `${doc.monument.type} at u ${doc.monument.u}, v ${doc.monument.v}` : `the city's choice at u ${LIMITS.monument.at.u}, v ${LIMITS.monument.at.v}`}.`,
     `Avatar: ${doc.avatar ?? "none"}. Works hung: ${doc.works.length}.`,
+    `Posted at the drone post: ${doc.posted?.length ? doc.posted.map((p) => `module ${p.module}`).join(", ") : "nothing yet"}.`,
     doc.items.length ? `Things on the plot (${doc.items.length} of ${LIMITS.items}):` : `Nothing placed yet (room for ${LIMITS.items}).`,
     ...doc.items.map((it) => `- ${it.id}: ${it.kind} at u ${it.u}, v ${it.v}${it.rot ? `, turned ${it.rot}°` : ""}${it.scale !== 1 ? `, scale ${it.scale}` : ""}${it.colour ? `, ${it.colour}` : ""}`),
   ];
@@ -212,4 +214,70 @@ const expoAssign: McpTool = {
   },
 };
 
-export const EXPO_TOOLS: McpTool[] = [expoMyArea, expoEdit, expoUndo, expoAssign];
+const expoPost: McpTool = {
+  name: "expo_post",
+  title: "Post my hand-in",
+  description:
+    "The drone post at the Expo: post the week's hand-in (the artifact link of the hand-in page, claude.ai/artifact/...) for a module. The parcel flies from your quarter's post office to the Institute in the live city, a pennant goes up on your plot, and the teacher gets the link. It mirrors Canvas: paste the same link into the assignment in Canvas too, which is the hand-in that counts.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      module: { type: "integer", minimum: 1, maximum: 8, description: "The module (or step) the hand-in is for." },
+      url: { type: "string", description: "The hand-in's artifact link, https://claude.ai/artifact/..." },
+      plot: { type: "string", description: "Teachers only: post for this plot." },
+    },
+    required: ["module", "url"],
+    additionalProperties: false,
+  },
+  annotations: { readOnlyHint: false, destructiveHint: false },
+  async run(args, ctx) {
+    const r = await resolvePlot(args, ctx);
+    if ("refusal" in r) return r.refusal;
+    const module = typeof args.module === "number" ? args.module : NaN;
+    if (!Number.isInteger(module) || module < 1 || module > 8) throw new ExpoInputError("`module` is a whole number from 1 to 8.");
+    const url = typeof args.url === "string" ? args.url.trim() : "";
+    if (!ARTIFACT_LINK.test(url)) throw new ExpoInputError("`url` must be the hand-in's artifact link on claude.ai (https://claude.ai/artifact/...). Publish the hand-in page first.");
+    const s = expoStore();
+    const at = new Date().toISOString();
+    const record = await s.readPost(r.plot);
+    const again = Boolean(record[String(module)]);
+    record[String(module)] = { url, at };
+    await s.writePost(r.plot, record);
+    const before = (await s.readPlot(r.plot)) ?? emptyPlot(r.plot);
+    const posted = [...(before.posted ?? []).filter((p) => p.module !== module), { module, at }].sort((a, b) => a.module - b.module);
+    const saved = await saveVersion(s, before, { ...before, posted }, before.version);
+    const link = expoLink(ctx.env, r.plot);
+    return say(
+      `${again ? "Posted again" : "Posted"}: the hand-in for module ${module} leaves ${r.plot} by drone for the Institute; watch it fly at ${link}. Now paste the same link into the assignment in Canvas: Canvas is the hand-in that counts.`,
+      { plot: r.plot, module, version: saved.version, link, posted: posted.map((p) => p.module) },
+    );
+  },
+};
+
+const expoMailroom: McpTool = {
+  name: "expo_mailroom",
+  title: "The mailroom (teacher)",
+  description: "Teachers only: who posted what at the drone post, per plot and module, with each hand-in's artifact link.",
+  inputSchema: {
+    type: "object",
+    properties: { module: { type: "integer", minimum: 1, maximum: 8, description: "Only this module." } },
+    additionalProperties: false,
+  },
+  annotations: { readOnlyHint: true },
+  async run(args, ctx) {
+    if (!isAdmin(ctx)) return say("Only a teacher can open the mailroom.", undefined, true);
+    const only = typeof args.module === "number" ? args.module : null;
+    const s = expoStore();
+    const a = await s.readAssignments();
+    const rows: { plot: string; who: string; module: number; url: string; at: string }[] = [];
+    for (const plot of PLOT_IDS) {
+      const rec = await s.readPost(plot);
+      for (const [m, v] of Object.entries(rec)) if (!only || Number(m) === only) rows.push({ plot, who: a[plot]?.label ?? "unassigned", module: Number(m), url: v.url, at: v.at });
+    }
+    rows.sort((x, y) => x.module - y.module || x.plot.localeCompare(y.plot));
+    const text = rows.length ? rows.map((r) => `module ${r.module} · ${r.plot} (${r.who}) · ${r.at.slice(0, 16).replace("T", " ")} · ${r.url}`).join("\n") : `Nothing posted${only ? ` for module ${only}` : ""} yet.`;
+    return say(text, { rows });
+  },
+};
+
+export const EXPO_TOOLS: McpTool[] = [expoMyArea, expoEdit, expoUndo, expoAssign, expoPost, expoMailroom];
