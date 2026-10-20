@@ -1,0 +1,47 @@
+{
+  "schema": "expo.hand-in/2",
+  "module": 4,
+  "student": "Ida",
+  "plot": "N07",
+  "world": "The Salt Archive",
+  "title": "Tide clerks",
+  "sub": "Clerks who file the sea away one drawer at a time.",
+  "hero": "module-4/05_Beelden/tide-clerk-hero.png",
+  "ask": {
+    "brief": "Make the clerks look tired but proud.",
+    "questions": [{ "asked": "Who sees the archive first?", "answer": "The night shift." }]
+  },
+  "look": { "said": "Brass and wet stone, never neon.", "files": ["module-4/02_Look/brass-drawer.jpg"] },
+  "references": [
+    { "file": "module-4/03_Referenties/harbour-office.jpg", "source": "own-photo", "from": "Antwerp harbour", "said": "The light through the dusty window." },
+    { "file": "module-4/03_Referenties/card-index.jpg", "source": "found", "from": "", "said": "" }
+  ],
+  "idea": { "chosen": "The clerks file waves.", "why": "It is quiet and strange.", "set_aside": ["A lighthouse that eats ships."] },
+  "direction": [
+    { "said": "Less shiny, the drawers should look used for a hundred years.", "about": "the drawers", "then": "Added wear and verdigris." },
+    { "about": "the sky", "then": "" }
+  ],
+  "questions": ["Can the water be inside the drawer?"],
+  "made": [{ "what": "The hero picture", "who": "both", "note": "" }],
+  "checked": [
+    { "file": "module-4/05_Beelden/tide-clerk-v2.png", "failed": "hands", "said": "Six fingers on the left hand.", "why": "", "fixed": "module-4/05_Beelden/tide-clerk-v3.png" }
+  ],
+  "concept": { "logline": "In a city that archives the sea, a clerk loses one wave.", "audience": "My cousin who collects old maps.", "platform": "Instagram" },
+  "business": {
+    "format": "series",
+    "payer": "A streaming service for short films.",
+    "pays_for": "Ten episodes.",
+    "revenue": "licensing",
+    "price": "2000 euro per episode",
+    "price_source": "",
+    "comparable": "Love, Death & Robots",
+    "first_channel": "The film school's festival.",
+    "ip": { "character": "The clerk", "products": [{ "what": "A brass drawer pin", "file": "module-4/06_IP/pin.png" }] },
+    "distribution": { "platform": "YouTube", "spec": "90 seconds, 9:16" },
+    "counter": ""
+  },
+  "ladder": [],
+  "learned": "That I have to say what I see, not what I want.",
+  "prompts": [{ "model": "made-up", "prompt": "the plugin should never write this", "refs": 0, "at": "2026-10-01T00:00:00Z" }],
+  "answers": []
+}
