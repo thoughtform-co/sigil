@@ -72,7 +72,10 @@ student's own `Generation` rows since their previous post (21 days back for a fi
 and the keeper's three questions are chosen in code (`lib/headless/keeper.ts`, no model). The
 game's post office (same origin, the Sigil session cookie, never cached, no CORS) reads the
 student's own parcels with `GET /api/expo/me` (cards and questions only, never the record's text)
-and keeps their answers once with `POST /api/expo/answers`; a repost opens the parcel again.
+and keeps their answers once with `POST /api/expo/answers`; a repost opens the parcel again. The
+plot worker of the game (`/expo/assets/plot.worker-*`) runs students' code and is served with
+`Content-Security-Policy: default-src 'none'; script-src 'self'` (`next.config.ts`), so that code
+cannot make a request.
 
 ## The model that was asked for, or a plain failure
 

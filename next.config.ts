@@ -30,6 +30,9 @@ function contentSecurityPolicy(): string | undefined {
   ].join("; ");
 }
 
+/** The plot worker of Expo City (public/expo/assets/plot.worker-*.js) runs students' code. */
+const EXPO_PLOT_WORKER_CSP = "default-src 'none'; script-src 'self'";
+
 const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
@@ -110,6 +113,13 @@ const nextConfig: NextConfig = {
       {
         source: "/:path*",
         headers: baseHeaders,
+      },
+      // Expo City's plot worker runs students' code: it may load its own script and nothing else,
+      // so that code cannot make a request. Listed last, so its policy replaces the app's for this
+      // one file pattern (Next.js: the last match of a header key wins).
+      {
+        source: "/expo/assets/:file(plot\\.worker-[^/]*)",
+        headers: [{ key: "Content-Security-Policy", value: EXPO_PLOT_WORKER_CSP }],
       },
     ];
   },
