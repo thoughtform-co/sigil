@@ -14,11 +14,20 @@
  * gets only the module and when (`posted`), so the city flies the parcel; the hand-in's artifact
  * link is kept privately for the teacher (`expo/post/N07.json` in the references bucket). It mirrors
  * Canvas, which stays the hand-in that counts.
+ *
+ * The keeper (r07): a post may carry the hand-in's record (`expo.hand-in/2`, lib/headless/hand-in.ts).
+ * It is kept privately beside the link (`expo/hand-in/N07/3.json` in the references bucket) with
+ * the prompts Sigil drew for the student since their previous post, the keeper's three questions
+ * (lib/headless/keeper.ts) and, once the student has answered them at the post office in the game
+ * (`/api/expo/answers`), their answers. The public document learns nothing new.
  */
 
 import { z } from "zod";
+import { prisma } from "@/lib/prisma";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { REFERENCES_BUCKET } from "@/lib/supabase/storage";
+import type { HandIn, HandInAnswer, HandInPrompt } from "./hand-in";
+import { keeperSeed, questionsFor, type KeeperQuestion } from "./keeper";
 
 export class ExpoInputError extends Error {}
 
@@ -288,6 +297,19 @@ export interface Assignment {
 }
 export type Assignments = Record<string, Assignment>;
 
+/**
+ * A posted hand-in as the teacher's evaluator reads it, private: the link and when, the record with
+ * Sigil's prompts filled in (null when the post carried none), the keeper's questions, and the
+ * student's answers once given (each with the question as it was asked).
+ */
+export interface StoredHandIn {
+  url: string;
+  at: string;
+  record: HandIn | null;
+  questions: KeeperQuestion[];
+  answers: HandInAnswer[];
+}
+
 /** Where the documents live; the tests swap in a memory store. */
 export interface ExpoStore {
   readPlot(plot: string): Promise<PlotDoc | null>;
@@ -301,6 +323,9 @@ export interface ExpoStore {
   findOwnerByEmail(email: string): Promise<string | null>;
   readPost(plot: string): Promise<PostRecord>;
   writePost(plot: string, record: PostRecord): Promise<void>;
+  readHandIn(plot: string, module: number): Promise<StoredHandIn | null>;
+  /** Replace a module's stored hand-in. */
+  writeHandIn(plot: string, module: number, handIn: StoredHandIn): Promise<void>;
 }
 
 const OUTPUTS = "outputs";
@@ -308,6 +333,7 @@ const plotPath = (plot: string) => `expo/plots/${plot}.json`;
 const versionPath = (plot: string, v: number) => `expo/plots/${plot}/v${v}.json`;
 const ASSIGNMENTS = "expo/assignments.json";
 const postPath = (plot: string) => `expo/post/${plot}.json`;
+const handInPath = (plot: string, module: number) => `expo/hand-in/${plot}/${module}.json`;
 
 function parsePlot(text: string | null): PlotDoc | null {
   if (!text) return null;
@@ -365,6 +391,16 @@ export function supabaseExpoStore(): ExpoStore {
       }
     },
     writePost: (plot, record) => write(REFERENCES_BUCKET, postPath(plot), JSON.stringify(record, null, 1), "0"),
+    async readHandIn(plot, module) {
+      const text = await read(REFERENCES_BUCKET, handInPath(plot, module));
+      if (!text) return null;
+      try {
+        return JSON.parse(text) as StoredHandIn;
+      } catch {
+        return null;
+      }
+    },
+    writeHandIn: (plot, module, handIn) => write(REFERENCES_BUCKET, handInPath(plot, module), JSON.stringify(handIn), "0"),
     async findOwnerByEmail(email) {
       const want = email.trim().toLowerCase();
       for (let page = 1; page <= 20; page++) {
@@ -414,4 +450,100 @@ export function stateOf(docs: PlotDoc[]): { body: string; etag: string } {
   let h = 2166136261;
   for (let i = 0; i < tag.length; i++) h = Math.imul(h ^ tag.charCodeAt(i), 16777619) >>> 0;
   return { body: JSON.stringify({ plots }), etag: `"expo-${h.toString(36)}-${docs.length}"` };
+}
+
+/** How far back a student's first post looks for the prompts they drew through Sigil. */
+export const FIRST_POST_DAYS = 21;
+/** The most prompts a hand-in carries, newest first. */
+export const PROMPTS_MAX = 300;
+
+/** The prompts a person drew through Sigil after `since`, newest first, at most `limit`. */
+export type PromptsQuery = (ownerId: string, since: Date, limit: number) => Promise<HandInPrompt[]>;
+
+const clip = (s: string, max: number) => ([...s].length <= max ? s : [...s].slice(0, max).join(""));
+
+/** How many reference images a draw was given, when its parameters say. */
+export function referenceCount(parameters: unknown): number | undefined {
+  if (!parameters || typeof parameters !== "object" || Array.isArray(parameters)) return undefined;
+  const p = parameters as Record<string, unknown>;
+  for (const key of ["referenceImages", "referenceImagePaths", "referenceImageUrls", "referenceImageIds"]) {
+    if (Array.isArray(p[key])) return (p[key] as unknown[]).length;
+  }
+  for (const key of ["referenceImageUrl", "referenceImagePath", "referenceImageId", "referenceImage"]) {
+    if (typeof p[key] === "string" && p[key]) return 1;
+  }
+  return undefined;
+}
+
+/** A Generation row as a hand-in's prompt: the model, the prompt, the references, when. */
+export function promptOf(row: { modelId: string; prompt: string; parameters: unknown; createdAt: Date }): HandInPrompt {
+  const refs = referenceCount(row.parameters);
+  return { model: clip(row.modelId, 80), prompt: clip(row.prompt, 8000), ...(refs !== undefined ? { refs } : {}), at: row.createdAt.toISOString() };
+}
+
+export const prismaPromptsQuery: PromptsQuery = async (ownerId, since, limit) => {
+  const rows = await prisma.generation.findMany({
+    where: { userId: ownerId, createdAt: { gt: since } },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: limit,
+    select: { modelId: true, prompt: true, parameters: true, createdAt: true },
+  });
+  return rows.map(promptOf);
+};
+
+let promptsQuery: PromptsQuery | null = null;
+export function expoPrompts(): PromptsQuery {
+  return promptsQuery ?? prismaPromptsQuery;
+}
+/** Tests only. */
+export function setPromptsQuery(q: PromptsQuery | null): void {
+  promptsQuery = q;
+}
+
+/**
+ * Where a post's prompts start: the student's previous post (the latest other module posted before
+ * this one first was, so a repost keeps the week's prompts), or FIRST_POST_DAYS back for a first.
+ */
+export function promptsSince(post: PostRecord, module: number, now: Date): Date {
+  const mine = post[String(module)]?.at;
+  const before = Object.entries(post)
+    .filter(([m, v]) => m !== String(module) && typeof v?.at === "string" && (!mine || v.at < mine))
+    .map(([, v]) => v.at)
+    .sort();
+  const last = before.at(-1);
+  const t = last ? Date.parse(last) : NaN;
+  return Number.isFinite(t) ? new Date(t) : new Date(now.getTime() - FIRST_POST_DAYS * 86_400_000);
+}
+
+/** What a parcel's card shows: how much went into the hand-in. */
+export interface ParcelCounts {
+  /** The work's own pictures: the hero, the fixed versions, the ladder's key visuals, the products. */
+  pictures: number;
+  /** Pictures the student sent back (`checked` rows with a file). */
+  rejected: number;
+  /** Files on the board (`references` and `look.files`). */
+  references: number;
+  /** What Sigil drew for them since the previous post. */
+  prompts: number;
+}
+
+export function countsOf(record: HandIn | null): ParcelCounts {
+  if (!record) return { pictures: 0, rejected: 0, references: 0, prompts: 0 };
+  const files = (xs: (string | undefined)[]) => new Set(xs.map((x) => (x ?? "").trim()).filter(Boolean)).size;
+  return {
+    pictures: files([record.hero, ...(record.checked ?? []).map((c) => c.fixed), ...(record.ladder ?? []).map((l) => l.file), ...(record.business?.ip?.products ?? []).map((p) => p.file)]),
+    rejected: (record.checked ?? []).filter((c) => (c.file ?? "").trim()).length,
+    references: files([...(record.references ?? []).map((r) => r.file), ...(record.look?.files ?? [])]),
+    prompts: record.prompts?.length ?? 0,
+  };
+}
+
+/**
+ * The parcel a posted module holds now. The post record is the truth about what was posted: a
+ * stored hand-in counts only while its link and time are that post's. A post without a record (or
+ * reposted without one) is still a parcel: the keeper asks it the questions for no record.
+ */
+export function currentParcel(plot: string, module: number, post: { url: string; at: string }, stored: StoredHandIn | null): StoredHandIn {
+  if (stored && stored.url === post.url && stored.at === post.at) return stored;
+  return { url: post.url, at: post.at, record: null, questions: questionsFor(null, module, keeperSeed(plot, module)), answers: [] };
 }

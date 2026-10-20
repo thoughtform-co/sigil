@@ -41,8 +41,8 @@ Image calls can take close to a minute; a client with a 60-second tool timeout s
 | `expo_edit` | Expo City: place, move, remove and set things on the caller's own plot; saved as a new version. |
 | `expo_undo` | Expo City: back one change. |
 | `expo_assign` | Expo City, admins only: give a plot to a student's account by the address they sign in with, or clear it. |
-| `expo_post` | Expo City's drone post: the week's hand-in (its claude.ai artifact link) for a module, on the caller's own plot. The city flies the parcel; it mirrors Canvas, never replaces it. |
-| `expo_mailroom` | Expo City, admins only: who posted what, per module, with the links. |
+| `expo_post` | Expo City's drone post: the week's hand-in (its claude.ai artifact link, and optionally its `expo.hand-in/2` record) for a module, on the caller's own plot. The city flies the parcel; it mirrors Canvas, never replaces it. |
+| `expo_mailroom` | Expo City, admins only: who posted what, per module, with the links and whether the keeper's questions were answered; with `plot` and `module`, the whole stored hand-in. |
 
 Every draw is a normal `Generation` row with `source = "mcp"`, in the person's own project
 "Claude", so it also shows up in the web app.
@@ -63,6 +63,16 @@ monument's plaza, at most twenty things from the catalogue, text short and shown
 or a hung work only a file Sigil made. No schema change: it is all files. A posted hand-in puts only the module and the time in
 the public document (`posted`); its artifact link is kept privately in `expo/post/N07.json` in the
 references bucket, for the teacher's `expo_mailroom`.
+
+A post may carry the hand-in's record (`expo.hand-in/2`, `lib/headless/hand-in.ts`, a strict
+mirror of the course's JSON schema; at most 256 KB; its `module` the post's, its `plot`, when set,
+the poster's). It is kept privately as `expo/hand-in/N07/<module>.json` in the references bucket:
+`{ url, at, record, questions, answers }`. Sigil fills the record's `prompts` itself from the
+student's own `Generation` rows since their previous post (21 days back for a first), newest 300,
+and the keeper's three questions are chosen in code (`lib/headless/keeper.ts`, no model). The
+game's post office (same origin, the Sigil session cookie, never cached, no CORS) reads the
+student's own parcels with `GET /api/expo/me` (cards and questions only, never the record's text)
+and keeps their answers once with `POST /api/expo/answers`; a repost opens the parcel again.
 
 ## The model that was asked for, or a plain failure
 
@@ -146,6 +156,7 @@ are not limited. A refusal says how many were used and when the next one frees u
 | `app/connect/page.tsx` | The consent page |
 | `lib/models/process-generation.ts` | The generation worker, shared with `/api/generate/process` |
 | `lib/models/meshy.ts`, `lib/headless/three-d.ts`, `lib/headless/glb.ts` | 3D models: Meshy's client, the job's stages, finishing the file |
-| `lib/headless/expo.ts`, `lib/headless/expo-tools.ts`, `app/api/expo/state/route.ts` | Expo City's areas: the document and its limits, the four tools, the public state |
+| `lib/headless/expo.ts`, `lib/headless/expo-tools.ts`, `app/api/expo/state/route.ts` | Expo City's areas: the document and its limits, the tools, the public state |
+| `lib/headless/hand-in.ts`, `lib/headless/keeper.ts`, `lib/headless/post-office.ts`, `app/api/expo/me`, `app/api/expo/answers` | The drone post's hand-in record, the keeper's questions, and the game's post office on the session cookie |
 | `tests/headless/` | The sign-in flow over an in-memory store, the dispatcher, the allowance, the 3D stages and the GLB finish, Expo City's operations and tools over a memory store |
 | `scripts/meshy-chain.ts`, `scripts/finish-glb.ts` | The 3D chain run by hand on views on disk (no database; `MESHY_API_KEY` in the environment), and the finish on a GLB on disk: for checking Meshy's real answers and for a teacher's sample model |

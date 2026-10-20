@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({ prisma: {} }));
 
-import { applyOps, emptyPlot, ExpoInputError, setExpoStore, stateOf, type Assignments, type ExpoStore, type PlotDoc, type PostRecord } from "@/lib/headless/expo";
+import { applyOps, emptyPlot, ExpoInputError, setExpoStore, stateOf, type PlotDoc } from "@/lib/headless/expo";
+import { memoryExpoStore } from "./helpers/memory-expo-store";
 import { EXPO_TOOLS } from "@/lib/headless/expo-tools";
 import type { ToolContext } from "@/lib/headless/tools";
 import { GET } from "@/app/api/expo/state/route";
@@ -13,34 +14,7 @@ const tool = (name: string) => EXPO_TOOLS.find((t) => t.name === name)!;
 const ctx = (ownerId: string, ownerRole = "user"): ToolContext => ({ principal: { credentialId: "c", ownerId, ownerRole }, waitUntil: () => undefined, env });
 const textOf = (r: { content: { type: string; text?: string }[] }) => r.content.map((c) => c.text ?? "").join("\n");
 
-function memoryStore(users: Record<string, string> = {}): ExpoStore & { files: Map<string, PlotDoc>; assignments: Assignments; posts: Map<string, PostRecord> } {
-  const files = new Map<string, PlotDoc>();
-  const posts = new Map<string, PostRecord>();
-  let assignments: Assignments = {};
-  return {
-    posts,
-    readPost: async (p) => structuredClone(posts.get(p) ?? {}),
-    async writePost(p, r) {
-      posts.set(p, structuredClone(r));
-    },
-    files,
-    get assignments() {
-      return assignments;
-    },
-    readPlot: async (p) => structuredClone(files.get(`${p}`) ?? null),
-    readVersion: async (p, v) => structuredClone(files.get(`${p}/v${v}`) ?? null),
-    async writePlot(doc) {
-      files.set(`${doc.plot}/v${doc.version}`, structuredClone(doc));
-      files.set(doc.plot, structuredClone(doc));
-    },
-    listPlots: async () => [...files.entries()].filter(([k]) => /^N\d\d$/.test(k)).map(([, d]) => structuredClone(d)),
-    readAssignments: async () => structuredClone(assignments),
-    async writeAssignments(a) {
-      assignments = structuredClone(a);
-    },
-    findOwnerByEmail: async (email) => users[email.toLowerCase()] ?? null,
-  };
-}
+const memoryStore = memoryExpoStore;
 
 describe("an area's operations", () => {
   const base = emptyPlot("N07");

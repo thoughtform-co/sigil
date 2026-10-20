@@ -14,15 +14,23 @@ import {
   MONUMENTS,
   PLOT_IDS,
   VENUES,
+  PROMPTS_MAX,
   applyOps,
+  countsOf,
+  currentParcel,
   emptyPlot,
   expoLink,
+  expoPrompts,
   expoStore,
   plotOf,
+  promptsSince,
   saveVersion,
   type ExpoOp,
   type PlotDoc,
+  type StoredHandIn,
 } from "./expo";
+import { parseHandIn } from "./hand-in";
+import { keeperSeed, questionsFor } from "./keeper";
 
 const say = (text: string, structuredContent?: Record<string, unknown>, isError = false): ToolResult => ({
   content: [{ type: "text", text }],
@@ -218,12 +226,16 @@ const expoPost: McpTool = {
   name: "expo_post",
   title: "Post my hand-in",
   description:
-    "The drone post at the Expo: post the week's hand-in (the artifact link of the hand-in page, claude.ai/artifact/...) for a module. The parcel flies from your quarter's post office to the Institute in the live city, a pennant goes up on your plot, and the teacher gets the link. It mirrors Canvas: paste the same link into the assignment in Canvas too, which is the hand-in that counts.",
+    "The drone post at the Expo: post the week's hand-in for a module, with the artifact link of the hand-in page (claude.ai/artifact/...) and, when the hand-in has one, its record: pass the hand-in JSON (expo.hand-in/2, the same JSON the page embeds) as `record`, unchanged. The parcel flies from your quarter's post office to the Institute in the live city, a pennant goes up on your plot, and the teacher gets the link and the record. With a record, the keeper at your post office (a robot pigeon) has three questions about the work: the student answers them in the city, in their own words; do not answer them for the student. It mirrors Canvas: paste the same link into the assignment in Canvas too; the Canvas link stays the hand-in that counts.",
   inputSchema: {
     type: "object",
     properties: {
       module: { type: "integer", minimum: 1, maximum: 8, description: "The module (or step) the hand-in is for." },
       url: { type: "string", description: "The hand-in's artifact link, https://claude.ai/artifact/..." },
+      record: {
+        type: "object",
+        description: "The hand-in's record, expo.hand-in/2, as the course plugin wrote it (hand-in-module-<n>.json), at most 256 KB. Its module must be this module; Sigil fills in `prompts` and `answers` itself.",
+      },
       plot: { type: "string", description: "Teachers only: post for this plot." },
     },
     required: ["module", "url"],
@@ -233,23 +245,49 @@ const expoPost: McpTool = {
   async run(args, ctx) {
     const r = await resolvePlot(args, ctx);
     if ("refusal" in r) return r.refusal;
-    const module = typeof args.module === "number" ? args.module : NaN;
-    if (!Number.isInteger(module) || module < 1 || module > 8) throw new ExpoInputError("`module` is a whole number from 1 to 8.");
+    const mod = typeof args.module === "number" ? args.module : NaN;
+    if (!Number.isInteger(mod) || mod < 1 || mod > 8) throw new ExpoInputError("`module` is a whole number from 1 to 8.");
     const url = typeof args.url === "string" ? args.url.trim() : "";
     if (!ARTIFACT_LINK.test(url)) throw new ExpoInputError("`url` must be the hand-in's artifact link on claude.ai (https://claude.ai/artifact/...). Publish the hand-in page first.");
+    const parsed = args.record === undefined ? null : parseHandIn(args.record);
+    if (parsed && !parsed.ok) throw new ExpoInputError(`The record was refused: ${parsed.reason} Pass the hand-in JSON exactly as the plugin wrote it.`);
+    const record = parsed?.ok ? parsed.record : null;
+    if (record && record.module !== mod) throw new ExpoInputError(`The record is for module ${record.module}, not module ${mod}. Post it for its own module.`);
+    if (record?.plot && record.plot !== r.plot) throw new ExpoInputError(`The record names plot ${record.plot}, but this post is for ${r.plot}.`);
+
     const s = expoStore();
-    const at = new Date().toISOString();
-    const record = await s.readPost(r.plot);
-    const again = Boolean(record[String(module)]);
-    record[String(module)] = { url, at };
-    await s.writePost(r.plot, record);
+    const now = new Date();
+    const at = now.toISOString();
+    const post = await s.readPost(r.plot);
+    const again = Boolean(post[String(mod)]);
+    let prompts = 0;
+    if (record) {
+      // The prompts are what the plot's student drew, also when a teacher posts for them.
+      const owner = (await s.readAssignments())[r.plot]?.ownerId ?? ctx.principal.ownerId;
+      const drawn = await expoPrompts()(owner, promptsSince(post, mod, now), PROMPTS_MAX);
+      prompts = drawn.length;
+      const stored: StoredHandIn = {
+        url,
+        at,
+        record: { ...record, prompts: drawn, answers: [] },
+        questions: questionsFor(record, mod, keeperSeed(r.plot, mod)),
+        answers: [],
+      };
+      await s.writeHandIn(r.plot, mod, stored);
+    }
+    post[String(mod)] = { url, at };
+    await s.writePost(r.plot, post);
     const before = (await s.readPlot(r.plot)) ?? emptyPlot(r.plot);
-    const posted = [...(before.posted ?? []).filter((p) => p.module !== module), { module, at }].sort((a, b) => a.module - b.module);
+    const posted = [...(before.posted ?? []).filter((p) => p.module !== mod), { module: mod, at }].sort((a, b) => a.module - b.module);
     const saved = await saveVersion(s, before, { ...before, posted }, before.version);
     const link = expoLink(ctx.env, r.plot);
+    const office = `${expoLink(ctx.env)}?place=post`;
+    const keeper = record
+      ? ` The record went with it (${prompts} prompt${prompts === 1 ? "" : "s"} from Sigil added). The keeper at your post office has three questions about this work: answer them yourself, in your own words, at ${office}.`
+      : "";
     return say(
-      `${again ? "Posted again" : "Posted"}: the hand-in for module ${module} leaves ${r.plot} by drone for the Institute; watch it fly at ${link}. Now paste the same link into the assignment in Canvas: Canvas is the hand-in that counts.`,
-      { plot: r.plot, module, version: saved.version, link, posted: posted.map((p) => p.module) },
+      `${again ? "Posted again" : "Posted"}: the hand-in for module ${mod} leaves ${r.plot} by drone for the Institute; watch it fly at ${link}.${keeper} Now paste the same link into the assignment in Canvas: Canvas is the hand-in that counts.`,
+      { plot: r.plot, module: mod, version: saved.version, link, posted: posted.map((p) => p.module), record: Boolean(record), ...(record ? { prompts, office } : {}) },
     );
   },
 };
@@ -257,10 +295,14 @@ const expoPost: McpTool = {
 const expoMailroom: McpTool = {
   name: "expo_mailroom",
   title: "The mailroom (teacher)",
-  description: "Teachers only: who posted what at the drone post, per plot and module, with each hand-in's artifact link.",
+  description:
+    "Teachers only: who posted what at the drone post, per plot and module, with each hand-in's artifact link and whether the student has answered the keeper's questions. Given `plot` and `module`, the whole stored hand-in: the record with Sigil's prompts, the keeper's questions and the student's answers.",
   inputSchema: {
     type: "object",
-    properties: { module: { type: "integer", minimum: 1, maximum: 8, description: "Only this module." } },
+    properties: {
+      module: { type: "integer", minimum: 1, maximum: 8, description: "Only this module." },
+      plot: { type: "string", description: "With `module`: open that plot's hand-in for the module." },
+    },
     additionalProperties: false,
   },
   annotations: { readOnlyHint: true },
@@ -269,13 +311,44 @@ const expoMailroom: McpTool = {
     const only = typeof args.module === "number" ? args.module : null;
     const s = expoStore();
     const a = await s.readAssignments();
-    const rows: { plot: string; who: string; module: number; url: string; at: string }[] = [];
-    for (const plot of PLOT_IDS) {
-      const rec = await s.readPost(plot);
-      for (const [m, v] of Object.entries(rec)) if (!only || Number(m) === only) rows.push({ plot, who: a[plot]?.label ?? "unassigned", module: Number(m), url: v.url, at: v.at });
+    if (args.plot !== undefined) {
+      const plot = typeof args.plot === "string" ? args.plot.trim().toUpperCase() : "";
+      if (!PLOT_IDS.includes(plot)) throw new ExpoInputError(`A plot is N01 to N36, not "${String(args.plot)}".`);
+      if (!only || !Number.isInteger(only)) throw new ExpoInputError("Pass `module` with `plot` to open a hand-in.");
+      const entry = (await s.readPost(plot))[String(only)];
+      if (!entry) return say(`${plot} has posted nothing for module ${only}.`, { plot, module: only, handIn: null });
+      const handIn = currentParcel(plot, only, entry, await s.readHandIn(plot, only));
+      const who = a[plot]?.label ?? "unassigned";
+      const text = [
+        `Module ${only} · ${plot} (${who}) · posted ${entry.at.slice(0, 16).replace("T", " ")} · ${entry.url}`,
+        handIn.record ? `Record: "${handIn.record.title ?? ""}", ${handIn.record.prompts?.length ?? 0} prompts from Sigil.` : "Posted without a record.",
+        `The keeper's questions${handIn.answers.length ? ", answered" : " (not answered yet)"}:`,
+        ...handIn.questions.map((q) => {
+          const ans = handIn.answers.find((x) => x.id === q.id);
+          return `- ${q.asked}${ans ? `\n  "${ans.said}"${ans.pasted ? " (pasted)" : ""}, after ${Math.round((ans.ms ?? 0) / 1000)} s` : ""}`;
+        }),
+        "The whole hand-in is in the structured content.",
+      ].join("\n");
+      return say(text, { plot, module: only, who, counts: countsOf(handIn.record), handIn });
     }
+    const rows: { plot: string; who: string; module: number; url: string; at: string; answered: boolean }[] = [];
+    await Promise.all(
+      PLOT_IDS.map(async (plot) => {
+        const rec = await s.readPost(plot);
+        await Promise.all(
+          Object.entries(rec)
+            .filter(([m]) => !only || Number(m) === only)
+            .map(async ([m, v]) => {
+              const parcel = currentParcel(plot, Number(m), v, await s.readHandIn(plot, Number(m)));
+              rows.push({ plot, who: a[plot]?.label ?? "unassigned", module: Number(m), url: v.url, at: v.at, answered: parcel.answers.length > 0 });
+            }),
+        );
+      }),
+    );
     rows.sort((x, y) => x.module - y.module || x.plot.localeCompare(y.plot));
-    const text = rows.length ? rows.map((r) => `module ${r.module} · ${r.plot} (${r.who}) · ${r.at.slice(0, 16).replace("T", " ")} · ${r.url}`).join("\n") : `Nothing posted${only ? ` for module ${only}` : ""} yet.`;
+    const text = rows.length
+      ? rows.map((r) => `module ${r.module} · ${r.plot} (${r.who}) · ${r.at.slice(0, 16).replace("T", " ")} · ${r.url} · ${r.answered ? "answered" : "not answered"}`).join("\n")
+      : `Nothing posted${only ? ` for module ${only}` : ""} yet.`;
     return say(text, { rows });
   },
 };
