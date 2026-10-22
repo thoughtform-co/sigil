@@ -129,6 +129,8 @@ are not limited. A refusal says how many were used and when the next one frees u
 | `MESHY_API_KEY` | Meshy's API key, for `generate_3d`. Without it the tool says 3D is not configured and nothing else changes. |
 | `MCP_RESOURCE_ALIASES` | Other URLs this server answers to, comma-separated (a second domain in front of the same app). |
 | `MCP_OAUTH_REDIRECT_ALLOWLIST` | Extra redirect URIs, exact match. Claude's callbacks and loopback addresses are built in. |
+| `EXPO_ROOM_SECRET` | Expo City's live room: 32+ characters, the same value the room worker holds (expo-city `tools/live/worker`). Signs the one-hour tickets of `POST /api/expo/live/ticket`. Without it (or without `EXPO_ROOM_URL`) the route answers 503 `room_off` and nothing changes. |
+| `EXPO_ROOM_URL` | The room's WebSocket address, `wss://expo-city-room.<subdomain>.workers.dev/room`, handed to the game with the ticket. |
 
 ## Deploying it the first time
 
