@@ -14,6 +14,9 @@ const maxPerWindow: Record<string, number> = {
   // Expo City's post office (app/api/expo/me, app/api/expo/answers).
   "expo-me": 30,
   "expo-answers": 10,
+  // Expo City's character creator (app/api/expo/avatar/*): starting draws and keeping, then reading draws back while they run.
+  "expo-avatar": 20,
+  "expo-avatar-job": 120,
 };
 
 const store = new Map<string, { count: number; resetAt: number }>();

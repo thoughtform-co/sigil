@@ -28,6 +28,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { REFERENCES_BUCKET } from "@/lib/supabase/storage";
 import type { HandIn, HandInAnswer, HandInPrompt } from "./hand-in";
 import { keeperSeed, questionsFor, type KeeperQuestion } from "./keeper";
+import type { StoredAvatar } from "./avatar";
 
 export class ExpoInputError extends Error {}
 
@@ -326,6 +327,11 @@ export interface ExpoStore {
   readHandIn(plot: string, module: number): Promise<StoredHandIn | null>;
   /** Replace a module's stored hand-in. */
   writeHandIn(plot: string, module: number, handIn: StoredHandIn): Promise<void>;
+  /** A student's kept character (lib/headless/avatar.ts), private, by Sigil account. */
+  readAvatar(ownerId: string): Promise<StoredAvatar | null>;
+  writeAvatar(ownerId: string, avatar: StoredAvatar): Promise<void>;
+  /** Save a cut-out view as a public PNG in the outputs bucket; its URL. */
+  writeCutout(ownerId: string, name: string, png: Buffer): Promise<string>;
 }
 
 const OUTPUTS = "outputs";
@@ -334,6 +340,8 @@ const versionPath = (plot: string, v: number) => `expo/plots/${plot}/v${v}.json`
 const ASSIGNMENTS = "expo/assignments.json";
 const postPath = (plot: string) => `expo/post/${plot}.json`;
 const handInPath = (plot: string, module: number) => `expo/hand-in/${plot}/${module}.json`;
+const avatarPath = (ownerId: string) => `expo/avatar/${ownerId}.json`;
+const cutoutPath = (ownerId: string, name: string) => `expo/avatar/${ownerId}/${name}.png`;
 
 function parsePlot(text: string | null): PlotDoc | null {
   if (!text) return null;
@@ -401,6 +409,22 @@ export function supabaseExpoStore(): ExpoStore {
       }
     },
     writeHandIn: (plot, module, handIn) => write(REFERENCES_BUCKET, handInPath(plot, module), JSON.stringify(handIn), "0"),
+    async readAvatar(ownerId) {
+      const text = await read(REFERENCES_BUCKET, avatarPath(ownerId));
+      if (!text) return null;
+      try {
+        return JSON.parse(text) as StoredAvatar;
+      } catch {
+        return null;
+      }
+    },
+    writeAvatar: (ownerId, avatar) => write(REFERENCES_BUCKET, avatarPath(ownerId), JSON.stringify(avatar), "0"),
+    async writeCutout(ownerId, name, png) {
+      const path = cutoutPath(ownerId, name);
+      const { error } = await admin.storage.from(OUTPUTS).upload(path, png, { upsert: true, contentType: "image/png", cacheControl: "31536000" });
+      if (error) throw new Error(`Could not save ${path}: ${error.message}`);
+      return admin.storage.from(OUTPUTS).getPublicUrl(path).data.publicUrl;
+    },
     async findOwnerByEmail(email) {
       const want = email.trim().toLowerCase();
       for (let page = 1; page <= 20; page++) {
