@@ -6,7 +6,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { getAuthedUser } from "@/lib/auth/server";
+import { expoPreflight, getAuthedUserOrToken, withExpoCors } from "@/lib/headless/expo-access";
 import { checkRateLimit } from "@/lib/api/rate-limit";
 import { UploadsBodySchema } from "@/lib/headless/avatar";
 import { createReferenceUploads } from "@/lib/headless/tools";
@@ -15,8 +15,8 @@ export const dynamic = "force-dynamic";
 
 const NO_STORE = { "Cache-Control": "no-store" };
 
-export async function POST(request: Request): Promise<Response> {
-  const user = await getAuthedUser();
+async function handlePOST(request: Request): Promise<Response> {
+  const user = await getAuthedUserOrToken(request);
   if (!user) return NextResponse.json({ error: "Sign in to Sigil first.", code: "unauthorized" }, { status: 401, headers: NO_STORE });
   const limited = checkRateLimit("expo-avatar", user.id);
   if (limited) {
@@ -44,3 +44,7 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ error: "The upload could not be prepared just now; try again.", code: "unavailable" }, { status: 503, headers: NO_STORE });
   }
 }
+
+// the game from a student's own clone (localhost) calls with a bearer token: lib/headless/expo-access.ts
+export const POST = withExpoCors(handlePOST);
+export const OPTIONS = expoPreflight;

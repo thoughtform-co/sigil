@@ -58,6 +58,6 @@ export function clientKeyFor(uri: string): string {
 export function redirectHostLabel(uri: string): string {
   const url = parse(uri)
   if (!url) return 'an unknown app'
-  if (LOOPBACK_HOSTS.has(url.hostname)) return 'an app on this computer (Claude Code or a desktop client)'
+  if (LOOPBACK_HOSTS.has(url.hostname)) return 'an app on this computer (Claude Code, Expo City from your own copy, or a desktop client)'
   return url.host
 }

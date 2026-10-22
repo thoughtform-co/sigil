@@ -7,7 +7,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { getAuthedUser } from "@/lib/auth/server";
+import { expoPreflight, getAuthedUserOrToken, withExpoCors } from "@/lib/headless/expo-access";
 import { checkRateLimit } from "@/lib/api/rate-limit";
 import { prisma } from "@/lib/prisma";
 import { SIGN_IN_URL, meOf } from "@/lib/headless/post-office";
@@ -17,8 +17,8 @@ export const dynamic = "force-dynamic";
 
 const NO_STORE = { "Cache-Control": "no-store" };
 
-export async function GET(request: Request): Promise<Response> {
-  const user = await getAuthedUser();
+async function handleGET(request: Request): Promise<Response> {
+  const user = await getAuthedUserOrToken(request);
   const who = user?.id ?? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
   const limited = checkRateLimit("expo-me", who);
   if (limited) {
@@ -34,3 +34,7 @@ export async function GET(request: Request): Promise<Response> {
     return NextResponse.json({ error: "The post office could not be read just now." }, { status: 503, headers: NO_STORE });
   }
 }
+
+// the game from a student's own clone (localhost) calls with a bearer token: lib/headless/expo-access.ts
+export const GET = withExpoCors(handleGET);
+export const OPTIONS = expoPreflight;

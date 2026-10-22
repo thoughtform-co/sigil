@@ -6,7 +6,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { getAuthedUser } from "@/lib/auth/server";
+import { expoPreflight, getAuthedUserOrToken, withExpoCors } from "@/lib/headless/expo-access";
 import { checkRateLimit } from "@/lib/api/rate-limit";
 import { avatarJob, studentOf } from "@/lib/headless/avatar-jobs";
 
@@ -16,8 +16,8 @@ export const maxDuration = 300;
 
 const NO_STORE = { "Cache-Control": "no-store" };
 
-export async function GET(_request: Request, { params }: { params: Promise<{ job: string }> }): Promise<Response> {
-  const user = await getAuthedUser();
+async function handleGET(request: Request, { params }: { params: Promise<{ job: string }> }): Promise<Response> {
+  const user = await getAuthedUserOrToken(request);
   if (!user) return NextResponse.json({ error: "Sign in to Sigil first.", code: "unauthorized" }, { status: 401, headers: NO_STORE });
   const limited = checkRateLimit("expo-avatar-job", user.id);
   if (limited) {
@@ -33,3 +33,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ job
     return NextResponse.json({ error: "The draw could not be read just now; try again.", code: "unavailable" }, { status: 503, headers: NO_STORE });
   }
 }
+
+// the game from a student's own clone (localhost) calls with a bearer token: lib/headless/expo-access.ts
+export const GET = withExpoCors(handleGET);
+export const OPTIONS = expoPreflight;
