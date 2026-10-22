@@ -131,7 +131,7 @@ describe("GET /api/expo/me", () => {
 
   it("no plot yet: plot null, no parcels", async () => {
     signedIn("owner-nobody");
-    expect((await me()).body).toEqual({ signedIn: true, name: "Ida Peeters", plot: null, parcels: [] });
+    expect((await me()).body).toEqual({ signedIn: true, name: "Ida Peeters", plot: null, parcels: [], avatar: null, assignment: expect.objectContaining({ module: 2 }), threeD: false });
   });
 
   it("lists the student's own parcels newest module first, the card and questions only", async () => {

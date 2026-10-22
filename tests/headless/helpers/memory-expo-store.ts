@@ -1,3 +1,4 @@
+import type { StoredAvatar } from "@/lib/headless/avatar";
 import type { Assignments, ExpoStore, PlotDoc, PostRecord, StoredHandIn } from "@/lib/headless/expo";
 
 export type MemoryExpoStore = ExpoStore & {
@@ -5,6 +6,8 @@ export type MemoryExpoStore = ExpoStore & {
   assignments: Assignments;
   posts: Map<string, PostRecord>;
   handIns: Map<string, StoredHandIn>;
+  avatars: Map<string, StoredAvatar>;
+  cutouts: Map<string, Buffer>;
 };
 
 /** Expo City's store in memory: plots and versions, assignments, post records and hand-ins. */
@@ -12,10 +15,22 @@ export function memoryExpoStore(users: Record<string, string> = {}): MemoryExpoS
   const files = new Map<string, PlotDoc>();
   const posts = new Map<string, PostRecord>();
   const handIns = new Map<string, StoredHandIn>();
+  const avatars = new Map<string, StoredAvatar>();
+  const cutouts = new Map<string, Buffer>();
   let assignments: Assignments = {};
   return {
     posts,
     handIns,
+    avatars,
+    cutouts,
+    readAvatar: async (id) => structuredClone(avatars.get(id) ?? null),
+    async writeAvatar(id, a) {
+      avatars.set(id, structuredClone(a));
+    },
+    async writeCutout(id, name, png) {
+      cutouts.set(`${id}/${name}`, png);
+      return `https://x.supabase.co/storage/v1/object/public/outputs/expo/avatar/${id}/${name}.png`;
+    },
     readPost: async (p) => structuredClone(posts.get(p) ?? {}),
     async writePost(p, r) {
       posts.set(p, structuredClone(r));

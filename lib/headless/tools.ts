@@ -44,6 +44,8 @@ const STRICT = { allowFallback: false } as const;
  * will never finish: say so, and stop it counting against the allowance.
  */
 const STALE_AFTER_MS = 8 * 60 * 1000;
+/** A draw still processing after this long never finishes (the avatar routes use it too). */
+export const STALE_MS = STALE_AFTER_MS;
 /** How long an image call waits before handing back an id to collect later. */
 export const INLINE_WAIT_MS = 50_000;
 
@@ -125,7 +127,7 @@ function outputsPrefix(env: NodeJS.ProcessEnv): string | null {
  * their own folder of the references bucket) or something Sigil drew earlier (a URL in the
  * outputs bucket). Nothing else is fetched, so a reference can never point the server elsewhere.
  */
-async function resolveReferences(
+export async function resolveReferences(
   value: unknown,
   ownerId: string,
   env: NodeJS.ProcessEnv,
@@ -157,7 +159,7 @@ async function resolveReferences(
   return { urls, paths };
 }
 
-async function createGeneration(input: {
+export async function createGeneration(input: {
   ownerId: string;
   type: "image" | "video" | "3d";
   modelId: string;
@@ -179,7 +181,7 @@ async function createGeneration(input: {
   });
 }
 
-function failureText(outcome: Exclude<ProcessOutcome, { kind: "completed" }>): string {
+export function failureText(outcome: Exclude<ProcessOutcome, { kind: "completed" }>): string {
   switch (outcome.kind) {
     case "claimed":
       return "This draw is already running.";
@@ -309,6 +311,28 @@ const listModels: McpTool = {
   },
 };
 
+const UPLOAD_EXTENSIONS: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+
+/**
+ * One signed upload URL per file, into the person's own folder of the references bucket; its `ref`
+ * is what a draw takes. Shared by create_upload_urls and Expo City's character creator.
+ */
+export async function createReferenceUploads(ownerId: string, files: { mimeType: string; name?: string | null }[]) {
+  const admin = createAdminClient();
+  const uploads: { name: string | null; mimeType: string; ref: string; uploadUrl: string }[] = [];
+  for (const file of files) {
+    const ext = UPLOAD_EXTENSIONS[file.mimeType];
+    if (!ext) throw new ToolInputError("Each file needs a mimeType of image/jpeg, image/png or image/webp.");
+    const path = `references/${ownerId}/mcp-${randomUUID()}.${ext}`;
+    const { data, error } = await admin.storage.from(REFERENCES_BUCKET).createSignedUploadUrl(path);
+    if (error || !data?.signedUrl) {
+      throw new Error(`Could not prepare an upload: ${error?.message ?? "unknown error"}`);
+    }
+    uploads.push({ name: file.name ? file.name.slice(0, 200) : null, mimeType: file.mimeType, ref: path, uploadUrl: data.signedUrl });
+  }
+  return uploads;
+}
+
 const createUploadUrls: McpTool = {
   name: "create_upload_urls",
   title: "Upload reference images",
@@ -341,25 +365,10 @@ const createUploadUrls: McpTool = {
     if (files.length === 0 || files.length > MAX_UPLOADS_PER_CALL) {
       throw new ToolInputError(`Pass between 1 and ${MAX_UPLOADS_PER_CALL} files.`);
     }
-    const extensions: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
-    const admin = createAdminClient();
-    const uploads = [];
-    for (const file of files as Array<Record<string, unknown>>) {
-      const mimeType = typeof file?.mimeType === "string" ? file.mimeType : "";
-      const ext = extensions[mimeType];
-      if (!ext) throw new ToolInputError("Each file needs a mimeType of image/jpeg, image/png or image/webp.");
-      const path = `references/${ctx.principal.ownerId}/mcp-${randomUUID()}.${ext}`;
-      const { data, error } = await admin.storage.from(REFERENCES_BUCKET).createSignedUploadUrl(path);
-      if (error || !data?.signedUrl) {
-        throw new Error(`Could not prepare an upload: ${error?.message ?? "unknown error"}`);
-      }
-      uploads.push({
-        name: typeof file.name === "string" ? file.name.slice(0, 200) : null,
-        mimeType,
-        ref: path,
-        uploadUrl: data.signedUrl,
-      });
-    }
+    const uploads = await createReferenceUploads(
+      ctx.principal.ownerId,
+      (files as Array<Record<string, unknown>>).map((file) => ({ mimeType: typeof file?.mimeType === "string" ? file.mimeType : "", name: typeof file?.name === "string" ? file.name : null })),
+    );
     const lines = uploads.map(
       (u, i) => `${i + 1}. ${u.name ?? "file"}: PUT to ${u.uploadUrl} with Content-Type ${u.mimeType}; then use ref ${u.ref}`,
     );

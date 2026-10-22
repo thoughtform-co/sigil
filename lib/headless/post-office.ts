@@ -13,6 +13,8 @@ import { z } from "zod";
 import { countsOf, currentParcel, expoStore, plotOf, type ExpoStore, type ParcelCounts } from "./expo";
 import type { HandInAnswer } from "./hand-in";
 import type { KeeperQuestion } from "./keeper";
+import { assignmentFor, type ExpoAssignment } from "./assignment";
+import type { Avatar } from "./avatar";
 
 /** The sign-in page, coming back to the post office in the game afterwards. */
 export const POST_OFFICE_PATH = "/expo/?place=post";
@@ -29,15 +31,23 @@ export interface Parcel {
   answered: boolean;
 }
 
+/**
+ * The first run (2026-10-22) adds the student's own character and their first task: `avatar` as the
+ * character creator kept it (lib/headless/avatar.ts; null until they keep one), `assignment` the
+ * pigeon's parcel (lib/headless/assignment.ts; null once posted), and `threeD`, whether a 3D model
+ * can be made from the views (Meshy configured), so the game offers the upgrade only then.
+ */
 export type Me =
   | { signedIn: false; signIn: string }
-  | { signedIn: true; name: string | null; plot: string | null; parcels: Parcel[] };
+  | { signedIn: true; name: string | null; plot: string | null; parcels: Parcel[]; avatar: Avatar | null; assignment: ExpoAssignment | null; threeD: boolean };
 
-/** What the keeper knows of the signed-in student: their name, their plot and their parcels, newest module first. */
-export async function meOf(userId: string, profileName: string | null, s: ExpoStore = expoStore()): Promise<Me> {
-  const plot = await plotOf(userId, s);
+/** What the keeper knows of the signed-in student: their name, their plot, their parcels newest module first, their avatar and assignment. */
+export async function meOf(userId: string, profileName: string | null, s: ExpoStore = expoStore(), opts: { threeD?: boolean } = {}): Promise<Me> {
+  const [plot, kept] = await Promise.all([plotOf(userId, s), s.readAvatar(userId).catch(() => null)]);
   const fallback = profileName && !profileName.includes("@") ? profileName.trim().slice(0, 60) || null : null;
-  if (!plot) return { signedIn: true, name: fallback, plot: null, parcels: [] };
+  const avatar = kept?.avatar ?? null;
+  const threeD = opts.threeD ?? false;
+  if (!plot) return { signedIn: true, name: fallback, plot: null, parcels: [], avatar, assignment: assignmentFor([]), threeD };
   const [doc, post] = await Promise.all([s.readPlot(plot), s.readPost(plot)]);
   const modules = Object.keys(post)
     .map(Number)
@@ -57,7 +67,7 @@ export async function meOf(userId: string, profileName: string | null, s: ExpoSt
       };
     }),
   );
-  return { signedIn: true, name: doc?.student ?? fallback, plot, parcels };
+  return { signedIn: true, name: doc?.student ?? fallback, plot, parcels, avatar, assignment: assignmentFor(modules), threeD };
 }
 
 export const AnswersBodySchema = z.strictObject({
