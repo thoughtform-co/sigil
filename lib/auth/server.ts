@@ -51,8 +51,27 @@ export const getAuthedUser = cache(async (): Promise<AuthedUser | null> => {
     error,
   } = await supabase.auth.getUser();
   if (error || !user) return null;
+  if (!(await mayUseSigil(user.id, user.email ?? null))) return null;
   return { id: user.id, email: user.email ?? null };
 });
+
+/**
+ * A Supabase session is not enough. Supabase's own sign-in API is reachable with the public key, so a
+ * session can exist for an address Sigil never invited; the login page's allow-list check runs in the
+ * browser and can be skipped. Every request is held here to the allow-list, and to the account not being
+ * disabled, so removing an address or disabling an account ends that person's access at once.
+ */
+async function mayUseSigil(id: string, email: string | null): Promise<boolean> {
+  if (!email) return false;
+  const [allowed, profile] = await Promise.all([
+    prisma.allowedEmail.findFirst({
+      where: { email: { equals: email.trim(), mode: "insensitive" } },
+      select: { id: true },
+    }),
+    prisma.profile.findUnique({ where: { id }, select: { isDisabled: true } }),
+  ]);
+  return Boolean(allowed) && !profile?.isDisabled;
+}
 
 export async function ensureProfile(user: AuthedUser) {
   await prisma.profile.upsert({
