@@ -11,8 +11,9 @@ import { checkRateLimit } from "@/lib/api/rate-limit";
 import { keepAvatar, studentOf } from "@/lib/headless/avatar-jobs";
 
 export const dynamic = "force-dynamic";
-// a view not yet cut out of its ground is cut here
-export const maxDuration = 60;
+// a view not yet cut out of its ground is cut here (four at most); the same limit as the creator's other routes,
+// so the function is built like them (a lone 60 left it without sharp's native files in production)
+export const maxDuration = 300;
 
 const NO_STORE = { "Cache-Control": "no-store" };
 

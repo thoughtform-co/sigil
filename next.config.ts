@@ -71,6 +71,12 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["sharp"],
   outputFileTracingIncludes: {
     "/api/mcp": ["./node_modules/@img/**/*"],
+    // Expo City's character creator cuts every view out of its ground with sharp (lib/headless/avatar.ts)
+    "/api/expo/avatar": ["./node_modules/@img/**/*"],
+    "/api/expo/avatar/keep": ["./node_modules/@img/**/*"],
+    "/api/expo/avatar/uploads": ["./node_modules/@img/**/*"],
+    "/api/expo/avatar/[job]": ["./node_modules/@img/**/*"],
+    "/api/expo/me": ["./node_modules/@img/**/*"],
   },
   experimental: {
     optimizePackageImports: ["@xyflow/react"],
