@@ -22,6 +22,9 @@ export default function LoginPage() {
   const [view, setView] = useState<ViewState>("form");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [code, setCode] = useState("");
+  const [codeError, setCodeError] = useState("");
+  const [verifying, setVerifying] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -85,6 +88,37 @@ export default function LoginPage() {
     } else {
       setSubmittedEmail(trimmed);
       setView("sent");
+    }
+  };
+
+  // The emailed code, not the link: mail scanners such as Microsoft Safe Links open
+  // every link in a school inbox first and spend its one-time token, so the person
+  // clicking after them only ever sees "link is invalid or has expired".
+  const handleVerifyCode = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const token = code.replace(/\s/g, "");
+    const target = (submittedEmail ?? email).trim();
+    if (verifying || !token || !target) return;
+
+    setVerifying(true);
+    setCodeError("");
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.verifyOtp({
+        email: target,
+        token,
+        type: "email",
+      });
+      if (error) {
+        setCodeError("That code is wrong or has expired. Check the newest email, or send a new code.");
+        return;
+      }
+      router.replace(getNextPath() ?? "/journeys");
+      router.refresh();
+    } catch {
+      setCodeError("Something went wrong. Please try again.");
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -248,7 +282,7 @@ export default function LoginPage() {
                 >
                   {(
                     [
-                      { id: "magic-link" as const, label: "Magic link" },
+                      { id: "magic-link" as const, label: "Email code" },
                       { id: "password" as const, label: "Password" },
                     ] as const
                   ).map((tab) => {
@@ -410,7 +444,7 @@ export default function LoginPage() {
                   ) : loginTab === "password" ? (
                     "Log In"
                   ) : (
-                    "Send Magic Link"
+                    "Send Login Code"
                   )}
                 </button>
               </form>
@@ -460,23 +494,78 @@ export default function LoginPage() {
                     marginTop: "8px",
                   }}
                 >
-                  We sent a magic link to{" "}
+                  We sent a login code to{" "}
                   <span style={{ color: "var(--dawn-70)", fontWeight: 500 }}>
                     {submittedEmail ?? email}
                   </span>
                 </p>
+                <form onSubmit={handleVerifyCode} style={{ marginTop: "24px", textAlign: "left" }}>
+                  <label
+                    htmlFor="code"
+                    style={{
+                      display: "block",
+                      color: "var(--dawn-50)",
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "10px",
+                      fontWeight: 500,
+                      letterSpacing: "0.1em",
+                      textTransform: "uppercase",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Code from the email
+                  </label>
+                  <input
+                    id="code"
+                    name="code"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    autoFocus
+                    required
+                    maxLength={12}
+                    placeholder="123456"
+                    value={code}
+                    onChange={(e) => {
+                      setCode(e.target.value);
+                      if (codeError) setCodeError("");
+                    }}
+                    className="sigil-input py-3 px-4 text-sm"
+                    style={{ letterSpacing: "0.3em", fontFamily: "var(--font-mono)" }}
+                  />
+                  {codeError && (
+                    <p
+                      style={{
+                        color: "var(--status-error)",
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "12px",
+                        marginTop: "12px",
+                      }}
+                      role="alert"
+                    >
+                      {codeError}
+                    </p>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={verifying}
+                    className="sigil-btn-primary w-full py-3.5 text-[13px] font-medium tracking-wide normal-case disabled:cursor-not-allowed"
+                    style={{ marginTop: "16px" }}
+                  >
+                    {verifying ? "Signing in..." : "Log In"}
+                  </button>
+                </form>
                 <p
                   style={{
                     color: "var(--dawn-30)",
                     fontFamily: "var(--font-sans)",
                     fontSize: "12px",
-                    marginTop: "12px",
+                    marginTop: "16px",
                     lineHeight: 1.5,
                   }}
                 >
                   If nothing arrives within a few minutes, check spam or promotions.
-                  Magic links are sent from your Supabase project; confirm Auth email
-                  is enabled and redirect URLs allow this site.
+                  Only the newest code works.
                 </p>
                 <button
                   type="button"
@@ -485,6 +574,8 @@ export default function LoginPage() {
                     setSubmittedEmail(null);
                     setEmail("");
                     setPassword("");
+                    setCode("");
+                    setCodeError("");
                     setLoginTab("magic-link");
                   }}
                   style={{
