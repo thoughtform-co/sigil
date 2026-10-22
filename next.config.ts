@@ -30,8 +30,11 @@ function contentSecurityPolicy(): string | undefined {
   ].join("; ");
 }
 
-/** The plot worker of Expo City (public/expo/assets/plot.worker-*.js) runs students' code. */
+/** The plot worker of Expo City (/expo/assets/plot.worker-*.js) runs students' code. */
 const EXPO_PLOT_WORKER_CSP = "default-src 'none'; script-src 'self'";
+
+/** Where Expo City is deployed: the expo-city project's production domain. */
+const EXPO_CITY_ORIGIN = process.env.EXPO_CITY_ORIGIN ?? "https://expo-city-gamma.vercel.app";
 
 const nextConfig: NextConfig = {
   turbopack: {
@@ -86,11 +89,13 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
-  // Expo City (public/expo/) is a built static game: its folder opens on its index.
+  // Expo City is built and deployed from its own repository (thoughtform-co/expo-city, Vercel project
+  // expo-city, served under /expo/ there too) and shown here at /expo, so the game stays on Sigil's
+  // origin, beside the sign-in cookie and /api/expo/*. A merged plot is live without a Sigil deploy.
   async rewrites() {
     return [
-      { source: "/expo", destination: "/expo/index.html" },
-      { source: "/expo/", destination: "/expo/index.html" },
+      { source: "/expo", destination: `${EXPO_CITY_ORIGIN}/expo/` },
+      { source: "/expo/:path*", destination: `${EXPO_CITY_ORIGIN}/expo/:path*` },
     ];
   },
   async headers() {
