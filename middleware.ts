@@ -8,7 +8,7 @@ import { withCorrelationId } from "@/lib/api/correlation";
  * `route.ts` must call `getAuthedUser()` / `requireAdmin()` or be intentionally public (e.g.
  * `POST /api/auth/check-email`; `/api/mcp` and `/api/mcp/oauth/*`, which carry their own
  * sign-in). `/.well-known/*` holds the OAuth discovery documents and is public. `/expo/*` is Expo
- * City, the course's world fair (a static game in `public/expo/`), public on purpose. See `AGENTS.md`
+ * City, the course's world fair (a static game rewritten from its own deployment), public on purpose. See `AGENTS.md`
  * and contract tests under `tests/contracts/`.
  */
 const PUBLIC_PREFIXES = ["/auth/", "/api/auth/", "/events/", "/.well-known/", "/expo/"];

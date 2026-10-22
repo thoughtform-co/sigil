@@ -49,8 +49,10 @@ Every draw is a normal `Generation` row with `source = "mcp"`, in the person's o
 
 ## Expo City
 
-The AI storytelling course's world fair is a static game served from `public/expo/` at `/expo`
-(public; built from the course repo with `npm run build:sigil`). Each student's plot is a JSON
+The AI storytelling course's world fair is a static game at `/expo` (public), built and deployed from
+its own repository, `thoughtform-co/expo-city` (Vercel project `expo-city`), and rewritten here
+(`next.config.ts`, `EXPO_CITY_ORIGIN`) so it keeps Sigil's origin. Students change their plots there
+by pull request; the teacher merges. Each student's plot is a JSON
 document in the public outputs bucket, `expo/plots/N07.json` (cached two seconds), each version
 kept beside it under `expo/plots/N07/` for undo; who holds which plot is `expo/assignments.json`
 in the private references bucket. The game polls `GET /api/expo/state` (public, CORS-open, edge
