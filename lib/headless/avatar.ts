@@ -90,9 +90,9 @@ const RULES = [
 
 const VIEW_LINE: Record<AvatarView, string> = {
   front: "Front view: the character faces the camera.",
-  right: "Right view: a true side profile at 90 degrees, not a three-quarter view. The camera is on the character's own right side: the whole body turned so they face the left edge of the image, one eye and one ear visible, the nose pointing left.",
+  right: "Right view: a true side profile at 90 degrees, not a three-quarter view. The camera is on the character's own right side, so we see their right arm and right ear, and they face the right edge of the image, the nose pointing right.",
   back: "Back view: straight from behind, the body square to the camera: we see their back and the back of the head and hair, nothing of the face.",
-  left: "Left view: a true side profile at 90 degrees, not a three-quarter view. The camera is on the character's own left side: the whole body turned so they face the right edge of the image, one eye and one ear visible, the nose pointing right.",
+  left: "Left view: a true side profile at 90 degrees, not a three-quarter view. The camera is on the character's own left side, so we see their left arm and left ear, and they face the left edge of the image, the nose pointing left.",
 };
 
 /** The prompt for one view. The front is drawn from the student's pictures; the others from the kept front. */

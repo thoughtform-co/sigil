@@ -107,6 +107,9 @@ describe("the avatar recipe's prompt", () => {
     expect(avatarPrompt("back")).toMatch(/straight from behind/);
     expect(avatarPrompt("right")).toMatch(/true side profile.*not a three-quarter view/);
     expect(avatarPrompt("left")).toMatch(/own left side/);
+    // camera on their right: they face the image's right edge (and the left view the left edge)
+    expect(avatarPrompt("right")).toMatch(/face the right edge/);
+    expect(avatarPrompt("left")).toMatch(/face the left edge/);
   });
 });
 
