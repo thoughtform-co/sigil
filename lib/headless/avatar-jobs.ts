@@ -27,6 +27,8 @@ import { ensureClaudeSession } from "./workspace";
 
 /** How long the call that starts a 3D model keeps moving it on (its function has 300 seconds). */
 const THREE_D_DRIVE_MS = 270_000;
+/** A 3D model still "processing" after this long is not counted as being made (Meshy's stages take ten minutes at most). */
+const THREE_D_BUSY_MS = 30 * 60 * 1000;
 /** A view larger than this is not one of Sigil's drawings. */
 const CUT_MAX_BYTES = 20 * 1024 * 1024;
 
@@ -79,12 +81,21 @@ type Row = Prisma.GenerationGetPayload<{ select: typeof ROW_SELECT }>;
  * Reserve the allowance and write the draws' rows in one go: one transaction under a per-student advisory
  * lock, so two requests at once are counted one after the other. A refusal writes nothing.
  */
-export async function reserve(student: Student, kind: AllowanceKind, rows: RowSpec[], env: NodeJS.ProcessEnv): Promise<{ rows: Row[] } | { refused: Outcome<never> }> {
+export async function reserve(
+  student: Student,
+  kind: AllowanceKind,
+  rows: RowSpec[],
+  env: NodeJS.ProcessEnv,
+  /** A further refusal read under the same lock (a 3D model already being made). */
+  guard?: (tx: Prisma.TransactionClient) => Promise<Outcome<never> | null>,
+): Promise<{ rows: Row[] } | { refused: Outcome<never> }> {
   const sessionId = await ensureClaudeSession(student.id, kind);
   try {
     return await prisma.$transaction(
       async (tx) => {
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`expo-allowance:${student.id}`}))`;
+        const stop = guard ? await guard(tx) : null;
+        if (stop) return { refused: stop };
         const d = await checkAllowance({ ownerId: student.id, isAdmin: student.isAdmin, kind, requested: rows.reduce((n, r) => n + (Number(r.parameters.numOutputs) || 1), 0), env, db: tx });
         if (!d.ok) return { refused: refuse(429, "allowance", d.message) };
         const made: Row[] = [];
@@ -191,7 +202,14 @@ export async function startAvatarDraw(student: Student, body: unknown, ctx: RunC
   if (!sources || !AVATAR_VIEWS.every((v) => isOutput(sources[v], ctx.env))) return refuse(409, "no_views", "Keep your four views first; the 3D model is made from them.");
   const name = "Expo City avatar";
   // the row first, so the model counts before Meshy is asked; a model that cannot start fails its row
-  const r = await reserve(student, "3d", [{ modelId: MESH_SETTINGS.ai_model, prompt: name, parameters: { numOutputs: 1, viewPaths: [], expoAvatar: { view: "glb" } satisfies AvatarDrawTag } }], ctx.env);
+  // one model at a time: a second click, or a second tab, would pay Meshy twice for one character
+  const busy = async (tx: Prisma.TransactionClient) => {
+    const making = await tx.generation.count({
+      where: { userId: student.id, source: "mcp", status: { in: ["processing", "processing_locked"] }, createdAt: { gt: new Date(Date.now() - THREE_D_BUSY_MS) }, parameters: { path: ["expoAvatar", "view"], equals: "glb" } },
+    });
+    return making > 0 ? refuse(409, "busy", "Your 3D model is already being made. It takes five to ten minutes.") : null;
+  };
+  const r = await reserve(student, "3d", [{ modelId: MESH_SETTINGS.ai_model, prompt: name, parameters: { numOutputs: 1, viewPaths: [], expoAvatar: { view: "glb" } satisfies AvatarDrawTag } }], ctx.env, busy);
   if ("refused" in r) return r.refused;
   const row = r.rows[0]!;
   let meshTaskId: string;

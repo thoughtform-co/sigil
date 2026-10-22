@@ -3,7 +3,19 @@ import sharp from "sharp";
 
 vi.mock("@/lib/auth/server", () => ({ getAuthedUser: vi.fn() }));
 vi.mock("@/lib/api/rate-limit", () => ({ checkRateLimit: () => null }));
-const db = vi.hoisted(() => ({ draws: new Map<string, Record<string, unknown>>(), used: 0, created: [] as Record<string, unknown>[], locks: 0 }));
+const db = vi.hoisted(() => ({ draws: new Map<string, Record<string, unknown>>(), used: 0, created: [] as Record<string, unknown>[], locks: 0, making: 0 }));
+const meshy = vi.hoisted(() => ({ started: [] as string[][] }));
+vi.mock("@/lib/models/meshy", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/models/meshy")>();
+  return {
+    ...actual,
+    createMeshTask: vi.fn(async (_env: unknown, urls: string[]) => {
+      meshy.started.push(urls);
+      return "mesh-task-1";
+    }),
+  };
+});
+vi.mock("@/lib/headless/three-d", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/lib/headless/three-d")>()), driveThreeD: vi.fn(async () => undefined) }));
 vi.mock("@/lib/headless/workspace", () => ({ ensureClaudeSession: vi.fn(async () => "session-claude") }));
 vi.mock("@/lib/models/process-generation", () => ({ processGeneration: vi.fn(async () => ({ kind: "completed", outputs: [], cost: 0, modelId: "m", routed: false })) }));
 vi.mock("@/lib/prisma", () => ({
@@ -16,6 +28,7 @@ vi.mock("@/lib/prisma", () => ({
           return 1;
         }),
         generation: {
+          count: vi.fn(async () => db.making),
           findMany: vi.fn(async () => Array.from({ length: db.used }, () => ({ createdAt: new Date(), parameters: { numOutputs: 1 } }))),
           create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
             const row = { id: `00000000-0000-4000-9000-${String(db.created.length + 1).padStart(12, "0")}`, negativePrompt: null, ...data };
@@ -78,6 +91,8 @@ beforeEach(async () => {
   db.used = 0;
   db.created = [];
   db.locks = 0;
+  db.making = 0;
+  meshy.started = [];
   s = memoryExpoStore({ "ida@student.test": IDA });
   setExpoStore(s);
   await tool("expo_assign").run({ plot: "N07", email: "ida@student.test", label: "Ida" }, ctx("teacher", "admin"));
@@ -199,6 +214,29 @@ describe("startAvatarDraw", () => {
     expect(isOutput(`${OUT}a/%2e%2e/x.png`, env)).toBe(false);
     expect(isOutput("https://elsewhere.test/storage/v1/object/public/outputs/a.png", env)).toBe(false);
     expect(isOutput(`${OUT}a.png?redirect=1`, env)).toBe(false);
+  });
+  it("makes the 3D model from the four kept originals, front first, after its row is reserved, and only one at a time", async () => {
+    const env3d = { ...env, MESHY_API_KEY: "k" } as NodeJS.ProcessEnv;
+    const views = Object.fromEntries(["front", "right", "back", "left"].map((v) => [v, `${OUT}${IDA}/${v}.png`]));
+    await s.writeAvatar(IDA, { avatar: { kind: "views", ...views } as never, sources: views as never, keptAt: "2026-10-22T10:00:00.000Z" });
+    const started = await startAvatarDraw(ida, { step: "3d" }, { env: env3d, waitUntil: () => undefined }, s);
+    expect(started.status).toBe(202);
+    expect(meshy.started).toEqual([[views.front, views.right, views.back, views.left]]);
+    expect(db.created).toHaveLength(1);
+    expect((db.created[0]!.parameters as { expoAvatar: { view: string } }).expoAvatar.view).toBe("glb");
+    // a second press while it is being made: refused before Meshy is asked
+    db.making = 1;
+    const again = await startAvatarDraw(ida, { step: "3d" }, { env: env3d, waitUntil: () => undefined }, s);
+    expect(again.body).toMatchObject({ code: "busy" });
+    expect(meshy.started).toHaveLength(1);
+  });
+  it("keeps a finished 3D model as the contract's glb, with the four views beside it", async () => {
+    const views = Object.fromEntries(["front", "right", "back", "left"].map((v) => [v, `${OUT}expo/avatar/${IDA}/${v}.png`]));
+    await s.writeAvatar(IDA, { avatar: { kind: "views", ...views } as never, keptAt: "2026-10-22T10:00:00.000Z" });
+    db.draws.set(uuid(7), { id: uuid(7), userId: IDA, status: "completed", errorMessage: null, createdAt: new Date(), outputs: [], parameters: { expoAvatar: { view: "glb" }, threeD: { meshTaskId: "mesh-task-1", stage: "done", glbUrl: `${OUT}${IDA}/${uuid(7)}/avatar.glb` } } });
+    const r = await keepAvatar(ida, { glb: uuid(7) }, env, s);
+    expect(r.status).toBe(200);
+    expect(s.avatars.get(IDA)?.avatar).toEqual({ kind: "glb", src: `${OUT}${IDA}/${uuid(7)}/avatar.glb`, views });
   });
   it("offers no 3D model while Meshy is not configured", async () => {
     const r = await startAvatarDraw(ida, { step: "3d" }, run, s);
