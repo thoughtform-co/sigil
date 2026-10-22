@@ -3,9 +3,28 @@ import sharp from "sharp";
 
 vi.mock("@/lib/auth/server", () => ({ getAuthedUser: vi.fn() }));
 vi.mock("@/lib/api/rate-limit", () => ({ checkRateLimit: () => null }));
-const db = vi.hoisted(() => ({ draws: new Map<string, Record<string, unknown>>() }));
+const db = vi.hoisted(() => ({ draws: new Map<string, Record<string, unknown>>(), used: 0, created: [] as Record<string, unknown>[], locks: 0 }));
+vi.mock("@/lib/headless/workspace", () => ({ ensureClaudeSession: vi.fn(async () => "session-claude") }));
+vi.mock("@/lib/models/process-generation", () => ({ processGeneration: vi.fn(async () => ({ kind: "completed", outputs: [], cost: 0, modelId: "m", routed: false })) }));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
+    // the reservation: a transaction that takes the lock, counts and writes
+    $transaction: vi.fn(async (fn: (tx: unknown) => unknown) =>
+      fn({
+        $executeRaw: vi.fn(async () => {
+          db.locks++;
+          return 1;
+        }),
+        generation: {
+          findMany: vi.fn(async () => Array.from({ length: db.used }, () => ({ createdAt: new Date(), parameters: { numOutputs: 1 } }))),
+          create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
+            const row = { id: `00000000-0000-4000-9000-${String(db.created.length + 1).padStart(12, "0")}`, negativePrompt: null, ...data };
+            db.created.push(row);
+            return row;
+          }),
+        },
+      }),
+    ),
     profile: { findUnique: vi.fn(async () => ({ displayName: "Ida Peeters", role: "user" })) },
     generation: {
       findFirst: vi.fn(async ({ where }: { where: { id: string; userId: string } }) => {
@@ -56,6 +75,9 @@ function drew(id: string, view: string, front?: string, status = "completed", us
 let s: MemoryExpoStore;
 beforeEach(async () => {
   db.draws.clear();
+  db.used = 0;
+  db.created = [];
+  db.locks = 0;
   s = memoryExpoStore({ "ida@student.test": IDA });
   setExpoStore(s);
   await tool("expo_assign").run({ plot: "N07", email: "ida@student.test", label: "Ida" }, ctx("teacher", "admin"));
@@ -128,6 +150,7 @@ describe("the creator's routes", () => {
     expect((await res.json()).code).toBe("invalid");
   });
   it("finds only the student's own creator draws", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://x.supabase.co");
     vi.mocked(getAuthedUser).mockResolvedValue({ id: IDA, email: "ida@student.test" });
     drew(uuid(9), "front", undefined, "completed", "owner-bo");
     const res = await getJob(new Request("https://sigil.test/api/expo/avatar/x"), { params: Promise.resolve({ job: uuid(9) }) });
@@ -135,6 +158,7 @@ describe("the creator's routes", () => {
     drew(uuid(1), "front");
     const mine = await (await getJob(new Request("https://sigil.test/api/expo/avatar/x"), { params: Promise.resolve({ job: uuid(1) }) })).json();
     expect(mine).toMatchObject({ job: uuid(1), view: "front", status: "completed", url: `${OUT}expo/avatar/${IDA}/${uuid(1)}.png`, transparent: true });
+    vi.unstubAllEnvs();
   });
 });
 
@@ -143,6 +167,35 @@ describe("startAvatarDraw", () => {
     expect((await startAvatarDraw(ida, { step: "turn", front: uuid(1) }, run, s)).status).toBe(404);
     drew(uuid(1), "front", undefined, "processing");
     expect((await startAvatarDraw(ida, { step: "turn", front: uuid(1) }, run, s)).status).toBe(409);
+  });
+  it("reserves the allowance under the student's lock before anything is drawn, and writes nothing when it is spent", async () => {
+    vi.stubEnv("MCP_DAILY_IMAGES", "60");
+    drew(uuid(1), "front");
+    const turned = await startAvatarDraw(ida, { step: "turn", front: uuid(1) }, run, s);
+    expect(turned.status).toBe(202);
+    expect(db.locks).toBe(1);
+    expect(db.created.map((r) => (r.parameters as { expoAvatar: { view: string; front: string } }).expoAvatar)).toEqual([
+      { view: "right", front: uuid(1) },
+      { view: "back", front: uuid(1) },
+      { view: "left", front: uuid(1) },
+    ]);
+    expect(db.created.every((r) => r.source === "mcp" && r.status === "processing" && (r.parameters as { aspectRatio?: string }).aspectRatio === "1:1")).toBe(true);
+    // 58 used: the three sides do not fit, and no row is written
+    db.used = 58;
+    db.created = [];
+    const spent = await startAvatarDraw(ida, { step: "turn", front: uuid(1) }, run, s);
+    expect(spent.status).toBe(429);
+    expect(spent.body).toMatchObject({ code: "allowance" });
+    expect(db.created).toEqual([]);
+    vi.unstubAllEnvs();
+  });
+  it("hands on only Sigil's own outputs", async () => {
+    const { isOutput } = await import("@/lib/headless/avatar-jobs");
+    expect(isOutput(`${OUT}a/b.png`, env)).toBe(true);
+    expect(isOutput(`${OUT}a/../../private/x.png`, env)).toBe(false);
+    expect(isOutput(`${OUT}a/%2e%2e/x.png`, env)).toBe(false);
+    expect(isOutput("https://elsewhere.test/storage/v1/object/public/outputs/a.png", env)).toBe(false);
+    expect(isOutput(`${OUT}a.png?redirect=1`, env)).toBe(false);
   });
   it("offers no 3D model while Meshy is not configured", async () => {
     const r = await startAvatarDraw(ida, { step: "3d" }, run, s);

@@ -14,7 +14,7 @@ import { countsOf, currentParcel, expoStore, plotOf, type ExpoStore, type Parcel
 import type { HandInAnswer } from "./hand-in";
 import type { KeeperQuestion } from "./keeper";
 import { assignmentFor, type ExpoAssignment } from "./assignment";
-import type { Avatar } from "./avatar";
+import { AvatarSchema, type Avatar } from "./avatar";
 
 /** The sign-in page, coming back to the post office in the game afterwards. */
 export const POST_OFFICE_PATH = "/expo/?place=post";
@@ -45,7 +45,9 @@ export type Me =
 export async function meOf(userId: string, profileName: string | null, s: ExpoStore = expoStore(), opts: { threeD?: boolean } = {}): Promise<Me> {
   const [plot, kept] = await Promise.all([plotOf(userId, s), s.readAvatar(userId).catch(() => null)]);
   const fallback = profileName && !profileName.includes("@") ? profileName.trim().slice(0, 60) || null : null;
-  const avatar = kept?.avatar ?? null;
+  // only the contract's shape reaches the game; a document that is not it is no avatar
+  const parsedAvatar = kept ? AvatarSchema.safeParse(kept.avatar) : null;
+  const avatar = parsedAvatar?.success ? parsedAvatar.data : null;
   const threeD = opts.threeD ?? false;
   if (!plot) return { signedIn: true, name: fallback, plot: null, parcels: [], avatar, assignment: assignmentFor([]), threeD };
   const [doc, post] = await Promise.all([s.readPlot(plot), s.readPost(plot)]);

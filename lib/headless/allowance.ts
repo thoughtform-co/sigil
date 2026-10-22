@@ -9,6 +9,7 @@
  * Admins are not limited. A failed draw does not count.
  */
 
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export type AllowanceKind = "image" | "video" | "3d";
@@ -66,9 +67,11 @@ export async function checkAllowance(input: {
   requested: number;
   env?: NodeJS.ProcessEnv;
   now?: Date;
+  /** A transaction to count in (the creator's reservation, lib/headless/avatar-jobs.ts). */
+  db?: Pick<Prisma.TransactionClient, "generation">;
 }): Promise<AllowanceDecision> {
   const now = input.now ?? new Date();
-  const rows = await prisma.generation.findMany({
+  const rows = await (input.db ?? prisma).generation.findMany({
     where: {
       userId: input.ownerId,
       source: "mcp",
